@@ -1,0 +1,746 @@
+PERSONAL WORK PLANNING - FINAL SECURE PORTAL
+SECURITY & REGRESSION TEST REPORT
+Generated against: index.html, style.css, script.js (this delivery)
+Method: static source inspection + automated syntax/pattern checks.
+No result below is marked PASS unless the corresponding behavior is
+actually implemented in the shipped source. Items that require live
+interactive browser testing (mouse drag, real file pickers, actual
+OS "Save As" dialogs) are marked PASS (code path present) with a
+note that a manual click-through in Edge/Chrome is still recommended
+before relying on it for critical data.
+
+------------------------------------------------------------
+1. REQUIRED FILES PRESENT
+------------------------------------------------------------
+Result: PASS
+index.html, style.css, script.js, README.txt, SECURITY_TESTS.txt all
+present in the delivered folder.
+
+------------------------------------------------------------
+2. JAVASCRIPT SYNTAX
+------------------------------------------------------------
+Result: PASS
+`node --check script.js` completes with no errors. File begins with
+"use strict" and uses only ES5/ES2017-compatible vanilla syntax (no
+transpilation or bundler required).
+
+------------------------------------------------------------
+3. CSP PRESENT AND EXACT
+------------------------------------------------------------
+Result: PASS
+index.html <head> contains a <meta http-equiv="Content-Security-Policy">
+tag whose content attribute is exactly:
+default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests
+
+------------------------------------------------------------
+4. NO innerHTML / outerHTML / insertAdjacentHTML
+------------------------------------------------------------
+Result: PASS
+grep across script.js and index.html for innerHTML, outerHTML, and
+insertAdjacentHTML returns zero matches. All rendering uses
+createElement / textContent / replaceChildren / appendChild.
+
+------------------------------------------------------------
+5. NO eval OR Function CONSTRUCTOR
+------------------------------------------------------------
+Result: PASS
+grep for `eval(` and `new Function` returns zero matches in
+script.js.
+
+------------------------------------------------------------
+6. NO document.write
+------------------------------------------------------------
+Result: PASS
+grep for `document.write` returns zero matches.
+
+------------------------------------------------------------
+7. NO REMOTE NETWORK CALLS / RESOURCES
+------------------------------------------------------------
+Result: PASS
+- grep for fetch(, XMLHttpRequest, WebSocket, EventSource returns
+  zero matches in script.js.
+- index.html only links a local style.css and loads a local
+  script.js; there are no <script src="http...">, remote <img>,
+  remote fonts, or CDN references anywhere in the three runtime
+  files.
+- CSP additionally sets connect-src 'none', which independently
+  blocks fetch/XHR/WebSocket/EventSource/beacon calls at the
+  browser level even if one were later added by mistake.
+- The only network-capable browser APIs used are the local-only
+  File System Access API (showSaveFilePicker, writable.write) and
+  IndexedDB, neither of which transmits data off the device.
+
+------------------------------------------------------------
+8. SAFE DOM RENDERING
+------------------------------------------------------------
+Result: PASS
+Every dynamic element (nav buttons, table rows, cells, selects,
+pills, filter controls, resize handles) is built exclusively with
+document.createElement, .textContent, .replaceChildren,
+.appendChild, .classList, and .addEventListener. No template
+strings are ever parsed as HTML. No inline event attributes
+(onclick="..." etc.) exist anywhere in the markup or generated DOM.
+
+------------------------------------------------------------
+9. PLAIN-TEXT PASTE SANITIZATION
+------------------------------------------------------------
+Result: PASS
+Every contenteditable cell has a "paste" listener that calls
+preventDefault(), reads only clipboardData "text/plain", runs it
+through sanitizeCell() (strips control characters, caps length),
+and inserts it with document.execCommand("insertText", ...) rather
+than allowing the browser's default rich/HTML paste. This means
+pasted HTML, scripts, or styles from the clipboard can never be
+injected as markup.
+
+------------------------------------------------------------
+10. JSON STRUCTURE VALIDATION (IMPORT)
+------------------------------------------------------------
+Result: PASS
+normalizeWorkbook() throws with a specific message unless:
+- the parsed root is an Array,
+- every sheet entry is an object with a sanitized, non-empty name,
+- non-task sheets declare a non-empty columns array,
+- task-schema sheets (Daily planning - All tasks, All future Tasks,
+  Completed tasks) are coerced to the fixed 9-column schema with
+  legacy field fallbacks (Catogery -> Priority, Task-From -> Raised
+  by, Assigned Resource -> Work with, Notes/Deliver-TO -> Next
+  steps),
+- undeclared keys on generic-sheet rows are discarded, and only
+  column-aligned values are kept,
+- rows arrays longer than 5,000 are truncated.
+Any failure surfaces to the user via the exact
+"Import blocked: " + message alert before any data is replaced.
+
+------------------------------------------------------------
+11. IMPORT-SIZE LIMIT
+------------------------------------------------------------
+Result: PASS
+handleImportFileChosen checks file.size against MAX_IMPORT_BYTES
+(2 * 1024 * 1024) before any read/parse occurs, and alerts exactly
+"Backup file is too large." if exceeded.
+
+------------------------------------------------------------
+12. ROW LIMIT (5,000)
+------------------------------------------------------------
+Result: PASS
+Enforced in three places: handleAddRow, copyRow, and
+normalizeWorkbook/normalizeTaskSheet/normalizeGenericSheet (rows are
+sliced to 5,000 on load/import regardless of source). Add/Copy both
+alert exactly "Row limit reached for this sheet." when the sheet is
+already at the cap.
+
+------------------------------------------------------------
+13. CSV FORMULA-INJECTION PROTECTION
+------------------------------------------------------------
+Result: PASS
+csvFieldEscape() prefixes a leading apostrophe to any field whose
+first character is =, +, -, @, a tab, or a carriage return, BEFORE
+quote-doubling/quoting is applied, neutralizing spreadsheet formula
+execution on open. Fields containing a comma, quote, or newline are
+quoted, and embedded quotes are doubled.
+
+------------------------------------------------------------
+14. localStorage AS PRIMARY PERSISTENCE
+------------------------------------------------------------
+Result: PASS
+saveWorkbook() writes synchronously to localStorage
+(workPlanningFinal.v2.data) FIRST, unconditionally, on every
+workbook mutation (cell edit, status change, add/copy/move/delete
+row, reset, import). Auto backup to disk is only queued afterward,
+as a secondary/optional layer - the app remains fully usable and
+data-safe with auto backup disabled entirely.
+
+------------------------------------------------------------
+15. AUTO-BACKUP REQUIRES USER-SELECTED FILE
+------------------------------------------------------------
+Result: PASS (code path present - verify picker interaction live)
+No write to disk ever occurs until the user has explicitly clicked
+"Enable Auto Backup" and completed a real, browser-native
+showSaveFilePicker() dialog. A canceled picker (AbortError) is
+caught and does nothing - no alert, no state change, no partial
+write.
+
+------------------------------------------------------------
+16. INDEXEDDB HANDLE PERSISTENCE
+------------------------------------------------------------
+Result: PASS (code path present - verify across a real browser restart)
+On successful file selection, the FileSystemFileHandle is stored via
+idbSaveHandle() into database workPlanningFinal.v2.autoBackup,
+version 1, object store "handles", key "workbookJson". On startup,
+initAutoBackupOnStartup() attempts to read that same handle back via
+idbLoadHandle() before deciding the button's initial state.
+
+------------------------------------------------------------
+17. PERMISSION HANDLING
+------------------------------------------------------------
+Result: PASS
+Before every write, the app calls handle.queryPermission({mode:
+"readwrite"}) and only calls requestPermission() if not already
+granted. If permission is denied/unavailable, the button is set to
+"Resume Auto Backup" rather than silently failing or silently
+retrying forever.
+
+------------------------------------------------------------
+18. BACKUP QUEUED AFTER WORKBOOK CHANGES
+------------------------------------------------------------
+Result: PASS
+saveWorkbook() calls queueAutoBackupWrite() on every save.
+queueAutoBackupWrite() debounces via setTimeout(...,250). A
+writeInProgress / writePending flag pair prevents overlapping
+writable streams and guarantees one more write runs after the
+in-flight write finishes if changes arrived during it.
+
+------------------------------------------------------------
+19. RESET WORKS IDENTICALLY ON EVERY PAGE
+------------------------------------------------------------
+Result: PASS
+handleResetSheet() operates only on currentSheet() and is not
+special-cased per page name: it always asks "Clear all rows from
+this sheet?", then sets sheet.rows = [] (leaving zero rows,
+including on pages that started with seeded example data), clears
+that page's saved filters via clearSheetFilters(sheet.name), clears
+that page's sort state, saves, and rerenders. Verified this logic
+path is identical across all seven sheet names (no per-name branch
+exists in this function).
+
+------------------------------------------------------------
+20. ADD-ROW AUTO-SCROLL / HIGHLIGHT / FOCUS
+------------------------------------------------------------
+Result: PASS (code path present - verify visually in-browser)
+handleAddRow() appends the row, saves, rerenders, and after an
+80ms setTimeout locates the new row by its true source index in the
+freshly rendered DOM, calls scrollIntoView({behavior:"smooth",
+block:"center"}), adds the row-highlight class (removed again after
+1800ms via a second setTimeout), and focuses the first
+contenteditable/input/select/button found inside that row with
+{preventScroll:true} so focusing does not cause a second jump.
+
+------------------------------------------------------------
+21. BLANK DUE-DATE CALENDAR BEHAVIOR
+------------------------------------------------------------
+Result: PASS
+The Due date cell on "Daily planning - All tasks" is a readOnly
+type="text" input whose value is the raw stored string ("" when
+blank, with no placeholder text, so it renders completely empty).
+On focus or click it is switched to type="date", its MM/DD/YYYY
+value is converted to YYYY-MM-DD for the native picker, and
+showPicker() is invoked when the browser supports it. On change it
+converts back to MM/DD/YYYY and saves. On blur it reverts to
+type="text" / readOnly and re-displays the saved MM/DD/YYYY or
+blank.
+
+------------------------------------------------------------
+22. STATUS "Complete" MOVES ROW TO Completed tasks
+------------------------------------------------------------
+Result: PASS
+buildStatusCell()'s change handler checks
+(sheet.name === "Daily planning - All tasks" && newVal ===
+"Complete") and, if true, calls moveRowToSheet() which splices the
+row out of the source sheet and unshifts it (inserts at index 0)
+into the sheet named "Completed tasks", forcing Status to "Complete"
+on the copied row. On any other page, the same select's change
+handler simply assigns row["Status"] = newVal and saves - it does
+not move the row.
+
+------------------------------------------------------------
+23. "Move" SENDS ROW TO All future Tasks
+------------------------------------------------------------
+Result: PASS
+The Move button is rendered only when sheet.name === "Daily
+planning - All tasks" (buildActionsCell). Its click handler calls
+moveRowToSheet(sheet, sourceIdx, "All future Tasks", false), which
+removes the row from Daily planning and unshifts it onto the front
+of "All future Tasks".
+
+------------------------------------------------------------
+24. MANUAL COLUMN RESIZE PERSISTENCE
+------------------------------------------------------------
+Result: PASS
+Each header cell (including Actions) gets one 8px resize-handle span
+attached via attachResizeHandles(). mousedown starts a drag that
+updates the header cell and matching <col> width live; mouseup
+computes a rounded final pixel width (minimum 60px) and stores it in
+manualWidths under the composite key
+sanitize(sheetName) + "|" + sanitize(columnName) (or "__Actions__"
+for the Actions column), then persists the whole manualWidths map to
+localStorage under workPlanningFinal.v2.safeManualColumnWidths.
+applyManualWidths() reapplies all saved widths for the current sheet
+on every render, including after switching pages and back.
+
+------------------------------------------------------------
+SUMMARY
+------------------------------------------------------------
+24 / 24 checks: PASS at the source-code level (static inspection +
+automated syntax/pattern scanning). Items 15, 16, and 20-21 depend
+on live browser-native dialogs (file save picker, date picker,
+smooth scrolling) that cannot be fully exercised outside an actual
+Edge/Chrome session; the corresponding code paths are implemented
+and were traced by hand, but a final manual click-through in Edge
+and Chrome on the target machine (MacBook Pro) is still recommended
+before relying on Auto Backup for anything critical.
+
+------------------------------------------------------------
+ADDENDUM - COLOR THEME UPDATE RE-VERIFICATION
+------------------------------------------------------------
+Change scope: style.css color tokens/gradients were reworked from a
+blue theme to a teal/emerald primary with a warm amber/orange accent
+(header, nav, buttons, pills, status colors, focus rings, resize
+handles, floating Add Row button). Two small matching inline-style
+color values in script.js (the "Auto Backup Enabled" button state)
+were updated to the same new green shade for visual consistency.
+No HTML structure, no JavaScript logic/control flow, and no CSP
+directive were touched by this change.
+
+Re-run after the theme update:
+- node --check script.js -> PASS, no syntax errors introduced.
+- grep for innerHTML/outerHTML/insertAdjacentHTML/document.write/
+  eval(/new Function/fetch(/XMLHttpRequest/WebSocket/EventSource
+  across script.js and index.html -> zero matches (unchanged from
+  before the theme update).
+- grep for inline event-handler attributes and http(s) src/href
+  references in index.html -> only the two expected <meta> tags
+  (viewport, CSP) matched; no actual inline handlers or remote
+  resources.
+- CSP <meta> content string checked against the required exact text
+  -> matches exactly once, unchanged.
+- style.css brace balance checked programmatically (open braces ==
+  close braces) -> balanced, no truncated/malformed rules.
+- Manually reviewed style.css for leftover old-theme hex codes
+  (e.g. #2563eb, #93c5fd, #60a5fa, #4f46e5, #1d4ed8, #dbeafe,
+  #eef5ff) -> none remain; all color references now belong to the
+  new teal/amber palette.
+
+Result: all 24 checks above remain PASS after the color-theme
+change. The visible rename to "Personal Work Planning" from the
+previous revision is also unaffected by this update.
+
+------------------------------------------------------------
+ADDENDUM 2 - GLASSMORPHISM ("GLASSY") STYLE UPDATE
+------------------------------------------------------------
+Change scope: style.css was updated so the header, navigation pills,
+top-bar buttons, floating Add Row button, table card, table header
+row, filter row, filter inputs/selects, body row cards, status
+selects, the Due date control, and the row action buttons (Copy /
+Move / Delete / Clear) all now use a translucent "frosted glass"
+treatment: semi-transparent backgrounds, backdrop-filter blur
+(with -webkit-backdrop-filter fallbacks for Safari on macOS),
+soft glass borders, and subtle inset highlight shadows, so the
+colorful page background shows softly through each panel. No HTML
+structure and no JavaScript logic/control flow were changed; two
+small inline color values in script.js (the "Auto Backup Enabled"
+button state, already updated in Addendum 1) were left as-is.
+
+Re-run after the glass-style update:
+- node --check script.js -> PASS, no syntax errors.
+- style.css brace balance checked programmatically (open braces ==
+  close braces) -> balanced, no malformed/truncated rules.
+- grep for innerHTML/outerHTML/insertAdjacentHTML/document.write/
+  eval(/new Function/fetch(/XMLHttpRequest/WebSocket/EventSource
+  across script.js and index.html -> zero matches.
+- grep for inline event-handler attributes and http(s) src/href
+  references in index.html -> only the two expected <meta> tags
+  (viewport, CSP) matched; no inline handlers or remote resources
+  were introduced by the styling change.
+- CSP <meta> content string checked against the required exact
+  text -> matches exactly once, unchanged.
+- Confirmed backdrop-filter/-webkit-backdrop-filter are applied in
+  pairs everywhere the glass effect is used, so the look degrades
+  gracefully (to a plain translucent panel, still fully readable)
+  on any engine that ignores backdrop-filter, rather than breaking
+  layout or contrast.
+
+Result: all 24 core checks remain PASS after the glassmorphism
+styling update. This is a purely visual/CSS change with no effect
+on data handling, persistence, import/export, or security controls.
+
+------------------------------------------------------------
+ADDENDUM 3 - SAFARI AUTO BACKUP FIX
+------------------------------------------------------------
+Reported issue: clicking "Enable Auto Backup" in Safari showed
+"Automatic file backup requires Microsoft Edge or Google Chrome
+with File System Access support." and did nothing further.
+
+Root cause (verified via current documentation, not assumed):
+Safari (WebKit) and Firefox do not implement window.showSaveFilePicker
+or the rest of the File System Access picker API that lets a web
+page get a handle to a user-chosen file on disk - this is a platform
+limitation of those browser engines, confirmed still true as of
+2026, not a bug in this app's code. A page cannot add a missing
+browser API to itself, so simply "fixing the code" to call
+showSaveFilePicker in Safari cannot work - the function does not
+exist there. Two possible workarounds were evaluated and rejected
+before choosing the implemented fix:
+  - Origin Private File System (OPFS) via FileSystemFileHandle.
+    createWritable(): still Chromium-only in practice; Safari only
+    supports the synchronous OPFS handle, and only inside a
+    dedicated Web Worker.
+  - Loading a separate worker.js file to use that synchronous OPFS
+    handle: rejected because this app is required to run by simply
+    double-clicking index.html with no server (file:// origin), and
+    browsers reliably refuse to load an external Worker script from
+    a file:// page, which would silently break the feature in every
+    browser, not just Safari.
+
+Implemented fix: script.js now has two real, working Auto Backup
+tiers, chosen automatically based on what the current browser
+actually supports:
+  - Tier 1 (Chrome/Edge/Opera): unchanged - the original File
+    System Access picker flow, writing to a real user-chosen file
+    on disk.
+  - Tier 2 (Safari/Firefox/any browser without the picker API, as
+    long as IndexedDB exists - true in effectively all modern
+    browsers, including Safari, even under file://): a genuinely
+    automatic backup that silently keeps a full workbook snapshot
+    in the browser's IndexedDB storage after every change (same
+    250ms debounce and overlapping-write protection as Tier 1), with
+    no picker dialog and no repeated re-authorization after a
+    restart. A second click, once enabled, downloads a real portable
+    .json copy of that snapshot on demand.
+  - Only if IndexedDB itself is entirely unavailable (extremely
+    rare) does the button now show an alert, and its wording was
+    corrected to no longer claim Edge/Chrome are the only option:
+    "Automatic backup requires a browser with local storage
+    (IndexedDB) support, which is not available here."
+
+Re-run after this fix:
+- node --check script.js -> PASS, no syntax errors.
+- grep confirms the old function name supportsAutoBackup no longer
+  exists anywhere (cleanly renamed/split into supportsFsaAutoBackup
+  and supportsIdb) and there are no duplicate function definitions
+  for any auto-backup-related function (initAutoBackupOnStartup,
+  handleAutoBackupButton, queueAutoBackupWrite, writeAutoBackupNow,
+  writeSnapshotBackupNow, setAutoBackupButtonState, idbSaveSnapshot,
+  idbLoadSnapshot, triggerManualBackupDownload,
+  flashAutoBackupFeedback all appear exactly once).
+- grep for innerHTML/outerHTML/insertAdjacentHTML/document.write/
+  eval(/new Function/fetch(/XMLHttpRequest/WebSocket/EventSource
+  across script.js and index.html -> zero matches. (The new code
+  path still uses only IndexedDB, Blob/URL.createObjectURL, and an
+  anchor download - no network APIs of any kind.)
+- grep for inline event-handler attributes and http(s) src/href
+  references in index.html -> only the two expected <meta> tags
+  matched; unchanged.
+- CSP <meta> content string checked against the required exact text
+  -> matches exactly once, unchanged.
+- localStorage remains the unconditional, always-first save target
+  in saveWorkbook() regardless of which Auto Backup tier (or
+  neither) is active - confirmed by inspection, unchanged from
+  Addendum-1/2 builds.
+
+Result: Auto Backup now genuinely functions in Safari (via the
+IndexedDB snapshot tier plus on-demand download), in addition to
+continuing to work exactly as before in Chrome/Edge/Opera. All 24
+core checks remain PASS.
+
+------------------------------------------------------------
+ADDENDUM 4 - MOVE BUTTON, ENTER KEY, ROUGH NOTES, IMPORTANT
+TIMELINES CHANGES
+------------------------------------------------------------
+Five functional changes were requested and implemented:
+
+1. "All future Tasks" now has a Move button (next to Copy) that
+   sends the row to "Daily planning - All tasks", appended to the
+   BOTTOM of that page.
+2. The existing Move button on "Daily planning - All tasks" (which
+   sends a row to "All future Tasks") was changed from inserting at
+   the TOP of the destination to appending at the BOTTOM, as
+   requested.
+3. "Rough Notes" gained two new columns, Date and Task/Event, placed
+   before Notes. Date auto-populates with today's date (MM/DD/YYYY)
+   whenever a new row is added on that page, using the same
+   Date-column auto-fill logic already used elsewhere (Daily
+   planning, All future Tasks) - no page-specific code was needed
+   since that logic already keys off "does this page have a column
+   named Date", which Rough Notes now does.
+4. Pressing Enter in any editable text cell, on every page, now
+   always inserts a line break (same behavior Shift+Enter already
+   had), instead of committing/blurring the cell. The cell still
+   saves normally on blur (click away, Tab, etc.). This is a
+   deliberate behavior change from the original spec, applied
+   uniformly across every page because the same buildEditableCell
+   function is shared by all of them.
+5. "Important TimeLines" columns were replaced: Payer/DEV/SIT/UAT/
+   PROD are gone, replaced by S#, Type, Priority, Topic/event, and
+   Deadline date. Deadline date now uses the identical calendar-
+   picker control as Due date on Daily planning (blank-when-empty,
+   opens the native date picker on click/focus, saves as
+   MM/DD/YYYY) - the picker logic was generalized (via a small
+   CALENDAR_DATE_COLUMNS lookup table and a shared buildDueDateCell
+   function that now takes the column name as a parameter) rather
+   than duplicated, so both columns share one tested code path.
+   Priority on this page also automatically gets the same colored
+   pill treatment as Priority anywhere else, since pill styling is
+   keyed off the column name, not the sheet.
+
+Implementation notes / non-goals: no auto-date-fill was added to
+the Move action itself (only to Add Row, as before) - moving a row
+keeps whatever value was already in its Date/Due date/etc. columns,
+matching the existing Copy/Delete row-preservation behavior and
+avoiding an unrequested side effect.
+
+Re-verification performed after these changes:
+- node --check script.js -> PASS, no syntax errors.
+- Extracted and ran buildDefaultWorkbook() standalone in Node to
+  confirm the exact resulting columns/row counts for every one of
+  the seven pages, including the new Important TimeLines columns
+  (S#, Type, Priority, Topic/event, Deadline date; one blank seed
+  row) and the new Rough Notes columns (Date, Task/Event, Notes;
+  one blank seed row) - all confirmed correct by direct inspection
+  of the JSON output.
+- Extracted and ran the new isCalendarDateColumn() and MOVE_TARGETS
+  lookup logic standalone: confirmed Due date only activates the
+  picker on Daily planning, Deadline date only activates it on
+  Important TimeLines, Due date does NOT activate it on Important
+  TimeLines (and vice versa), and Rough Notes' new Date column
+  correctly does NOT get the calendar-picker (it is a plain,
+  auto-filled text column, matching Date columns elsewhere).
+- Extracted and ran a standalone simulation of moveRowToSheet():
+  confirmed Daily-planning-to-All-future-Tasks and All-future-
+  Tasks-to-Daily-planning moves both append to the end of the
+  destination array (bottom of the page), while the existing
+  Complete-status auto-move to "Completed tasks" still inserts at
+  the front (top) and still forces Status to "Complete", exactly as
+  before - this existing behavior was intentionally left unchanged
+  since it was not part of the request.
+- grep confirmed every edited/added function (buildDueDateCell,
+  buildActionsCell, moveRowToSheet, buildRowElement,
+  buildEditableCell, minWidthForColumn, pctWidthForColumn,
+  isCalendarDateColumn) is defined exactly once - no duplicate or
+  orphaned old definitions were left behind.
+- grep for innerHTML/outerHTML/insertAdjacentHTML/document.write/
+  eval(/new Function/fetch(/XMLHttpRequest/WebSocket/EventSource
+  across script.js and index.html -> zero matches. The Enter-key
+  change still uses only document.execCommand("insertText", ...)
+  on a contenteditable element, the same safe mechanism already
+  used for sanitized paste - no new DOM-injection surface was
+  introduced.
+- grep for inline event-handler attributes and http(s) src/href
+  references in index.html -> only the two expected <meta> tags
+  matched; unchanged.
+- CSP <meta> content string checked against the required exact text
+  -> matches exactly once, unchanged.
+- Confirmed sanitizeCell()/normalizeGenericSheet() still govern all
+  values on Important TimeLines and Rough Notes (both remain
+  "generic" sheets, not part of the fixed 9-column task schema), so
+  the existing control-character stripping, 5,000-character cap,
+  and JSON-import validation rules apply to the new columns exactly
+  as they do to every other generic-page column - no new sanitizer
+  bypass was introduced for the new columns.
+
+Result: all core security checks remain PASS after this round of
+functional changes. These were behavior/UX changes to legitimate,
+already-covered code paths (row movement, cell editing, page
+schemas, date-picker scope) - no new attack surface, network calls,
+or unsafe DOM APIs were introduced.
+
+------------------------------------------------------------
+ADDENDUM 5 - ROUGH NOTES / IMPORTANT TIMELINES CHANGES NOT
+APPEARING (ROOT CAUSE + FIX)
+------------------------------------------------------------
+Reported issue: after Addendum 4, the new Rough Notes columns
+(Date, Task/Event) and the new Important TimeLines columns (S#,
+Type, Priority, Topic/event, Deadline date) were not visible when
+reopening the app.
+
+Root cause: this app deliberately loads from localStorage first and
+only falls back to the built-in default workbook when nothing is
+saved yet (see README section 2 / SECURITY_TESTS check 14 -
+localStorage is the primary persistence layer, by design). Anyone
+who had already opened an earlier version of this app has an old
+workbook - with the old Important TimeLines columns
+(Payer/DEV/SIT/UAT/PROD) and the old single-column Rough Notes
+(Notes only) - already saved in their browser's localStorage under
+workPlanningFinal.v2.data. Loading the new index.html/script.js
+files does not touch that already-saved browser data by itself, so
+the OLD column layout kept loading every time, even though the new
+default workbook (used only for brand-new, empty browsers) was
+correct. This is the same category of issue the app already solved
+once before for the "Completed tasks" page (see the original
+NORMALIZATION AND INPUT SECURITY spec item: "If old valid saved data
+does not include Completed tasks, append that required page
+automatically and normalize it") - it simply had not yet been
+extended to cover these two newly-changed pages.
+
+Fix implemented: normalizeWorkbook() (the same function that already
+runs on every app load, on every import, and immediately after
+startup normalization is saved back to localStorage) now also
+detects and migrates these two specific pages:
+  - Important TimeLines: if the sheet's columns are not already
+    exactly ["S#", "Type", "Priority", "Topic/event",
+    "Deadline date"], every existing row is converted to the new
+    schema. Rather than silently discarding old Payer/DEV/SIT/UAT/
+    PROD values, each non-blank old value is preserved as a
+    readable "ColumnName: value" fragment inside the new
+    Topic/event column (e.g. "Payer: gg; DEV: 02/02/2029; SIT:
+    02/13/2029"), so no prior data is lost - it is just no longer
+    split across the old columns.
+  - Rough Notes: if the sheet's columns are not already exactly
+    ["Date", "Task/Event", "Notes"], every existing row's Notes
+    text is preserved, and the two new columns are simply added
+    blank alongside it.
+  - Brand-new sheets that already match the new schema (including
+    ones a user has started editing since this fix) pass straight
+    through unchanged - the migration only rewrites sheets that are
+    still on the old layout, and is safe to run on every load
+    (idempotent).
+
+Re-verification performed after this fix:
+- node --check script.js -> PASS, no syntax errors.
+- Extracted normalizeWorkbook() (and its full dependency chain:
+  sanitizeCell, sanitizeName, normalizeTaskSheet,
+  normalizeGenericSheet, columnsMatch,
+  migrateImportantTimelinesSheet, migrateRoughNotesSheet) and ran it
+  standalone in Node against a simulated OLD saved workbook (the
+  exact old Important TimeLines/Rough Notes shapes, including
+  representative user-entered data in the old columns). Verified by
+  direct inspection of the resulting JSON that:
+    - Important TimeLines rows moved from old Payer/DEV/SIT/UAT/PROD
+      fields into the new S#/Type/Priority/Topic/event/Deadline date
+      schema, with the old values readably preserved inside
+      Topic/event rather than dropped.
+    - Rough Notes rows kept their existing Notes text intact while
+      gaining blank Date and Task/Event columns.
+    - Running normalizeWorkbook() a second time on its own already-
+      migrated output leaves the columns unchanged (idempotency
+      confirmed programmatically, not just by inspection).
+    - A workbook that already used the new schema (simulating a user
+      who started fresh after this fix, or already migrated) passes
+      through with all values completely untouched.
+- grep confirms columnsMatch, migrateImportantTimelinesSheet, and
+  migrateRoughNotesSheet are each defined exactly once, with no
+  duplicate or orphaned definitions.
+- grep for innerHTML/outerHTML/insertAdjacentHTML/document.write/
+  eval(/new Function/fetch(/XMLHttpRequest/WebSocket/EventSource
+  across script.js and index.html -> zero matches. The migration
+  functions only build and return plain JavaScript objects/arrays -
+  no new DOM or network APIs were introduced.
+- grep for inline event-handler attributes and http(s) src/href
+  references in index.html -> only the two expected <meta> tags
+  matched; unchanged.
+- CSP <meta> content string checked against the required exact text
+  -> matches exactly once, unchanged.
+- Import/normalization behavior for every OTHER page (Daily
+  planning, Week planning, All future Tasks, Completed tasks, Road
+  Map - Pending) is untouched by this change - the migration only
+  triggers by exact sheet name match on "Important TimeLines" and
+  "Rough Notes", and only when their columns do not already equal
+  the new expected schema.
+
+Result: reopening the app now correctly shows the new Rough Notes
+and Important TimeLines columns even for browsers that already had
+older data saved, with prior user-entered data preserved rather
+than silently lost. All core security checks remain PASS.
+
+------------------------------------------------------------
+ADDENDUM 6 - NEWLINE RETENTION FIX, COMPLETED TASKS REORDER, AND
+PWA (ADD TO HOME SCREEN) SUPPORT
+------------------------------------------------------------
+Three changes in this round:
+
+1. NEWLINE RETENTION FIX. Root cause confirmed by direct testing:
+   document.execCommand("insertText", false, "\n") - previously used
+   for both the Enter key and paste - can be normalized by the
+   browser's contenteditable implementation into a <br> element
+   rather than a literal newline text node. A <br> element still
+   displays as a visual line break while editing, but contributes
+   NOTHING to a plain .textContent read, so the line break silently
+   disappeared the moment the cell's save-on-blur handler read
+   div.textContent. Fix: (a) a new insertTextAtCursor() helper
+   manually inserts a genuine text node via the Selection/Range API
+   instead of execCommand, for both Enter and paste, so the newline
+   is guaranteed to be literal text from the start; (b) a new
+   extractPlainText() helper replaces the raw .textContent read on
+   blur, walking the actual DOM and explicitly converting any <br>
+   or block-element boundary it finds into "\n" - a defense-in-depth
+   safety net in case any other browser quirk (autocorrect,
+   drag-and-drop, etc.) still produces a stray <br>. sanitizeCell()
+   was also updated to normalize \r\n/\r into a single \n, so pasted
+   Windows-style line endings are stored consistently.
+
+2. COMPLETED TASKS MOVED TO LAST. buildDefaultWorkbook() now builds
+   pages in the order Daily planning -> Week planning -> All future
+   Tasks -> Important TimeLines -> Road Map - Pending -> Rough Notes
+   -> Completed tasks, for brand-new installs. For existing saved
+   workbooks (which may have Completed tasks anywhere, including its
+   old 4th position), normalizeWorkbook() now unconditionally moves
+   whichever sheet is named "Completed tasks" to the end of the
+   array on every load - this runs immediately after the existing
+   "ensure Completed tasks exists" step and is idempotent (a
+   workbook where it's already last is left untouched). Because
+   reordering pages changes what a stored numeric page index points
+   at, a new loadPreviouslySelectedSheetName() helper independently
+   re-reads the raw saved workbook/index pair to recover which page
+   the user had open by NAME (not just index) before normalization
+   changed the order, so a returning user lands back on the same
+   page they left, not whatever page now happens to sit at their old
+   numeric index. This does not change the exact storage KEYS
+   (workPlanningFinal.v2.data / .selectedSheet remain as specified)
+   - only how the already-specified selectedSheet index is resolved
+   at load time.
+
+3. PWA / "ADD TO HOME SCREEN" SUPPORT. Four new files were added:
+   manifest.json, apple-touch-icon.png (180x180), icon-192.png, and
+   icon-512.png (the icons reuse the existing teal brand gradient
+   and "PWP" mark already used for the in-app header logo, generated
+   programmatically - no external image assets were fetched or
+   embedded). index.html gained a <link rel="manifest">, a
+   <link rel="apple-touch-icon">/<link rel="icon">, and standard
+   theme-color / apple-mobile-web-app-* <meta> tags so that visiting
+   the hosted page in Safari on iPhone and choosing "Add to Home
+   Screen" installs a real, standalone, full-screen app icon. style
+   .css gained env(safe-area-inset-top)/env(safe-area-inset-bottom)
+   padding on the header and floating Add Row button so they clear
+   the iPhone notch/home-indicator when running full-screen. None of
+   this introduces a server, a network call, or a build step -
+   these are purely local, static files; they only take effect once
+   the existing three app files (plus these four) are hosted at a
+   real address by the user (documented in README section 15),
+   because iOS does not allow installing a page opened via a local
+   file:// path, regardless of what a manifest declares.
+
+Re-verification performed after these changes:
+- node --check script.js -> PASS, no syntax errors.
+- style.css brace balance checked programmatically -> balanced.
+- manifest.json parsed with a strict JSON parser -> valid JSON.
+- Extracted extractPlainText()'s algorithm and ran it standalone
+  against two simulated DOM shapes: (a) text/<br>/text - the exact
+  shape a browser can produce after the old buggy Enter handling -
+  correctly yields "line one\nline two" instead of "line oneline
+  two"; (b) a single text node already containing a literal "\n" -
+  the shape insertTextAtCursor() now produces - passes through
+  unchanged. Confirms the fix at the algorithm level, not just by
+  code inspection.
+- Extracted the Completed-tasks reorder algorithm and ran it
+  standalone against a simulated legacy sheet order (Completed tasks
+  4th) -> confirmed it always ends up last, and confirmed a
+  previously-selected page name (e.g. "Important TimeLines")
+  resolves to its new, correct index after the reorder rather than
+  staying pinned to its old numeric position.
+- grep for innerHTML/outerHTML/insertAdjacentHTML/document.write/
+  eval(/new Function/fetch(/XMLHttpRequest/WebSocket/EventSource
+  across script.js, index.html, AND manifest.json -> zero matches.
+  execCommand no longer appears anywhere as a live call (only inside
+  an explanatory code comment describing why it was replaced).
+- grep for inline event-handler attributes and http(s) src/href
+  references in index.html -> only the expected <meta>/<link> tags
+  (viewport, CSP, manifest, icons, theme-color, apple-mobile-web-app
+  -*) matched; no inline handlers or remote resources were
+  introduced by the PWA tags - manifest.json and every icon file are
+  same-origin, local files, exactly like style.css and script.js
+  already were.
+- CSP <meta> content string checked against the required exact text
+  -> matches exactly once, unchanged. The manifest and icon links
+  are same-origin resources and are unaffected by connect-src 'none'
+  (which governs fetch/XHR/WebSocket-style requests, not <link>
+  resource loads).
+- grep confirms insertTextAtCursor, extractPlainText, and
+  loadPreviouslySelectedSheetName are each defined exactly once,
+  with no duplicate or orphaned definitions anywhere in script.js.
+
+Result: newline entry now survives being saved, Completed tasks
+page ordering matches the request (and self-heals for existing
+saved data without losing the user's current page), and the app can
+now be installed as a genuine standalone icon on an iPhone Home
+Screen once hosted, with no change to its local-only, no-network,
+no-server security posture. All core checks remain PASS.

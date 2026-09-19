@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+<title>Personal Work Planning - Final Secure Portal</title>
+<link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<meta name="theme-color" content="#0d9488">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Work Planning">
+</head>
+<body>
+<div id="app" class="app">
+  <header class="site-header">
+    <div class="brand">
+      <div class="brand-icon">PWP</div>
+      <div class="brand-text">
+        <h1>Personal Work Planning</h1>
+        <div class="brand-subtitle">Local secure task portal</div>
+      </div>
+    </div>
+    <nav id="nav" class="nav" aria-label="Workbook pages"></nav>
+  </header>
+
+  <main class="content">
+    <div class="top-row">
+      <div class="title-block">
+        <div class="eyebrow">CURRENT PAGE</div>
+        <h2 id="pageTitle">&nbsp;</h2>
+      </div>
+      <div class="actions">
+        <button id="btnAddRow" type="button" class="btn">+ Add Row</button>
+        <button id="btnExportJson" type="button" class="btn">Export JSON</button>
+        <button id="btnAutoBackup" type="button" class="btn">Enable Auto Backup</button>
+        <button id="btnImportJson" type="button" class="btn">Import JSON</button>
+        <input id="fileImport" type="file" accept="application/json,.json" class="hidden-input" tabindex="-1">
+        <button id="btnExportCsv" type="button" class="btn">Export CSV</button>
+        <button id="btnResetSheet" type="button" class="btn btn-danger">Reset Sheet</button>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div id="tableScroller" class="table-scroller">
+        <table id="dataTable" class="data-table">
+          <colgroup id="colgroup"></colgroup>
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <button id="btnAddRowFloating" type="button" class="btn btn-primary floating-add" title="Add Row">+ Add Row</button>
+</div>
+<script src="script.js"></script>
+</body>
+</html>
