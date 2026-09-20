@@ -744,3 +744,107 @@ saved data without losing the user's current page), and the app can
 now be installed as a genuine standalone icon on an iPhone Home
 Screen once hosted, with no change to its local-only, no-network,
 no-server security posture. All core checks remain PASS.
+
+------------------------------------------------------------
+ADDENDUM 7 - MOBILE-FRIENDLY LAYOUT (PHONE-WIDTH REDESIGN)
+------------------------------------------------------------
+Reported issue: pages did not display properly on iPhone - the
+fixed-width, many-column table layout (designed for a desktop
+screen) did not fit a phone's narrow viewport.
+
+Change scope: this was a CSS/markup adjustment, not a change to any
+data-handling, storage, import/export, or auto-backup logic.
+
+1. COMPACT HEADER ON PHONE. A new @media (max-width:680px) block
+   shrinks the brand icon, page title, and top action buttons, and
+   hides the header subtitle text, so the header takes up
+   meaningfully less vertical space on a phone screen while staying
+   fully legible - addressing "keep the heading also small."
+
+2. TABLE COLLAPSES INTO READABLE STACKED CARDS. At that same
+   breakpoint, the wide, fixed-column data table (previously
+   requiring horizontal scrolling and tiny per-column text on a
+   phone) switches to a standard responsive-table pattern: the
+   column-header/filter row is hidden, and each table row becomes
+   its own rounded card with every field stacked vertically, each
+   preceded by a small uppercase label naming its column (e.g.
+   "Task/Meeting", "Due date", "Status"). Every existing field type -
+   the editable text cells, the colored Status dropdown, the
+   calendar-picker Due date/Deadline date control, and the Copy/
+   Move/Delete action buttons - renders inside these cards exactly
+   as before, just stacked rather than packed into narrow columns.
+   This directly addresses "task details must be visible" and
+   "allow clearly to enter new task details": every field is full-
+   width, legible, and has a much larger tap target than the
+   original dense grid would allow at phone width.
+   Implementation note: buildRowElement() now sets a data-label
+   attribute (equal to the column name) on every <td> it builds, on
+   every page; the CSS reads that attribute via `content:attr(
+   data-label)` to render the per-field label. This required a
+   one-line change to add the attribute, with no change to what
+   data is stored or how it's read/written.
+   Trade-off, stated plainly: column sorting and the per-column
+   text/value filters are hidden at this breakpoint, since they
+   depend on the column-header row this layout removes. They remain
+   fully available exactly as before on tablet/desktop widths
+   (>680px). This was a deliberate simplification to prioritize
+   "task details visible" and "easy entry" on a phone screen over
+   preserving every desktop control in a cramped space; nothing was
+   removed from wider screens.
+
+3. SWIPE LEFT/RIGHT TO CHANGE PAGES. A new touchstart/touchend
+   listener pair on the main content area detects a horizontal
+   swipe gesture (minimum 70px of horizontal movement, and the
+   horizontal movement must clearly dominate any vertical movement)
+   and moves to the next/previous page accordingly, mirroring what
+   tapping a nav pill already does (same goToSheetIndex() function,
+   also now shared by the nav-pill click handler). A swipe that
+   starts inside an editable cell, an input, a select, a button, a
+   resize handle, or a link is ignored, so it can never hijack text
+   selection, typing, tapping a button, or dragging a column
+   resize-handle. Both listeners are registered with {passive:true}
+   and never call preventDefault(), so normal vertical scrolling of
+   the page is completely unaffected.
+
+Re-verification performed after these changes:
+- node --check script.js -> PASS, no syntax errors.
+- style.css brace balance checked programmatically -> balanced (104
+  open / 104 close after this change).
+- Extracted the swipe-gesture threshold logic and ran it standalone
+  against five simulated touch patterns (clear left swipe, clear
+  right swipe, a vertical scroll, a too-short tap-like movement, and
+  a diagonal movement where vertical dominates) - confirmed it
+  correctly identifies only the two genuine horizontal-swipe cases
+  and correctly ignores the other three.
+- grep for innerHTML/outerHTML/insertAdjacentHTML/document.write/
+  eval(/new Function/fetch(/XMLHttpRequest/WebSocket/EventSource
+  across script.js, index.html, and manifest.json -> zero matches.
+  The only new script additions (goToSheetIndex,
+  isInteractiveSwipeTarget, initSwipeNavigation, and the data-label
+  assignment in buildRowElement) touch only plain DOM properties
+  (.dataset, .closest, .scrollIntoView) and existing, already-
+  reviewed functions (persistSelectedSheet, renderAll) - no new DOM-
+  injection surface was introduced.
+- grep for inline event-handler attributes and http(s) src/href
+  references in index.html -> only the expected <meta>/<link> tags
+  matched; unchanged by this round.
+- CSP <meta> content string checked against the required exact text
+  -> matches exactly once, unchanged.
+- grep confirms goToSheetIndex, isInteractiveSwipeTarget, and
+  initSwipeNavigation are each defined exactly once, with no
+  duplicate or orphaned definitions anywhere in script.js.
+- Manually confirmed every field type that can appear in a row
+  (plain editable cell, Status select, calendar-picker date input,
+  Copy/Move/Delete buttons) is still built by the exact same
+  builder functions as before (buildEditableCell, buildStatusCell,
+  buildDueDateCell, buildActionsCell) - only the surrounding CSS
+  layout changed at phone width, not what gets built or how it's
+  saved.
+
+Result: pages now render as legible, full-width, stacked cards on
+an iPhone-width screen instead of a cramped, horizontally-scrolling
+table, with a smaller header, clearly tappable fields for entering
+new task details, and left/right swipe support for moving between
+pages - while every underlying data-handling, storage, sanitization,
+and security control remains completely unchanged. All core checks
+remain PASS.

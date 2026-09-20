@@ -514,10 +514,66 @@
 
     renderAll();
     initAutoBackupOnStartup();
+    initSwipeNavigation();
   }
 
   function saveWorkbookSilently() {
     try { localStorage.setItem(STORAGE_DATA_KEY, JSON.stringify(workbook)); } catch (e) { /* ignore */ }
+  }
+
+  function goToSheetIndex(idx) {
+    if (idx < 0 || idx >= workbook.length || idx === selectedSheetIndex) return;
+    selectedSheetIndex = idx;
+    persistSelectedSheet();
+    renderAll();
+    var activeBtn = navEl.querySelector(".nav-btn.active");
+    if (activeBtn) activeBtn.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }
+
+  // Swipe left/right anywhere in the main content area moves to the
+  // next/previous page - a quick way to flip between pages on a phone
+  // without having to reach for the (horizontally-scrolling) nav pills
+  // each time. A swipe that starts on an editable cell, an input/select,
+  // a button, or a column-resize handle is ignored, so it never fights
+  // with text selection, typing, or dragging a column wider.
+  function isInteractiveSwipeTarget(el) {
+    if (!el || !el.closest) return false;
+    return !!el.closest('.cell-editable, input, select, button, .resize-handle, a');
+  }
+
+  function initSwipeNavigation() {
+    var contentEl = document.querySelector(".content");
+    if (!contentEl) return;
+    var startX = 0, startY = 0, tracking = false;
+
+    contentEl.addEventListener("touchstart", function (e) {
+      if (e.touches.length !== 1) { tracking = false; return; }
+      if (isInteractiveSwipeTarget(e.target)) { tracking = false; return; }
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      tracking = true;
+    }, { passive: true });
+
+    contentEl.addEventListener("touchend", function (e) {
+      if (!tracking) return;
+      tracking = false;
+      var touch = e.changedTouches[0];
+      if (!touch) return;
+      var dx = touch.clientX - startX;
+      var dy = touch.clientY - startY;
+      var SWIPE_MIN_DISTANCE = 70;
+      if (Math.abs(dx) < SWIPE_MIN_DISTANCE) return;
+      if (Math.abs(dx) < Math.abs(dy) * 1.5) return; // mostly a vertical scroll gesture
+      if (dx < 0) {
+        goToSheetIndex(selectedSheetIndex + 1);
+      } else {
+        goToSheetIndex(selectedSheetIndex - 1);
+      }
+    }, { passive: true });
+
+    contentEl.addEventListener("touchcancel", function () {
+      tracking = false;
+    }, { passive: true });
   }
 
   function renderAll() {
@@ -533,9 +589,7 @@
       btn.className = "nav-btn" + (idx === selectedSheetIndex ? " active" : "");
       btn.textContent = sheet.name;
       btn.addEventListener("click", function () {
-        selectedSheetIndex = idx;
-        persistSelectedSheet();
-        renderAll();
+        goToSheetIndex(idx);
       });
       navEl.appendChild(btn);
     });
@@ -759,6 +813,7 @@
 
     sheet.columns.forEach(function (col) {
       var td = document.createElement("td");
+      td.dataset.label = col;
       if (col === "Status" && isTaskSheet(sheet)) {
         td.appendChild(buildStatusCell(sheet, row, sourceIdx));
       } else if (isCalendarDateColumn(sheet, col)) {
@@ -770,6 +825,7 @@
     });
 
     var tdActions = document.createElement("td");
+    tdActions.dataset.label = "Actions";
     tdActions.appendChild(buildActionsCell(sheet, row, sourceIdx));
     tr.appendChild(tdActions);
 

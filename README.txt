@@ -375,6 +375,37 @@ Export JSON wherever your current data lives, get that .json file
 onto your iPhone (AirDrop, iCloud Drive, email to yourself, etc.),
 then use Import JSON inside the newly-installed app to bring it in.
 From then on, that installed app is fully self-contained on your
-iPhone - Auto Backup, Export/Import, filtering, sorting, and every
-other feature described in this document all work exactly as they
-do anywhere else.
+iPhone - Auto Backup, Export/Import, and every other feature
+described in this document all work exactly as they do anywhere
+else (see section 16 below for how the on-screen layout itself
+adapts on a phone-width screen).
+
+------------------------------------------------------------
+16. THE MOBILE (PHONE-WIDTH) LAYOUT
+------------------------------------------------------------
+Below roughly 680px wide - i.e. on an iPhone, whether in the
+installed app or just in Safari - the page layout changes to stay
+usable on a small screen:
+
+- The header shrinks: a smaller logo, smaller page title, and the
+  "Local secure task portal" subtitle is hidden to save vertical
+  space.
+- Each row of data becomes its own rounded card instead of a slice
+  of a wide table. Every field is shown full-width, one per line,
+  with a small label above it naming the column (e.g. "Task/
+  Meeting", "Due date", "Status"), so nothing is ever squeezed into
+  an unreadably narrow column or hidden off to the side. Tapping any
+  field still edits it exactly as on desktop; the Status dropdown,
+  the calendar-picker Due date/Deadline date control, and the Copy/
+  Move/Delete buttons all work the same way, just laid out
+  vertically with larger, easier-to-tap targets.
+- Swipe left or right anywhere on the page (except while your
+  finger starts on an editable field, button, or dropdown) moves to
+  the next or previous page - the same as tapping a page pill at the
+  top, just faster with one hand.
+- Column sorting and the per-column filter row are hidden at this
+  width, since they depend on the column-header row this layout
+  removes to make room for the cards. They are unaffected and fully
+  available as soon as the screen is wider than 680px (an iPad in
+  landscape, or any desktop/laptop browser window).
+
