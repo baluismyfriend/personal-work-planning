@@ -848,3 +848,150 @@ new task details, and left/right swipe support for moving between
 pages - while every underlying data-handling, storage, sanitization,
 and security control remains completely unchanged. All core checks
 remain PASS.
+
+------------------------------------------------------------
+ADDENDUM 8 - SWIPE REDEFINED AS PER-TASK NAVIGATION, PAGE REMOVAL,
+SHORT LABELS, AND ROW COUNT INDICATOR
+------------------------------------------------------------
+Four changes in this round, all confirmed by the person after one
+clarifying question (scope confined to phone width; swipe order
+follows the current sort/filter, not raw row order):
+
+1. SWIPE REDEFINED. The page-to-page swipe gesture added in
+   Addendum 7 is removed entirely. In its place, on "Daily planning
+   - All tasks" and "Completed tasks" specifically, and only at
+   phone width (<=680px, matching the existing mobile-card
+   breakpoint), the page now shows exactly one row at a time with a
+   position indicator ("X of Y") and Prev/Next (also swipeable)
+   navigation between rows, walking through whatever the page's
+   current filter/sort order already is. Desktop/tablet widths, and
+   every other page, are unaffected and continue to show the full
+   list/table exactly as before. Implementation: renderTableBody()
+   now branches - SINGLE_TASK_SWIPE_PAGES + isMobileWidth() decide
+   whether a page is in this mode; clampTaskIndex() keeps the
+   remembered per-sheet position valid against the CURRENT filtered/
+   sorted item count (recomputed on every render, so it naturally
+   self-corrects if a row is deleted, moved, marked Complete, or
+   filtered out from under the current position - verified
+   standalone, see below); stepTask() moves the position by +/-1
+   with no wraparound past the first/last row. The touchstart/
+   touchend swipe listener (unchanged in structure from Addendum 7)
+   now calls stepTask() instead of changing pages, and continues to
+   ignore any touch that starts on an editable cell, input, select,
+   button, resize handle, or link. A window resize listener
+   (debounced 150ms) re-renders the table so rotating the phone (or
+   resizing a window across the 680px line) correctly switches modes.
+
+2. IMPORTANT TIMELINES AND ROUGH NOTES REMOVED. Both pages are
+   removed from buildDefaultWorkbook() (new installs now start with
+   five pages, not seven). For existing saved workbooks that still
+   have either page, normalizeWorkbook() now has a REMOVED_PAGE_NAMES
+   list and skips (drops) any sheet whose name is on it, before any
+   other normalization runs - so older data converges to the current
+   five-page set on next load, the same pattern already used
+   elsewhere in this app for page additions/reorders. The now-dead
+   Important TimeLines/Rough Notes migration functions from Addendum
+   5 (migrateImportantTimelinesSheet, migrateRoughNotesSheet,
+   columnsMatch, and their column-name constants) were deleted rather
+   than left unreachable, since their target pages can no longer
+   exist. The Deadline date entry was removed from
+   CALENDAR_DATE_COLUMNS (only Daily planning's Due date remains).
+   Note: unlike the Addendum 5 migration, this is a straightforward
+   removal, not a field-preserving conversion - any data a person had
+   specifically entered into Important TimeLines or Rough Notes is
+   not carried anywhere else, since those pages/concepts no longer
+   exist in the app at all. This is stated plainly here and in
+   README section 2's migration note, rather than silently discarding
+   it without mention.
+
+3. SHORT PAGE AND BUTTON LABELS. A NAV_SHORT_NAMES lookup maps each
+   of the five sheet's real name to a short nav-pill label (Daily /
+   Week / Future / Roadmap / Completed); the full name is set as the
+   button's title attribute (native tooltip) and is still what's
+   used for every internal check (isTaskSheet, MOVE_TARGETS,
+   CALENDAR_DATE_COLUMNS, storage keys, exported filenames, etc.) -
+   only the on-screen nav text changed. The page title (<h2>) still
+   shows the full name. Six action buttons (index.html) were given
+   shorter static labels (+ Add / Export / Backup / Import / CSV /
+   Reset) with a title attribute holding the original full
+   description; the floating Add Row button keeps its original full
+   "+ Add Row" text since it isn't competing for row space. The
+   dynamic Auto Backup button states (setAutoBackupButtonState) were
+   updated the same way - shorter textContent (Backup / Backup On /
+   Resume / Error) paired with a descriptive title attribute for
+   each state; the transient post-download confirmation text was
+   shortened from "Backup File Downloaded" to "Saved!". None of this
+   changes what a button DOES, only its visible/hoverable text.
+   style.css gives both the nav pills and the six action buttons
+   equal-width flex sizing (flex:1 1 0, nowrap, ellipsis overflow)
+   at phone width so all five/six fit in one row without wrapping or
+   horizontal scrolling; the hidden file-input element used by
+   Import is display:none and correctly does not participate in
+   that flex distribution.
+
+4. ROW COUNT INDICATOR. A new element (#rowCountIndicator) under the
+   page title shows the number of currently-visible (i.e. filtered)
+   rows on every page, at every width, e.g. "26 rows" / "1 row". On
+   the two single-task-swipe pages at phone width, this element is
+   hidden in favor of the "X of Y" position bar described in (1),
+   avoiding showing the same count twice in two different words.
+   Both are updated from inside renderTableBody() (via
+   updateRowCountAndTaskNav()), which runs on every body re-render -
+   including filter/search changes, which call renderTableBody()
+   directly without going through the full renderTable() path - so
+   the count and position both stay accurate as filters are typed.
+
+Re-verification performed after these changes:
+- node --check script.js -> PASS, no syntax errors.
+- style.css brace balance checked programmatically -> balanced (113
+  open / 113 close after this change).
+- manifest.json re-parsed with a strict JSON parser -> still valid
+  (unaffected by this round).
+- Extracted normalizeWorkbook() and its dependencies and ran it
+  standalone against a simulated OLD saved workbook that still had
+  both Important TimeLines and Rough Notes (with actual row data in
+  each) plus all five current pages - confirmed by direct inspection
+  of the output that both removed pages are gone, the remaining five
+  page names are exactly correct and in the correct order, and
+  Completed tasks is still last.
+- Extracted the clampTaskIndex()/stepTask() algorithm and ran it
+  standalone through a full sequence: stepping to the end of a 5-item
+  list and confirming it stops (no wraparound) at index 4; stepping
+  back to the start and confirming it stops at index 0; simulating a
+  list that shrinks from 5 items to 2 while positioned at index 4
+  (e.g. after several rows are marked Complete/filtered out) and
+  confirming the position correctly clamps to the new last valid
+  index (1) instead of pointing past the end of the array; and
+  confirming an empty list clamps to 0 without erroring.
+- grep for innerHTML/outerHTML/insertAdjacentHTML/document.write/
+  eval(/new Function/fetch(/XMLHttpRequest/WebSocket/EventSource
+  across script.js, index.html, and manifest.json -> zero matches.
+  The single-task view still builds its one row with the exact same
+  buildRowElement()/buildEditableCell()/buildStatusCell()/
+  buildDueDateCell()/buildActionsCell() functions used everywhere
+  else - no new cell-building code path was introduced, only which
+  subset of already-computed, already-sanitized items gets appended
+  to the table body.
+- grep for inline event-handler attributes and http(s) src/href
+  references in index.html -> only the expected <meta>/<link> tags
+  matched; unchanged.
+- CSP <meta> content string checked against the required exact text
+  -> matches exactly once, unchanged.
+- grep confirms isMobileWidth, isSingleTaskSwipeMode, clampTaskIndex,
+  stepTask, updateRowCountAndTaskNav, shortSheetName, and
+  isInteractiveSwipeTarget are each defined exactly once, with no
+  duplicate or orphaned definitions, and confirms the deleted
+  Addendum-5 migration functions no longer appear anywhere in
+  script.js.
+- Manually confirmed goToSheetIndex (tapping a nav pill) is
+  unaffected and still works exactly as before - only the touch-
+  swipe gesture's target behavior changed, not pill-tap navigation.
+
+Result: swiping now walks through individual tasks (in the page's
+current filter/sort order) on the two pages where that was
+requested, scoped to phone width as confirmed; Important TimeLines
+and Rough Notes are fully removed for new and existing users alike;
+every page pill and action button fits on a single row via short
+labels with full-text tooltips; and every page now shows a live row
+count, with an "X of Y" position shown instead where relevant. All
+core checks remain PASS.

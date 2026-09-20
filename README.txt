@@ -45,50 +45,38 @@ Every change (typing, status changes, add/copy/delete/move rows,
 imports, resets) is saved to localStorage immediately, so closing
 the tab or restarting the computer does not lose your data.
 
-Because your data loads from localStorage before anything else,
-if a page's columns are ever changed in an update (as happened with
-Rough Notes and Important TimeLines), the app automatically upgrades
-your already-saved data to the new columns the next time you open
-it - any text you had already entered is kept, not discarded (for
-Important TimeLines specifically, old column values are folded into
-the new Topic/event column as readable "ColumnName: value" text so
-nothing is lost, since the old and new columns don't line up one-
-for-one).
+Because your data loads from localStorage before anything else, if a
+page is ever renamed, restructured, or removed in an update (as
+happened with the old Important TimeLines and Rough Notes pages -
+see section 17), the app automatically upgrades your already-saved
+data to match on the next time you open it.
 
 ------------------------------------------------------------
-3. THE SEVEN WORKBOOK PAGES
+3. THE FIVE WORKBOOK PAGES
 ------------------------------------------------------------
 Pages appear as pill-style buttons in the header, in this exact
-order:
+order. Each pill shows a short name to keep all of them fitting on
+one row (especially on a phone); hover over a pill (or check the
+page title once selected) to see its full name:
 
-1. Daily planning - All tasks
+1. Daily planning - All tasks (nav pill: "Daily")
    Columns: Date, Project, Priority, Task/Meeting, Raised by,
    Work with, Next steps, Due date, Status.
    Starts with one seeded row (Project "AA", Priority "1").
 
-2. Week planning
+2. Week planning (nav pill: "Week")
    Columns: Section, Monday, Tuesday, Wednesday, Thursday, Friday.
    Starts with rows Section 1-10, "Added today", then 1-10 again,
    with all weekday cells blank.
 
-3. All future Tasks
+3. All future Tasks (nav pill: "Future")
    Same 9 columns as Daily planning. Starts with 26 blank rows,
    each with Project "ee".
 
-4. Important TimeLines
-   Columns: S#, Type, Priority, Topic/event, Deadline date.
-   Deadline date uses the same calendar-picker control described in
-   section 6 (blank when empty, opens a native date picker on click,
-   saves as MM/DD/YYYY).
-
-5. Road Map - Pending
+4. Road Map - Pending (nav pill: "Roadmap")
    Columns: Project, Task/Meeting, Notes.
 
-6. Rough Notes
-   Columns: Date, Task/Event, Notes. Date auto-fills with today's
-   date (MM/DD/YYYY) whenever you add a new row on this page.
-
-7. Completed tasks
+5. Completed tasks (nav pill: "Completed")
    Same 9 columns as Daily planning. Starts empty and is always the
    last page in the list, so completed/archived items sit out of the
    way of your active pages. Rows only ever arrive here automatically
@@ -142,17 +130,16 @@ order:
   filters for the CURRENT page only.
 
 ------------------------------------------------------------
-6. CALENDAR-PICKER DATE COLUMNS
+6. THE CALENDAR-PICKER DUE DATE COLUMN
 ------------------------------------------------------------
-Two columns use a special calendar-picker control instead of plain
-text editing: the Due date column on "Daily planning - All tasks",
-and the Deadline date column on "Important TimeLines". Each looks
-and behaves like a plain, read-only text box (blank shows as
-completely blank, with no placeholder). Clicking or focusing it
-switches it into a real date picker; your browser's native calendar
-opens automatically where supported. Picking a date saves it as
-MM/DD/YYYY and the box returns to its plain read-only look. Clearing
-the date returns the cell to blank.
+The Due date column on "Daily planning - All tasks" uses a special
+calendar-picker control instead of plain text editing. It looks and
+behaves like a plain, read-only text box (blank shows as completely
+blank, with no placeholder). Clicking or focusing it switches it into
+a real date picker; your browser's native calendar opens
+automatically where supported. Picking a date saves it as MM/DD/YYYY
+and the box returns to its plain read-only look. Clearing the date
+returns the cell to blank.
 
 ------------------------------------------------------------
 7. ADD ROW
@@ -175,37 +162,38 @@ at 5,000 rows; past that, you'll see an alert instead of a new row.
   appends it to the BOTTOM of that page's list.
 - Delete asks "Delete this row from the local portal?" before
   removing the row.
-- "Reset Sheet" asks "Clear all rows from this sheet?" and, if
+- "Reset" (Reset Sheet) asks "Clear all rows from this sheet?" and, if
   confirmed, empties every row on the CURRENT page only (also
   clearing that page's saved filters). It works identically and
-  completely on every one of the seven pages, leaving zero rows
+  completely on every one of the five pages, leaving zero rows
   behind - even pages that started with seeded example data.
 
 ------------------------------------------------------------
 9. IMPORT / EXPORT JSON
 ------------------------------------------------------------
-- "Export JSON" downloads the entire workbook (all seven pages) as
-  a nicely indented (2-space) file named
+- "Export" (Export JSON) downloads the entire workbook (all five
+  pages) as a nicely indented (2-space) file named
   personal-work-planning-local-backup.json.
-- "Import JSON" opens a file picker limited to .json files. Files
-  larger than 2 MiB are rejected with "Backup file is too large."
-  Selected files are parsed and fully validated/normalized before
-  anything changes. You will be asked to confirm: "Import this JSON
-  backup and replace all current local data?" If the file is
-  invalid, you'll see "Import blocked: " followed by the specific
+- "Import" (Import JSON) opens a file picker limited to .json files.
+  Files larger than 2 MiB are rejected with "Backup file is too
+  large." Selected files are parsed and fully validated/normalized
+  before anything changes. You will be asked to confirm: "Import
+  this JSON backup and replace all current local data?" If the file
+  is invalid, you'll see "Import blocked: " followed by the specific
   reason. If the file cannot be read at all, you'll see "Could not
   read selected file." On a successful import, the workbook is
   replaced, the view jumps to the first page, and all filters are
   cleared.
-- Older backups that predate the "Completed tasks" page are
-  automatically upgraded on load/import: the missing page is added
-  back in automatically so nothing breaks.
+- Older backups that predate the "Completed tasks" page, or that
+  still have the old Important TimeLines / Rough Notes pages, are
+  automatically upgraded on load/import - missing pages are added,
+  removed ones are dropped, and everything else is kept as-is.
 
 ------------------------------------------------------------
 10. EXPORT CSV
 ------------------------------------------------------------
-"Export CSV" downloads only the CURRENTLY SELECTED page as a CSV
-file (named after the page, e.g. daily-planning-all-tasks.csv).
+"CSV" (Export CSV) downloads only the CURRENTLY SELECTED page as a
+CSV file (named after the page, e.g. daily-planning-all-tasks.csv).
 As a formula-injection safeguard, any cell that starts with =, +,
 -, @, a tab, or a carriage return is prefixed with a leading
 apostrophe before being written out, so opening the CSV in Excel or
@@ -222,8 +210,8 @@ two different modes depending on what your browser supports, so it
 works on Chrome/Edge AND on Safari:
 
 CHROME / EDGE / OPERA (File System Access support):
-- Click "Enable Auto Backup". You will be asked to choose/create a
-  real, visible file on your disk (suggested name
+- Click "Backup" (Enable Auto Backup). You will be asked to choose/
+  create a real, visible file on your disk (suggested name
   personal-work-planning-autobackup.json). The app remembers this
   file handle both in memory and in your browser's IndexedDB
   database (workPlanningFinal.v2.autoBackup, object store
@@ -235,9 +223,10 @@ CHROME / EDGE / OPERA (File System Access support):
   backup is enabled.
 - Because browsers require the user to re-approve file access after
   a restart, if you reopen the app later the button may read
-  "Resume Auto Backup" instead of "Auto Backup Enabled" - just click
-  it once to reauthorize. If something goes wrong the button turns
-  red and reads "Auto Backup Error".
+  "Resume" instead of "Backup On" - just click it once to
+  reauthorize. If something goes wrong the button turns red and
+  reads "Error". Hover/long-press the button any time for the full
+  description of its current state.
 - Canceling the file picker does nothing (no error, no change).
 
 SAFARI / FIREFOX (no File System Access picker):
@@ -247,20 +236,19 @@ above depends on - this is a platform limitation of those browsers,
 not something a web page can add on its own. Rather than showing a
 dead-end error, the app automatically switches to a second, fully
 working mode in these browsers:
-- Click "Enable Auto Backup" once. The app immediately writes the
-  full workbook into your browser's IndexedDB storage (still 100%
-  local, still never leaves your device) and the button turns green
-  and reads "Auto Backup Enabled (Safari)".
+- Click "Backup" once. The app immediately writes the full workbook
+  into your browser's IndexedDB storage (still 100% local, still
+  never leaves your device) and the button turns green and reads
+  "Backup On".
 - From then on, every change you make is automatically written into
   that IndexedDB backup too (debounced by 250ms, same as the Chrome/
   Edge mode), completely silently, with no picker and no repeated
   permission prompts - and, unlike the Chrome/Edge mode, it stays
   enabled across restarts with nothing further to click.
 - Because this backup lives in browser storage rather than as a
-  plain file in Finder, click the (now green) "Enable Auto Backup"
-  button again any time to instantly download a real, portable
-  .json copy of it - the button briefly shows "Backup File
-  Downloaded" for confirmation.
+  plain file in Finder, click the (now green) "Backup On" button
+  again any time to instantly download a real, portable .json copy
+  of it - the button briefly shows "Saved!" for confirmation.
 - If your browser has no local storage (IndexedDB) available at
   all, which is extremely rare, you'll see: "Automatic backup
   requires a browser with local storage (IndexedDB) support, which
@@ -303,8 +291,8 @@ reapplied automatically every time you return to that page.
   over the network).
 - If Auto Backup keeps asking you to "Resume", that's expected
   browser behavior after a restart - click it once per session.
-- To start completely fresh, use "Reset Sheet" on each page, or
-  clear this site's data/localStorage from your browser settings.
+- To start completely fresh, use "Reset" on each page, or clear this
+  site's data/localStorage from your browser settings.
 
 ------------------------------------------------------------
 15. INSTALLING AS AN APP ON YOUR IPHONE (PWA)
@@ -389,23 +377,85 @@ usable on a small screen:
 
 - The header shrinks: a smaller logo, smaller page title, and the
   "Local secure task portal" subtitle is hidden to save vertical
-  space.
-- Each row of data becomes its own rounded card instead of a slice
-  of a wide table. Every field is shown full-width, one per line,
-  with a small label above it naming the column (e.g. "Task/
-  Meeting", "Due date", "Status"), so nothing is ever squeezed into
-  an unreadably narrow column or hidden off to the side. Tapping any
-  field still edits it exactly as on desktop; the Status dropdown,
-  the calendar-picker Due date/Deadline date control, and the Copy/
-  Move/Delete buttons all work the same way, just laid out
-  vertically with larger, easier-to-tap targets.
-- Swipe left or right anywhere on the page (except while your
-  finger starts on an editable field, button, or dropdown) moves to
-  the next or previous page - the same as tapping a page pill at the
-  top, just faster with one hand.
+  space. All five page pills and all six action buttons keep to a
+  single row each (see section 17) instead of wrapping or scrolling
+  off-screen.
+- A small pill under the page title shows how many rows are
+  currently visible on that page (respecting any active filters),
+  e.g. "26 rows" - see section 18.
+- On every page EXCEPT the two described next, each row of data
+  becomes its own rounded card instead of a slice of a wide table.
+  Every field is shown full-width, one per line, with a small label
+  above it naming the column (e.g. "Task/Meeting", "Due date",
+  "Status"), so nothing is ever squeezed into an unreadably narrow
+  column or hidden off to the side. Tapping any field still edits it
+  exactly as on desktop; the Status dropdown, the calendar-picker
+  Due date control, and the Copy/Move/Delete buttons all work the
+  same way, just laid out vertically with larger, easier-to-tap
+  targets.
+- On "Daily planning - All tasks" and "Completed tasks" specifically,
+  the page shows just ONE task at a time instead of a scrolling list
+  - see section 18 for how that works.
 - Column sorting and the per-column filter row are hidden at this
   width, since they depend on the column-header row this layout
   removes to make room for the cards. They are unaffected and fully
   available as soon as the screen is wider than 680px (an iPad in
   landscape, or any desktop/laptop browser window).
 
+------------------------------------------------------------
+17. SHORT PAGE AND BUTTON NAMES
+------------------------------------------------------------
+To keep every page pill and every action button fitting on a single
+row (most noticeably on a phone, but this applies everywhere), pages
+and buttons now show a short label. The action each one performs is
+unchanged - only the visible text is shorter. Hover over (or
+long-press) any pill or button to see its full name as a tooltip.
+
+Page pills:
+  "Daily"     = Daily planning - All tasks
+  "Week"      = Week planning
+  "Future"    = All future Tasks
+  "Roadmap"   = Road Map - Pending
+  "Completed" = Completed tasks
+
+Action buttons:
+  "+ Add"   = Add Row
+  "Export"  = Export JSON
+  "Backup"  = Enable Auto Backup (see section 11 for its other states)
+  "Import"  = Import JSON
+  "CSV"     = Export CSV
+  "Reset"   = Reset Sheet
+The floating round button at the bottom-right of the screen still
+reads "+ Add Row" in full, since it stands alone and isn't competing
+for space in a row of other buttons.
+
+------------------------------------------------------------
+18. SWIPING THROUGH TASKS ONE AT A TIME
+------------------------------------------------------------
+On a phone-width screen (see section 16), "Daily planning - All
+tasks" and "Completed tasks" work differently from every other page:
+instead of a scrolling list of cards, you see ONE task at a time,
+with a small bar above it showing your position, e.g. "3 of 26", and
+‹ / › buttons on either side of that position label.
+
+- Swipe left anywhere on the task card (except starting on a text
+  field, dropdown, or button) to move to the next task; swipe right
+  to move to the previous one. You can also just tap the ‹ / ›
+  buttons instead of swiping.
+- The order you swipe through matches whatever you're currently
+  viewing - if you have a filter or sort applied on desktop/tablet
+  first, that same order carries over here.
+- Swiping stops at the first and last task - it does not loop
+  around.
+- If you mark a task "Complete" (which moves it off "Daily planning
+  - All tasks" onto "Completed tasks", per section 4) or otherwise
+  remove/move the task you're currently viewing, the position
+  automatically adjusts to stay on a valid task rather than showing
+  a blank screen.
+- This one-at-a-time view, and the swipe/‹ › navigation, is specific
+  to these two pages and to phone-width screens. Every other page
+  (Week planning, All future Tasks, Road Map - Pending) still shows
+  its normal scrolling list of cards on a phone, and on a tablet or
+  desktop/laptop browser window, ALL pages - including Daily
+  planning and Completed tasks - always show the normal full table,
+  regardless of width.

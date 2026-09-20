@@ -115,6 +115,61 @@ body{
 
 .title-block h2{font-size:25px;margin:2px 0 0;}
 
+.row-count-indicator{
+  display:inline-block;
+  margin-top:6px;
+  padding:3px 11px;
+  border-radius:999px;
+  background:rgba(13,148,136,.12);
+  color:#0f766e;
+  font-size:11px;
+  font-weight:800;
+}
+.row-count-indicator[hidden]{display:none;}
+
+.task-swipe-nav{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:16px;
+  margin:2px 0 10px;
+}
+.task-swipe-nav[hidden]{display:none;}
+.task-nav-btn{
+  width:40px;
+  height:40px;
+  flex-shrink:0;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.6);
+  background:rgba(255,255,255,.55);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5);
+  font-size:19px;
+  font-weight:800;
+  color:var(--text);
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.task-nav-btn:disabled{opacity:.35;cursor:default;}
+.task-position{
+  min-width:76px;
+  text-align:center;
+  font-size:13px;
+  font-weight:800;
+  color:var(--text);
+}
+
+.empty-state-cell{
+  display:block;
+  text-align:center;
+  padding:32px 12px;
+  color:var(--muted);
+  font-size:13px;
+}
+
 .actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;}
 
 .btn{
@@ -393,14 +448,38 @@ body{
   .brand-icon{width:34px;height:34px;border-radius:11px;font-size:10px;}
   .brand-text h1{font-size:15px;}
   .brand-subtitle{display:none;}
-  .nav{gap:6px;}
-  .nav-btn{padding:7px 11px;font-size:12px;}
+
+  /* All page pills fit in a single non-scrolling row: short names (see
+     NAV_SHORT_NAMES in script.js) plus equal-width flex segments. */
+  .nav{gap:4px;flex-wrap:nowrap;overflow-x:visible;}
+  .nav-btn{
+    flex:1 1 0;
+    min-width:0;
+    padding:7px 2px;
+    font-size:10.5px;
+    text-align:center;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
 
   .content{padding:8px 12px 96px;}
   .eyebrow{font-size:10px;}
   .title-block h2{font-size:19px;}
-  .actions{gap:6px;}
-  .btn{padding:9px 10px;font-size:11.5px;}
+
+  /* All 6 action buttons fit in a single row the same way. */
+  .actions{flex-wrap:nowrap;gap:4px;width:100%;justify-content:stretch;}
+  .btn{
+    flex:1 1 0;
+    min-width:0;
+    padding:9px 2px;
+    font-size:10.5px;
+    text-align:center;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .btn-danger{flex-basis:0;}
 
   .table-card{padding:6px 6px 10px;border-radius:14px;}
   .table-scroller{max-height:none;overflow:visible;padding:0;}

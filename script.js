@@ -67,14 +67,7 @@
     for (var f = 0; f < 26; f++) futureRows.push(blankTaskRow({ Project: "ee" }));
     sheets.push({ name: "All future Tasks", columns: TASK_COLUMNS.slice(), rows: futureRows });
 
-    // 4. Important TimeLines
-    var timelineCols = ["S#", "Type", "Priority", "Topic/event", "Deadline date"];
-    var timelineRows = [
-      { "S#": "", Type: "", Priority: "", "Topic/event": "", "Deadline date": "" }
-    ];
-    sheets.push({ name: "Important TimeLines", columns: timelineCols, rows: timelineRows });
-
-    // 5. Road Map - Pending
+    // 4. Road Map - Pending
     var roadCols = ["Project", "Task/Meeting", "Notes"];
     var roadRows = [
       { Project: "RR 2.0", "Task/Meeting": "Dedicated", Notes: "" },
@@ -82,11 +75,7 @@
     ];
     sheets.push({ name: "Road Map - Pending", columns: roadCols, rows: roadRows });
 
-    // 6. Rough Notes
-    var roughCols = ["Date", "Task/Event", "Notes"];
-    sheets.push({ name: "Rough Notes", columns: roughCols, rows: [{ Date: "", "Task/Event": "", Notes: "" }] });
-
-    // 7. Completed tasks (kept last so completed/archived items sit at the
+    // 5. Completed tasks (kept last so completed/archived items sit at the
     // end of the page list rather than in the middle of the active pages)
     sheets.push({ name: "Completed tasks", columns: TASK_COLUMNS.slice(), rows: [] });
 
@@ -158,51 +147,11 @@
     return { name: name, columns: columns, rows: outRows };
   }
 
-  var IMPORTANT_TIMELINES_COLUMNS = ["S#", "Type", "Priority", "Topic/event", "Deadline date"];
-  var ROUGH_NOTES_COLUMNS = ["Date", "Task/Event", "Notes"];
-
-  function columnsMatch(actual, expected) {
-    if (!Array.isArray(actual) || actual.length !== expected.length) return false;
-    for (var i = 0; i < expected.length; i++) {
-      if (actual[i] !== expected[i]) return false;
-    }
-    return true;
-  }
-
-  // Older saved workbooks (from before these two pages' columns changed)
-  // are upgraded here instead of silently keeping their old schema
-  // forever. Rough Notes' existing Notes text is preserved as-is; the two
-  // new columns are simply added blank. Important TimeLines has no clean
-  // field-for-field mapping to its new columns, so any old data is kept,
-  // human-readable, inside the new Topic/event column rather than being
-  // discarded.
-  function migrateImportantTimelinesSheet(sheet) {
-    if (columnsMatch(sheet.columns, IMPORTANT_TIMELINES_COLUMNS)) return sheet;
-    var oldColumns = sheet.columns.slice();
-    var newRows = sheet.rows.map(function (r) {
-      var parts = [];
-      oldColumns.forEach(function (c) {
-        var v = (r[c] || "").toString().trim();
-        if (v) parts.push(c + ": " + v);
-      });
-      return { "S#": "", Type: "", Priority: "", "Topic/event": parts.join("; "), "Deadline date": "" };
-    });
-    if (newRows.length === 0) {
-      newRows.push({ "S#": "", Type: "", Priority: "", "Topic/event": "", "Deadline date": "" });
-    }
-    return { name: sheet.name, columns: IMPORTANT_TIMELINES_COLUMNS.slice(), rows: newRows };
-  }
-
-  function migrateRoughNotesSheet(sheet) {
-    if (columnsMatch(sheet.columns, ROUGH_NOTES_COLUMNS)) return sheet;
-    var newRows = sheet.rows.map(function (r) {
-      return { Date: r["Date"] || "", "Task/Event": r["Task/Event"] || "", Notes: r["Notes"] || "" };
-    });
-    if (newRows.length === 0) {
-      newRows.push({ Date: "", "Task/Event": "", Notes: "" });
-    }
-    return { name: sheet.name, columns: ROUGH_NOTES_COLUMNS.slice(), rows: newRows };
-  }
+  // Pages that used to exist in earlier versions of this app and have
+  // since been removed. Any older saved workbook that still has them is
+  // silently dropped down to the current page set on the next load,
+  // rather than showing stale pages that no longer have UI support.
+  var REMOVED_PAGE_NAMES = ["Important TimeLines", "Rough Notes"];
 
   function normalizeWorkbook(raw) {
     if (!Array.isArray(raw)) throw new Error("workbook root must be an array of sheets");
@@ -212,14 +161,12 @@
       if (!s || typeof s !== "object") throw new Error("each sheet must be an object");
       var name = sanitizeName(s.name, 120);
       if (!name) throw new Error("each sheet must have a name");
+      if (REMOVED_PAGE_NAMES.indexOf(name) !== -1) continue;
       if (TASK_SHEET_NAMES.indexOf(name) !== -1) {
         sheets.push(normalizeTaskSheet(name, s));
       } else {
         if (!Array.isArray(s.columns) || s.columns.length === 0) throw new Error("sheet '" + name + "' must have a nonempty columns array");
-        var generic = normalizeGenericSheet(s);
-        if (generic.name === "Important TimeLines") generic = migrateImportantTimelinesSheet(generic);
-        if (generic.name === "Rough Notes") generic = migrateRoughNotesSheet(generic);
-        sheets.push(generic);
+        sheets.push(normalizeGenericSheet(s));
       }
     }
     // Ensure Completed tasks always present
@@ -270,8 +217,7 @@
   // empty, switches to a native date input on focus/click, saves as
   // MM/DD/YYYY). Keyed by sheet name -> column name.
   var CALENDAR_DATE_COLUMNS = {
-    "Daily planning - All tasks": "Due date",
-    "Important TimeLines": "Deadline date"
+    "Daily planning - All tasks": "Due date"
   };
 
   function isCalendarDateColumn(sheet, col) {
@@ -284,6 +230,22 @@
     "Daily planning - All tasks": "All future Tasks",
     "All future Tasks": "Daily planning - All tasks"
   };
+
+  // Short labels shown on the nav pills (and the page title) to keep every
+  // page name fitting on one row, especially on a phone screen. The full
+  // name is still used for every internal check (isTaskSheet, MOVE_TARGETS,
+  // CALENDAR_DATE_COLUMNS, storage, etc.) and is shown as a tooltip.
+  var NAV_SHORT_NAMES = {
+    "Daily planning - All tasks": "Daily",
+    "Week planning": "Week",
+    "All future Tasks": "Future",
+    "Road Map - Pending": "Roadmap",
+    "Completed tasks": "Completed"
+  };
+
+  function shortSheetName(sheet) {
+    return NAV_SHORT_NAMES[sheet.name] || sheet.name;
+  }
 
   /* ---------------------------------------------------------
      Persistence
@@ -441,12 +403,12 @@
      Column widths / min widths
      --------------------------------------------------------- */
   function minWidthForColumn(sheet, col) {
-    if (col === "Task/Meeting" || col === "Task/Event") return 230;
+    if (col === "Task/Meeting") return 230;
     if (col === "Next steps") return 190;
     if (col === "Date" || col === "Project" || col === "Priority") return 64;
     if (col === "Raised by" || col === "Work with") return 105;
     if (col === "Status") return 126;
-    if (col === "Due date" || col === "Deadline date") return 110;
+    if (col === "Due date") return 110;
     return 70;
   }
 
@@ -459,9 +421,8 @@
       if (col === "Due date") return 7;
       return 9;
     }
-    if (col === "Task/Meeting" || col === "Notes" || col === "Next steps" || col === "Task/Event" || col === "Topic/event") return 27;
+    if (col === "Task/Meeting" || col === "Notes" || col === "Next steps") return 27;
     if (col === "Project") return 13;
-    if (col === "Deadline date") return 12;
     return 12;
   }
 
@@ -511,6 +472,14 @@
     document.getElementById("btnExportCsv").addEventListener("click", handleExportCsv);
     document.getElementById("btnResetSheet").addEventListener("click", handleResetSheet);
     document.getElementById("btnAutoBackup").addEventListener("click", handleAutoBackupButton);
+    document.getElementById("taskPrevBtn").addEventListener("click", function () { stepTask(-1); });
+    document.getElementById("taskNextBtn").addEventListener("click", function () { stepTask(1); });
+
+    var resizeDebounceTimer = null;
+    window.addEventListener("resize", function () {
+      if (resizeDebounceTimer) clearTimeout(resizeDebounceTimer);
+      resizeDebounceTimer = setTimeout(function () { renderTable(); }, 150);
+    });
 
     renderAll();
     initAutoBackupOnStartup();
@@ -530,12 +499,14 @@
     if (activeBtn) activeBtn.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
   }
 
-  // Swipe left/right anywhere in the main content area moves to the
-  // next/previous page - a quick way to flip between pages on a phone
-  // without having to reach for the (horizontally-scrolling) nav pills
-  // each time. A swipe that starts on an editable cell, an input/select,
-  // a button, or a column-resize handle is ignored, so it never fights
-  // with text selection, typing, or dragging a column wider.
+  // Swipe left/right anywhere in the main content area steps to the
+  // next/previous row, but only while the current page is in single-task
+  // swipe mode (see SINGLE_TASK_SWIPE_PAGES / isSingleTaskSwipeMode) -
+  // i.e. only at phone width, and only on Daily planning - All tasks and
+  // Completed tasks. Elsewhere, a swipe does nothing; switching pages is
+  // done by tapping a nav pill. A swipe that starts on an editable cell,
+  // an input/select, a button, or a column-resize handle is ignored, so
+  // it never fights with text selection, typing, or dragging a control.
   function isInteractiveSwipeTarget(el) {
     if (!el || !el.closest) return false;
     return !!el.closest('.cell-editable, input, select, button, .resize-handle, a');
@@ -548,6 +519,7 @@
 
     contentEl.addEventListener("touchstart", function (e) {
       if (e.touches.length !== 1) { tracking = false; return; }
+      if (!isSingleTaskSwipeMode(currentSheet())) { tracking = false; return; }
       if (isInteractiveSwipeTarget(e.target)) { tracking = false; return; }
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
@@ -561,13 +533,13 @@
       if (!touch) return;
       var dx = touch.clientX - startX;
       var dy = touch.clientY - startY;
-      var SWIPE_MIN_DISTANCE = 70;
+      var SWIPE_MIN_DISTANCE = 60;
       if (Math.abs(dx) < SWIPE_MIN_DISTANCE) return;
       if (Math.abs(dx) < Math.abs(dy) * 1.5) return; // mostly a vertical scroll gesture
       if (dx < 0) {
-        goToSheetIndex(selectedSheetIndex + 1);
+        stepTask(1);
       } else {
-        goToSheetIndex(selectedSheetIndex - 1);
+        stepTask(-1);
       }
     }, { passive: true });
 
@@ -587,7 +559,8 @@
       var btn = document.createElement("button");
       btn.type = "button";
       btn.className = "nav-btn" + (idx === selectedSheetIndex ? " active" : "");
-      btn.textContent = sheet.name;
+      btn.textContent = shortSheetName(sheet);
+      btn.title = sheet.name;
       btn.addEventListener("click", function () {
         goToSheetIndex(idx);
       });
@@ -797,9 +770,88 @@
     attachResizeHandles(sheet);
   }
 
-  function renderTableBody(sheet) {
-    tableBodyEl.replaceChildren();
+  // Pages where, at phone width, the table shows one row at a time with
+  // swipe/Prev/Next navigation instead of a long scrolling list - meant
+  // for flipping through individual tasks one by one. Desktop/tablet
+  // widths always show the full list regardless of page.
+  var SINGLE_TASK_SWIPE_PAGES = ["Daily planning - All tasks", "Completed tasks"];
+  var currentTaskIndexBySheet = {};
+
+  function isMobileWidth() {
+    return window.matchMedia && window.matchMedia("(max-width:680px)").matches;
+  }
+
+  function isSingleTaskSwipeMode(sheet) {
+    return isMobileWidth() && SINGLE_TASK_SWIPE_PAGES.indexOf(sheet.name) !== -1;
+  }
+
+  function clampTaskIndex(sheet, itemsLength) {
+    var idx = currentTaskIndexBySheet[sheet.name];
+    if (typeof idx !== "number" || isNaN(idx)) idx = 0;
+    if (idx < 0) idx = 0;
+    if (idx > itemsLength - 1) idx = Math.max(0, itemsLength - 1);
+    currentTaskIndexBySheet[sheet.name] = idx;
+    return idx;
+  }
+
+  function stepTask(delta) {
+    var sheet = currentSheet();
+    if (!isSingleTaskSwipeMode(sheet)) return;
     var items = getFilteredSortedRows(sheet);
+    var idx = clampTaskIndex(sheet, items.length);
+    var newIdx = idx + delta;
+    if (newIdx < 0 || newIdx > items.length - 1) return; // stop at the ends, no wraparound
+    currentTaskIndexBySheet[sheet.name] = newIdx;
+    renderTableBody(sheet);
+  }
+
+  function updateRowCountAndTaskNav(sheet, items) {
+    var countEl = document.getElementById("rowCountIndicator");
+    var swipeNavEl = document.getElementById("taskSwipeNav");
+    var posEl = document.getElementById("taskPositionLabel");
+    if (!countEl || !swipeNavEl || !posEl) return;
+    if (isSingleTaskSwipeMode(sheet)) {
+      countEl.hidden = true;
+      swipeNavEl.hidden = false;
+      if (items.length === 0) {
+        posEl.textContent = "0 of 0";
+      } else {
+        var idx = clampTaskIndex(sheet, items.length);
+        posEl.textContent = (idx + 1) + " of " + items.length;
+      }
+      var prevBtn = document.getElementById("taskPrevBtn");
+      var nextBtn = document.getElementById("taskNextBtn");
+      var curIdx = clampTaskIndex(sheet, items.length);
+      if (prevBtn) prevBtn.disabled = (items.length === 0 || curIdx <= 0);
+      if (nextBtn) nextBtn.disabled = (items.length === 0 || curIdx >= items.length - 1);
+    } else {
+      swipeNavEl.hidden = true;
+      countEl.hidden = false;
+      countEl.textContent = items.length + (items.length === 1 ? " row" : " rows");
+    }
+  }
+
+  function renderTableBody(sheet) {
+    var items = getFilteredSortedRows(sheet);
+    updateRowCountAndTaskNav(sheet, items);
+    tableBodyEl.replaceChildren();
+
+    if (isSingleTaskSwipeMode(sheet)) {
+      if (items.length === 0) {
+        var emptyTr = document.createElement("tr");
+        var emptyTd = document.createElement("td");
+        emptyTd.colSpan = sheet.columns.length + 1;
+        emptyTd.className = "empty-state-cell";
+        emptyTd.textContent = "No rows on this page.";
+        emptyTr.appendChild(emptyTd);
+        tableBodyEl.appendChild(emptyTr);
+        return;
+      }
+      var idx = clampTaskIndex(sheet, items.length);
+      var only = items[idx];
+      tableBodyEl.appendChild(buildRowElement(sheet, only.row, only.idx));
+      return;
+    }
 
     items.forEach(function (item) {
       var tr = buildRowElement(sheet, item.row, item.idx);
@@ -1419,31 +1471,36 @@
     btn.classList.remove("btn-primary", "btn-danger");
     switch (state) {
       case "enabled":
-        btn.textContent = "Auto Backup Enabled";
+        btn.textContent = "Backup On";
+        btn.title = "Auto Backup Enabled - writing to your chosen file";
         btn.style.background = "#d1fae5";
         btn.style.color = "#065f46";
         btn.style.borderColor = "#6ee7b7";
         break;
       case "snapshot-enabled":
-        btn.textContent = "Auto Backup Enabled (Safari)";
+        btn.textContent = "Backup On";
+        btn.title = "Auto Backup Enabled (Safari/Firefox browser-storage mode) - tap to download a copy now";
         btn.style.background = "#d1fae5";
         btn.style.color = "#065f46";
         btn.style.borderColor = "#6ee7b7";
         break;
       case "resume":
-        btn.textContent = "Resume Auto Backup";
+        btn.textContent = "Resume";
+        btn.title = "Resume Auto Backup - tap to reauthorize";
         btn.style.background = "";
         btn.style.color = "";
         btn.style.borderColor = "";
         break;
       case "error":
-        btn.textContent = "Auto Backup Error";
+        btn.textContent = "Error";
+        btn.title = "Auto Backup Error - tap to retry";
         btn.style.background = "#fee2e2";
         btn.style.color = "#b91c1c";
         btn.style.borderColor = "#fca5a5";
         break;
       default:
-        btn.textContent = "Enable Auto Backup";
+        btn.textContent = "Backup";
+        btn.title = "Enable Auto Backup";
         btn.style.background = "";
         btn.style.color = "";
         btn.style.borderColor = "";
@@ -1535,7 +1592,7 @@
       // Already enabled: this click downloads a fresh, portable copy of
       // the automatically-maintained backup right now.
       triggerManualBackupDownload();
-      flashAutoBackupFeedback("Backup File Downloaded");
+      flashAutoBackupFeedback("Saved!");
     }
   }
 

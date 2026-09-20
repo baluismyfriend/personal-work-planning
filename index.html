@@ -33,16 +33,23 @@
       <div class="title-block">
         <div class="eyebrow">CURRENT PAGE</div>
         <h2 id="pageTitle">&nbsp;</h2>
+        <div id="rowCountIndicator" class="row-count-indicator" hidden></div>
       </div>
       <div class="actions">
-        <button id="btnAddRow" type="button" class="btn">+ Add Row</button>
-        <button id="btnExportJson" type="button" class="btn">Export JSON</button>
-        <button id="btnAutoBackup" type="button" class="btn">Enable Auto Backup</button>
-        <button id="btnImportJson" type="button" class="btn">Import JSON</button>
+        <button id="btnAddRow" type="button" class="btn" title="Add a new row">+ Add</button>
+        <button id="btnExportJson" type="button" class="btn" title="Export the whole workbook as a JSON backup">Export</button>
+        <button id="btnAutoBackup" type="button" class="btn" title="Enable Auto Backup">Backup</button>
+        <button id="btnImportJson" type="button" class="btn" title="Import a JSON backup">Import</button>
         <input id="fileImport" type="file" accept="application/json,.json" class="hidden-input" tabindex="-1">
-        <button id="btnExportCsv" type="button" class="btn">Export CSV</button>
-        <button id="btnResetSheet" type="button" class="btn btn-danger">Reset Sheet</button>
+        <button id="btnExportCsv" type="button" class="btn" title="Export the current page as CSV">CSV</button>
+        <button id="btnResetSheet" type="button" class="btn btn-danger" title="Clear all rows on this page">Reset</button>
       </div>
+    </div>
+
+    <div id="taskSwipeNav" class="task-swipe-nav" hidden>
+      <button type="button" id="taskPrevBtn" class="task-nav-btn" aria-label="Previous task">&#8249;</button>
+      <div id="taskPositionLabel" class="task-position">0 of 0</div>
+      <button type="button" id="taskNextBtn" class="task-nav-btn" aria-label="Next task">&#8250;</button>
     </div>
 
     <div class="table-card">
