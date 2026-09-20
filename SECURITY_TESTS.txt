@@ -995,3 +995,150 @@ every page pill and action button fits on a single row via short
 labels with full-text tooltips; and every page now shows a live row
 count, with an "X of Y" position shown instead where relevant. All
 core checks remain PASS.
+
+------------------------------------------------------------
+ADDENDUM 9 - SWIPE/COUNT ON EVERY PAGE, TITLE REMOVED, COMPACT
+SINGLE-SCREEN FIELD LAYOUT
+------------------------------------------------------------
+Three changes in this round, all confined to phone width (<=680px)
+as previously confirmed with the person; desktop/tablet is
+unaffected by all three.
+
+1. SINGLE-TASK SWIPE MODE EXTENDED TO EVERY PAGE. isSingleTaskSwipeMode()
+   no longer checks a page-name allowlist (the SINGLE_TASK_SWIPE_PAGES
+   array from Addendum 8 was removed) - it now simply returns
+   isMobileWidth(), so Week planning, All future Tasks, and Road Map -
+   Pending get the same one-row-at-a-time view with the "X of Y"
+   counter and swipe/Prev/Next navigation that Daily planning and
+   Completed tasks already had. No other logic changed: the same
+   clampTaskIndex()/stepTask() functions verified in Addendum 8
+   (boundary stops, no wraparound, correct re-clamping when a list
+   shrinks) apply identically to all five pages, since they were
+   already written generically (keyed by sheet name, not hardcoded to
+   specific pages).
+
+2. PAGE TITLE HIDDEN AT PHONE WIDTH. The "CURRENT PAGE" eyebrow label
+   and the full page-name <h2> heading are hidden via
+   `.title-block{display:none;}` inside the existing phone-width media
+   query - no JavaScript or HTML structure change, purely CSS. The
+   highlighted nav pill already communicates which page is open, so
+   this is a non-lossy space saving (the information isn't removed
+   from the app, just no longer duplicated in the title area). This
+   also means the row-count indicator (Addendum 8, item 4) is now
+   effectively always hidden at phone width too, since it lived in the
+   now-hidden title-block AND single-task mode (which hides it in
+   favor of the "X of Y" bar) now applies to every page at this width
+   - this is expected, not a bug: the "X of Y" bar already conveys the
+   total count.
+
+3. COMPACT SINGLE-SCREEN FIELD LAYOUT. Two new pieces of shared
+   classification logic were added: LONG_TEXT_COLUMNS (Task/Meeting,
+   Next steps, Notes - free-text fields that may hold multi-line
+   content and so always need the full row width) and
+   TASK_SCHEMA_FIELD_ORDER (a visual-only reordering, via inline
+   `td.style.order`, applied ONLY to the 9-column task schema in
+   single-task view, so that Date+Priority end up adjacent, Raised
+   by+Work with end up adjacent, and Project+Status end up adjacent -
+   verified standalone below). buildRowElement() gained a `compact`
+   parameter (true only when called from the single-task branch of
+   renderTableBody(), false for the normal multi-row list path used
+   on desktop/tablet and, in principle, anywhere single-task mode is
+   off) that adds a "short-field" or "long-field" CSS class to each
+   cell and, where applicable, sets its visual order - it does NOT
+   touch the underlying sheet.columns order, row data, CSV export
+   order, or JSON export order, all of which read directly from
+   sheet.columns/row objects and are completely unaffected. In CSS,
+   `.single-task-row` switches that one row from the normal block/
+   card layout to `display:flex; flex-wrap:wrap`, `.short-field`
+   cells get `flex:1 1 calc(50% - 5px)` so two fit per line, and
+   `.long-field` cells (including the Actions/button row, which is
+   always treated as long regardless of its content) get
+   `flex:1 1 100%`. An additional rule using the modern
+   `:nth-last-child(1 of .short-field)` selector stretches a lone,
+   unpaired trailing short field to full width instead of leaving half
+   a row visually empty; this selector is Baseline Widely Available
+   (supported in current Chrome, Edge, Safari, and Firefox) and, by
+   the CSS spec's own error-handling rules, degrades harmlessly (the
+   lone field simply stays at half width instead of stretching) on
+   any engine that doesn't recognize it - confirmed via research
+   before use, not assumed. The table-scroller's max-height was
+   changed from `none`/unbounded (Addendum 7) to a calculated,
+   safe-area-aware bound (`calc(100vh - 232px - env(safe-area-inset-
+   top,0px) - env(safe-area-inset-bottom,0px))`) with its own
+   `overflow-y:auto`, so a normal short-value task fits without any
+   scrolling, and when a free-text field genuinely has more content
+   than fits, only that bounded card area scrolls - the header,
+   action buttons, and the "X of Y" swipe bar stay on screen rather
+   than being scrolled away with the rest of the page. The exact pixel
+   budget (232px) is a reasoned estimate of the remaining chrome
+   (header + safe-area + action row + swipe bar + card padding), not a
+   value that could be verified pixel-for-pixel without a live device
+   test; this is stated plainly rather than implied to be exact.
+
+Re-verification performed after these changes:
+- node --check script.js -> PASS, no syntax errors.
+- style.css brace balance checked programmatically -> balanced (118
+  open / 118 close after this change).
+- Extracted the field-classification and TASK_SCHEMA_FIELD_ORDER
+  logic and ran it standalone for all three page shapes that exist in
+  this app:
+    - Daily planning - All tasks (9-column task schema): confirmed
+      the resulting sorted visual order is Task/Meeting, Date,
+      Priority, Raised by, Work with, Project, Status, Due date, Next
+      steps, Actions - i.e. Date+Priority adjacent, Raised by+Work
+      with adjacent, and Project+Status adjacent as intended, with
+      both free-text fields (Task/Meeting, Next steps) and Actions
+      correctly classified "long" and everything else "short".
+    - Road Map - Pending (Project, Task/Meeting, Notes - a generic,
+      non-task-schema sheet): confirmed no order override applies
+      (natural source order is kept) and Project is "short" while
+      Task/Meeting, Notes, and Actions are all correctly "long".
+    - Week planning (Section + 5 weekday columns - another generic
+      sheet): confirmed every data column is classified "short" (so
+      they pair up naturally via flex-wrap in their existing left-to-
+      right order) and only Actions is "long".
+  This confirms the classification/ordering logic behaves correctly
+  for every distinct page schema in the app, not just the one most
+  visibly discussed in the request.
+- Re-ran the Addendum-8 clampTaskIndex()/stepTask() standalone tests
+  (boundary stops, list-shrink re-clamping, empty-list handling) to
+  confirm removing the SINGLE_TASK_SWIPE_PAGES restriction did not
+  change that logic's behavior - all previous results still hold.
+- grep for innerHTML/outerHTML/insertAdjacentHTML/document.write/
+  eval(/new Function/fetch(/XMLHttpRequest/WebSocket/EventSource
+  across script.js, index.html, and manifest.json -> zero matches.
+  The compact-layout change only adds CSS classes and an inline
+  numeric `style.order` value (via the safe `.style.order = String(n)`
+  property assignment, never string concatenation into markup) to
+  cells that were already being built by the same, already-reviewed
+  buildEditableCell()/buildStatusCell()/buildDueDateCell()/
+  buildActionsCell() functions - no new cell-building or markup-
+  generation code path was introduced.
+- grep for inline event-handler attributes and http(s) src/href
+  references in index.html -> only the expected <meta>/<link> tags
+  matched; unchanged.
+- CSP <meta> content string checked against the required exact text
+  -> matches exactly once, unchanged.
+- grep confirms isLongTextColumn, singleTaskFieldOrder, and the
+  updated buildRowElement/renderTableBody are each defined exactly
+  once, with no duplicate or orphaned definitions, and confirms the
+  removed SINGLE_TASK_SWIPE_PAGES array no longer appears anywhere in
+  script.js.
+- Manually confirmed the `compact` parameter defaults correctly: the
+  normal multi-row list path (used whenever isSingleTaskSwipeMode()
+  is false - i.e. desktop/tablet, at any width, for every page) calls
+  buildRowElement(sheet, item.row, item.idx, false), so none of the
+  short-field/long-field classes or order overrides are ever applied
+  outside single-task view, leaving the existing desktop table layout
+  completely unchanged.
+
+Result: swipe and the "X of Y" position counter now work identically
+across all five pages at phone width; the page title no longer takes
+up space there, relying on the already-visible active nav pill
+instead; and the single-task card visually groups short fields two-
+per-row (matching the specific Date/Priority and Raised by/Work with
+pairings requested, plus a sensible Project/Status pairing) while
+keeping free-text fields and the action buttons full-width, with its
+own bounded, independent scroll area so a normal task needs no
+scrolling and the header/buttons/position-bar never scroll out of
+view. All core checks remain PASS.

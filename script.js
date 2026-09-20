@@ -501,12 +501,11 @@
 
   // Swipe left/right anywhere in the main content area steps to the
   // next/previous row, but only while the current page is in single-task
-  // swipe mode (see SINGLE_TASK_SWIPE_PAGES / isSingleTaskSwipeMode) -
-  // i.e. only at phone width, and only on Daily planning - All tasks and
-  // Completed tasks. Elsewhere, a swipe does nothing; switching pages is
-  // done by tapping a nav pill. A swipe that starts on an editable cell,
-  // an input/select, a button, or a column-resize handle is ignored, so
-  // it never fights with text selection, typing, or dragging a control.
+  // swipe mode (see isSingleTaskSwipeMode) - i.e. only at phone width,
+  // on every page. Switching PAGES is still done by tapping a nav pill.
+  // A swipe that starts on an editable cell, an input/select, a button,
+  // or a column-resize handle is ignored, so it never fights with text
+  // selection, typing, or dragging a control.
   function isInteractiveSwipeTarget(el) {
     if (!el || !el.closest) return false;
     return !!el.closest('.cell-editable, input, select, button, .resize-handle, a');
@@ -770,11 +769,11 @@
     attachResizeHandles(sheet);
   }
 
-  // Pages where, at phone width, the table shows one row at a time with
-  // swipe/Prev/Next navigation instead of a long scrolling list - meant
-  // for flipping through individual tasks one by one. Desktop/tablet
-  // widths always show the full list regardless of page.
-  var SINGLE_TASK_SWIPE_PAGES = ["Daily planning - All tasks", "Completed tasks"];
+  // At phone width, EVERY page shows one row at a time with swipe/Prev/
+  // Next navigation instead of a long scrolling list - meant for
+  // flipping through individual rows one by one without needing to
+  // scroll past a dozen stacked cards. Desktop/tablet widths always
+  // show the full list/table regardless of page.
   var currentTaskIndexBySheet = {};
 
   function isMobileWidth() {
@@ -782,7 +781,7 @@
   }
 
   function isSingleTaskSwipeMode(sheet) {
-    return isMobileWidth() && SINGLE_TASK_SWIPE_PAGES.indexOf(sheet.name) !== -1;
+    return isMobileWidth();
   }
 
   function clampTaskIndex(sheet, itemsLength) {
@@ -831,6 +830,41 @@
     }
   }
 
+  // Columns that hold free-form, potentially multi-line text and so need
+  // the full row width; everything else is short enough to pair two per
+  // row in the single-task view (see below) without cramming.
+  var LONG_TEXT_COLUMNS = ["Task/Meeting", "Next steps", "Notes"];
+
+  function isLongTextColumn(col) {
+    return LONG_TEXT_COLUMNS.indexOf(col) !== -1;
+  }
+
+  // In the single-task view, fields are visually reordered (CSS `order`,
+  // via inline style) so related short fields land next to each other and
+  // pair up - independent of the underlying column order used everywhere
+  // else (the desktop table, CSV export, etc., which are unaffected).
+  // Only the 9-column task schema gets a custom order; every other page's
+  // fields already pair up sensibly in their natural left-to-right order.
+  var TASK_SCHEMA_FIELD_ORDER = {
+    "Task/Meeting": 1,
+    "Date": 2,
+    "Priority": 3,
+    "Raised by": 4,
+    "Work with": 5,
+    "Project": 6,
+    "Status": 7,
+    "Due date": 8,
+    "Next steps": 9
+  };
+
+  function singleTaskFieldOrder(sheet, col) {
+    if (isTaskSheet(sheet)) {
+      if (col === "Actions") return 10;
+      if (Object.prototype.hasOwnProperty.call(TASK_SCHEMA_FIELD_ORDER, col)) return TASK_SCHEMA_FIELD_ORDER[col];
+    }
+    return null;
+  }
+
   function renderTableBody(sheet) {
     var items = getFilteredSortedRows(sheet);
     updateRowCountAndTaskNav(sheet, items);
@@ -849,23 +883,33 @@
       }
       var idx = clampTaskIndex(sheet, items.length);
       var only = items[idx];
-      tableBodyEl.appendChild(buildRowElement(sheet, only.row, only.idx));
+      tableBodyEl.appendChild(buildRowElement(sheet, only.row, only.idx, true));
       return;
     }
 
     items.forEach(function (item) {
-      var tr = buildRowElement(sheet, item.row, item.idx);
+      var tr = buildRowElement(sheet, item.row, item.idx, false);
       tableBodyEl.appendChild(tr);
     });
   }
 
-  function buildRowElement(sheet, row, sourceIdx) {
+  function buildRowElement(sheet, row, sourceIdx, compact) {
     var tr = document.createElement("tr");
     tr.dataset.sourceIdx = String(sourceIdx);
+    if (compact) tr.classList.add("single-task-row");
+
+    function styleCompactCell(td, col) {
+      if (!compact) return;
+      var isLong = (col === "Actions") || isLongTextColumn(col);
+      td.classList.add(isLong ? "long-field" : "short-field");
+      var order = singleTaskFieldOrder(sheet, col);
+      if (order !== null) td.style.order = String(order);
+    }
 
     sheet.columns.forEach(function (col) {
       var td = document.createElement("td");
       td.dataset.label = col;
+      styleCompactCell(td, col);
       if (col === "Status" && isTaskSheet(sheet)) {
         td.appendChild(buildStatusCell(sheet, row, sourceIdx));
       } else if (isCalendarDateColumn(sheet, col)) {
@@ -878,6 +922,7 @@
 
     var tdActions = document.createElement("td");
     tdActions.dataset.label = "Actions";
+    styleCompactCell(tdActions, "Actions");
     tdActions.appendChild(buildActionsCell(sheet, row, sourceIdx));
     tr.appendChild(tdActions);
 
