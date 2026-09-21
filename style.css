@@ -130,32 +130,33 @@ body{
 .task-swipe-nav{
   display:flex;
   align-items:center;
-  justify-content:center;
-  gap:16px;
-  margin:2px 0 10px;
+  justify-content:space-between;
+  gap:10px;
+  margin:14px 0 4px;
 }
 .task-swipe-nav[hidden]{display:none;}
 .task-nav-btn{
-  width:40px;
-  height:40px;
-  flex-shrink:0;
+  flex:0 1 auto;
+  min-width:100px;
+  padding:11px 16px;
   border-radius:999px;
   border:1px solid rgba(255,255,255,.6);
   background:rgba(255,255,255,.55);
   backdrop-filter:blur(6px);
   -webkit-backdrop-filter:blur(6px);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.5);
-  font-size:19px;
+  font-size:13px;
   font-weight:800;
   color:var(--text);
   cursor:pointer;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  text-align:center;
+  white-space:nowrap;
 }
+.task-nav-btn:hover{border-color:#5eead4;}
 .task-nav-btn:disabled{opacity:.35;cursor:default;}
 .task-position{
-  min-width:76px;
+  flex:0 0 auto;
+  min-width:64px;
   text-align:center;
   font-size:13px;
   font-weight:800;
@@ -443,11 +444,14 @@ body{
    row, one labeled field per line - so nothing needs to be scrolled
    sideways or squinted at on a narrow screen. */
 @media (max-width:680px){
-  .site-header{padding-left:14px;padding-right:14px;gap:8px;}
-  .brand{gap:8px;}
-  .brand-icon{width:34px;height:34px;border-radius:11px;font-size:10px;}
-  .brand-text h1{font-size:15px;}
-  .brand-subtitle{display:none;}
+  .site-header{
+    padding:calc(8px + env(safe-area-inset-top, 0px)) 14px 8px;
+    gap:0;
+  }
+  /* The logo/title row is hidden entirely at phone width to leave more
+     room for task details - the page you're on is already shown by the
+     highlighted pill in the nav row below. */
+  .brand{display:none;}
 
   /* All page pills fit in a single non-scrolling row: short names (see
      NAV_SHORT_NAMES in script.js) plus equal-width flex segments. */
@@ -494,7 +498,7 @@ body{
      Meeting, Next steps, Notes) causes this area specifically to
      scroll, rather than the whole page. */
   .table-scroller{
-    max-height:calc(100vh - 232px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    max-height:calc(100vh - 250px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
     overflow-y:auto;
     padding:0;
   }

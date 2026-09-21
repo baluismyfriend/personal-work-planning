@@ -1142,3 +1142,118 @@ keeping free-text fields and the action buttons full-width, with its
 own bounded, independent scroll area so a normal task needs no
 scrolling and the header/buttons/position-bar never scroll out of
 view. All core checks remain PASS.
+
+------------------------------------------------------------
+ADDENDUM 10 - LOGO REMOVED, NAV BAR MOVED TO BOTTOM WITH LABELED
+BUTTONS, REVISED FIELD ROW LAYOUT
+------------------------------------------------------------
+Three changes in this round, all confined to phone width (<=680px),
+consistent with every layout change since Addendum 7; desktop/tablet
+is unaffected by all three.
+
+1. LOGO/TITLE REMOVED AT PHONE WIDTH. `.brand{display:none;}` was
+   added inside the existing phone media query, hiding the "PWP" icon,
+   "Personal Work Planning" heading, and subtitle together (they are
+   all children of .brand) in one rule. The site-header's own padding
+   was tightened at the same time (from the general 14px-plus-safe-
+   area padding down to 8px-plus-safe-area top/bottom) since only the
+   nav-pill row remains. HTML was not changed - the brand markup still
+   exists (and still renders normally above 680px) - only its CSS
+   display property differs by breakpoint, the same pattern already
+   used for the subtitle/eyebrow/page-title in earlier addenda.
+
+2. SWIPE-POSITION BAR MOVED TO THE BOTTOM, WITH LABELED BUTTONS. The
+   #taskSwipeNav element was moved in index.html from between the
+   action-button row and the table card to AFTER the table card (a
+   sibling of .table-card, both direct children of <main
+   class="content">) - a pure markup reordering; no JavaScript
+   visibility/update logic changed, since updateRowCountAndTaskNav()
+   already just toggles the [hidden] attribute and sets text content
+   on the same element by id regardless of where it sits in the
+   document. The Prev/Next buttons' content changed from bare arrow
+   glyphs (&#8249; / &#8250;) to labeled text ("&#8249; Previous" /
+   "Next &#8250;"), and their CSS was changed from small 40x40 circles
+   sized for a single glyph to normal auto-width pill buttons (matching
+   the visual style of the app's other buttons) sized for the text
+   label; the now-redundant aria-label attributes were removed from
+   the HTML since visible button text already provides an accessible
+   name. The table-scroller's phone-width height budget (Addendum 9)
+   was recalculated from 232px to 250px to account for the header
+   shrinking (change 1, which reduces the budget needed) while the
+   swipe bar moved below the card (which adds height there instead,
+   increasing the budget needed) - net a modest increase, reasoned
+   through explicitly rather than left at the old, now-inaccurate
+   value. The existing 96px bottom content padding (unchanged, already
+   present since Addendum 7 specifically to keep the fixed floating
+   "+ Add Row" button clear of in-flow content) continues to keep that
+   floating button from visually overlapping the relocated "Next"
+   button, since the floating button's own footprint is comfortably
+   smaller than that reserved padding.
+
+3. REVISED FIELD ROW LAYOUT. TASK_SCHEMA_FIELD_ORDER (Addendum 9) was
+   updated to the newly-requested sequence: Project(1), Date(2),
+   Priority(3), Task/Meeting(4), Raised by(5), Work with(6), Next
+   steps(7), Due date(8), Status(9), Actions(10) - still only applied
+   when isTaskSheet(sheet) is true (Daily planning, All future Tasks,
+   Completed tasks), exactly as before. A new SOLO_ROW_TASK_SCHEMA_
+   COLUMNS list (["Project", "Task/Meeting", "Next steps"]) was added
+   because Project needed to occupy a full row by itself (not paired)
+   even though its value is short - styleCompactCell()'s "is this
+   field long/full-width" check now also treats any column in that
+   list as full-width, in addition to the existing LONG_TEXT_COLUMNS
+   check, but ONLY on task-schema sheets - Road Map - Pending's own
+   Project column (a different, non-task-schema page) is unaffected,
+   verified standalone below. README section 18 documents the
+   resulting layout precisely: Project alone, Date+Priority paired,
+   Task/Meeting alone, Raised by+Work with paired, Next steps alone,
+   Due date+Status paired, Actions alone - seven visual rows total for
+   the nine data columns plus Actions.
+
+Re-verification performed after these changes:
+- node --check script.js -> PASS, no syntax errors.
+- style.css brace balance checked programmatically -> balanced (116
+  open / 116 close after this change).
+- manifest.json re-parsed with a strict JSON parser -> still valid.
+- index.html tag-balance checked programmatically for div/header/
+  main/nav/button/table -> all balanced; confirmed by id lookup that
+  taskSwipeNav, taskPrevBtn, taskPositionLabel, taskNextBtn, and
+  rowCountIndicator (all referenced by getElementById in script.js)
+  each still appear exactly once in the markup after being moved.
+- Extracted the updated field-order/classification logic and
+  simulated the actual flex-wrap row-building algorithm (not just the
+  sorted order, but the real "does this item start a new row, and do
+  two short items share a row" logic) standalone in Node. The
+  resulting row-by-row output for the 9-column task schema was:
+  Row 1: Project | Row 2: Date + Priority | Row 3: Task/Meeting |
+  Row 4: Raised by + Work with | Row 5: Next steps | Row 6: Due date
+  + Status | Row 7: Actions - an exact match for the requested
+  layout, confirmed by direct inspection of the simulation's printed
+  output rather than by inspection of the source code alone.
+- Confirmed (same standalone harness used in Addendum 9) that Road
+  Map - Pending's Project column is NOT affected by
+  SOLO_ROW_TASK_SCHEMA_COLUMNS, since that list is only consulted
+  when isTaskSheet(sheet) is true and Road Map - Pending is not a
+  task-schema sheet - its Project column remains classified "short"
+  as before.
+- grep for innerHTML/outerHTML/insertAdjacentHTML/document.write/
+  eval(/new Function/fetch(/XMLHttpRequest/WebSocket/EventSource
+  across script.js, index.html, and manifest.json -> zero matches.
+  No new cell-building or markup-generation code was introduced;
+  this round only reordered existing static HTML, changed static
+  button text/classes, and adjusted the existing order-assignment
+  data table and CSS.
+- grep for inline event-handler attributes and http(s) src/href
+  references in index.html -> only the expected <meta>/<link> tags
+  matched; unchanged.
+- CSP <meta> content string checked against the required exact text
+  -> matches exactly once, unchanged.
+- grep confirms SOLO_ROW_TASK_SCHEMA_COLUMNS and the updated
+  TASK_SCHEMA_FIELD_ORDER are each defined exactly once, with no
+  duplicate or orphaned definitions.
+
+Result: the logo/title no longer takes up space on a phone screen;
+the position counter and Previous/Next controls now sit at the
+bottom of the page as labeled buttons rather than bare arrows above
+the card; and the single-task field layout for Daily planning/All
+future Tasks/Completed tasks now follows the exact seven-row
+sequence requested. All core checks remain PASS.

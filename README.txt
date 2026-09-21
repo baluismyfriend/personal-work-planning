@@ -376,24 +376,24 @@ Below roughly 680px wide - i.e. on an iPhone, whether in the
 installed app or just in Safari - the page layout changes to stay
 usable on a small screen:
 
-- The header shrinks: a smaller logo, smaller page title, and the
-  "Local secure task portal" subtitle is hidden to save vertical
-  space. All five page pills and all six action buttons keep to a
-  single row each (see section 17) instead of wrapping or scrolling
-  off-screen.
+- The logo, "Personal Work Planning" title, and subtitle are hidden
+  entirely to leave more room for task details - the highlighted
+  pill in the nav row already shows which page you're on. All five
+  page pills and all six action buttons keep to a single row each
+  (see section 17) instead of wrapping or scrolling off-screen.
 - The "CURRENT PAGE" label and the full page-name heading (e.g.
-  "Daily planning - All tasks") are hidden entirely to save more
-  vertical space - the highlighted pill in the nav row above already
-  shows which page you're on.
-- EVERY page shows just ONE row at a time, with a small bar showing
-  your position (e.g. "3 of 26") and swipe/‹›-button navigation
-  between rows - see section 18.
-- Within that one row, short fields (Date, Priority, Project,
-  Status, Due date, Raised by, Work with, weekday cells, and
-  similar) are paired up two-per-row instead of each taking a full
-  line, and longer free-text fields (Task/Meeting, Next steps,
-  Notes) and the Copy/Move/Delete buttons still take the full width
-  - see section 18 for the full explanation of why and how.
+  "Daily planning - All tasks") are also hidden, for the same
+  reason.
+- EVERY page shows just ONE row at a time. A "Previous" / position /
+  "Next" bar for moving between rows sits at the BOTTOM of the page,
+  below the row itself - see section 18.
+- Within that one row, short fields (Date, Priority, Status, Due
+  date, Raised by, Work with, weekday cells, and similar) are paired
+  up two-per-row instead of each taking a full line, and longer
+  free-text fields (Task/Meeting, Next steps, Notes), Project on the
+  three task-schema pages, and the Copy/Move/Delete buttons still
+  take the full width - see section 18 for the full explanation of
+  the exact row layout on each page.
 - Column sorting and the per-column filter row are hidden at this
   width, since they depend on the column-header row this layout
   removes to make room for the cards. They are unaffected and fully
@@ -431,40 +431,47 @@ for space in a row of other buttons.
 18. SWIPING THROUGH ROWS ONE AT A TIME, AND THE COMPACT LAYOUT
 ------------------------------------------------------------
 On a phone-width screen, EVERY page works this way: instead of a
-scrolling list of cards, you see ONE row at a time, with a small bar
-above it showing your position, e.g. "3 of 26", and ‹ / › buttons on
-either side of that position label.
+scrolling list of cards, you see ONE row at a time. A bar showing
+your position (e.g. "3 of 26") sits at the BOTTOM of the page, below
+the row itself, with a "‹ Previous" button on its left and a "Next
+›" button on its right.
 
 - Swipe left anywhere on the card (except starting on a text field,
   dropdown, or button) to move to the next row; swipe right to move
-  to the previous one. You can also just tap the ‹ / › buttons
-  instead of swiping.
+  to the previous one. You can also just tap the "Previous" / "Next"
+  buttons at the bottom instead of swiping.
 - The order you swipe through matches whatever you're currently
   viewing - if you have a filter or sort applied on desktop/tablet
   first, that same order carries over here.
-- Swiping stops at the first and last row - it does not loop around.
+- Swiping (or tapping Previous/Next) stops at the first and last row
+  - it does not loop around; the button dims and stops responding
+  once you're at that end.
 - If you mark a task "Complete" (which moves it off "Daily planning
   - All tasks" onto "Completed tasks", per section 4), use Move, or
   otherwise remove/relocate the row you're currently viewing, your
   position automatically adjusts to stay on a valid row rather than
   showing a blank screen.
-- This one-at-a-time view, and the swipe/‹ › navigation, is specific
-  to phone-width screens. On a tablet or desktop/laptop browser
-  window, every page always shows the normal full table/list
+- This one-at-a-time view, and the swipe/Previous/Next navigation,
+  is specific to phone-width screens. On a tablet or desktop/laptop
+  browser window, every page always shows the normal full table/list
   regardless of width.
 
 COMPACT FIELD LAYOUT (fitting a task on one screen): within that one
-row, fields are grouped to minimize how much you need to scroll:
+row, fields are grouped into the following rows to minimize how much
+you need to scroll:
 - On "Daily planning - All tasks", "All future Tasks", and
-  "Completed tasks", the order is: Task/Meeting first (full width,
-  since it's usually what you care about most), then Date + Priority
-  paired side-by-side, then Raised by + Work with paired side-by-
-  side, then Project + Status paired side-by-side, then Due date on
-  its own, then Next steps (full width), then the Copy/Move/Delete
-  buttons (full width). This is a deliberate visual re-grouping for
-  this compact view only - it does not change the actual column
-  order used anywhere else (the desktop table, CSV export, JSON
-  export, etc. are all unaffected).
+  "Completed tasks", the rows are, top to bottom:
+    1. Project (on its own)
+    2. Date + Priority (paired side-by-side)
+    3. Task/Meeting (on its own, full width)
+    4. Raised by + Work with (paired side-by-side)
+    5. Next steps (on its own, full width)
+    6. Due date + Status (paired side-by-side)
+    7. The Copy/Move/Delete buttons (on their own, full width)
+  This is a deliberate visual re-grouping for this compact view
+  only - it does not change the actual column order used anywhere
+  else (the desktop table, CSV export, JSON export, etc. are all
+  unaffected).
 - On "Week planning", Section and the five weekday columns pair up
   two-per-row in their normal order.
 - On "Road Map - Pending", Project sits on its own short line, and
@@ -474,14 +481,16 @@ row, fields are grouped to minimize how much you need to scroll:
   Meeting, Next steps, Notes) always takes the full width, since
   that's the one case where "no scrolling" genuinely isn't possible
   - a long note has to take the room it needs. Every other, shorter
-  field is eligible to pair up with its neighbor.
+  field is eligible to pair up with its neighbor, except Project on
+  the three task-schema pages above, which was specifically kept on
+  its own row.
 - The task card area has its own independent scroll, bounded to the
-  space left on screen below the header and buttons - so a normal,
-  short-value task fits with no scrolling at all, and scrolling only
-  ever happens within that one card, only when a free-text field
-  genuinely has more content than fits, without ever hiding the
-  header, buttons, or swipe-position bar off the top of the screen.
-  Exactly how much fits before scrolling starts varies a little by
-  phone model (screen height, notch size), since this is sized
-  relative to your actual screen rather than to a fixed number of
-  rows.
+  space left on screen below the action buttons and above the
+  Previous/Next bar - so a normal, short-value task fits with no
+  scrolling at all, and scrolling only ever happens within that one
+  card, only when a free-text field genuinely has more content than
+  fits, without ever hiding the action buttons or the Previous/Next
+  bar off screen. Exactly how much fits before scrolling starts
+  varies a little by phone model (screen height, notch size), since
+  this is sized relative to your actual screen rather than to a
+  fixed number of rows.

@@ -840,22 +840,31 @@
   }
 
   // In the single-task view, fields are visually reordered (CSS `order`,
-  // via inline style) so related short fields land next to each other and
-  // pair up - independent of the underlying column order used everywhere
+  // via inline style) so related fields land in the requested row
+  // groups - independent of the underlying column order used everywhere
   // else (the desktop table, CSV export, etc., which are unaffected).
-  // Only the 9-column task schema gets a custom order; every other page's
-  // fields already pair up sensibly in their natural left-to-right order.
+  // Only the 9-column task schema gets a custom order; every other
+  // page's fields already pair up sensibly in their natural left-to-
+  // right order. Row layout: Project (own row) -> Date + Priority ->
+  // Task/Meeting (own row) -> Raised by + Work with -> Next steps (own
+  // row) -> Due date + Status -> Actions (own row, always last).
   var TASK_SCHEMA_FIELD_ORDER = {
-    "Task/Meeting": 1,
+    "Project": 1,
     "Date": 2,
     "Priority": 3,
-    "Raised by": 4,
-    "Work with": 5,
-    "Project": 6,
-    "Status": 7,
+    "Task/Meeting": 4,
+    "Raised by": 5,
+    "Work with": 6,
+    "Next steps": 7,
     "Due date": 8,
-    "Next steps": 9
+    "Status": 9
   };
+
+  // Columns that get the full row to themselves in the single-task view.
+  // Project is included here (even though its value is short) because it
+  // was specifically requested to sit alone on its own row rather than
+  // paired with another field.
+  var SOLO_ROW_TASK_SCHEMA_COLUMNS = ["Project", "Task/Meeting", "Next steps"];
 
   function singleTaskFieldOrder(sheet, col) {
     if (isTaskSheet(sheet)) {
@@ -900,7 +909,8 @@
 
     function styleCompactCell(td, col) {
       if (!compact) return;
-      var isLong = (col === "Actions") || isLongTextColumn(col);
+      var isLong = (col === "Actions") || isLongTextColumn(col) ||
+        (isTaskSheet(sheet) && SOLO_ROW_TASK_SCHEMA_COLUMNS.indexOf(col) !== -1);
       td.classList.add(isLong ? "long-field" : "short-field");
       var order = singleTaskFieldOrder(sheet, col);
       if (order !== null) td.style.order = String(order);
