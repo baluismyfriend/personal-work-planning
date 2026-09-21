@@ -1,604 +1,125 @@
-:root{
-  --text:#0f2027;
-  --muted:#5b7268;
-  --primary:#0d9488;
-  --primary-dark:#0f766e;
-  --accent:#f97316;
-  --border:#d6e6e0;
-  --header:#ecfdf5;
-  --danger:#dc2626;
-  --shadow:0 18px 45px rgba(6,78,59,.12);
+/* Base Layout & Theme */
+:root {
+  --bg-primary: #ffffff;
+  --text-main: #1d1d1f;
+  --muted: #86868b;
+  --border-color: #d2d2d7;
+  --card-bg: #f5f5f7;
+  --accent: #0066cc;
 }
 
-*{box-sizing:border-box;}
-
-html,body{margin:0;padding:0;}
-
-body{
-  font-family:"Segoe UI", Arial, sans-serif;
-  color:var(--text);
-  background:
-    radial-gradient(circle at top left,#ccfbf1 0,transparent 30%),
-    radial-gradient(circle at bottom right,#fef3c7 0,transparent 26%),
-    linear-gradient(135deg,#f0fdfa,#f8fafc);
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-.app{min-height:100vh;display:flex;flex-direction:column;}
-
-.hidden-input{display:none;}
-
-/* Header */
-.site-header{
-  position:sticky;
-  top:0;
-  z-index:20;
-  display:grid;
-  grid-template-columns:auto minmax(0,1fr);
-  gap:16px;
-  padding:calc(14px + env(safe-area-inset-top)) 22px 14px;
-  background:rgba(6,35,33,.62);
-  backdrop-filter:blur(22px) saturate(150%);
-  -webkit-backdrop-filter:blur(22px) saturate(150%);
-  border-bottom:1px solid rgba(255,255,255,.14);
-  box-shadow:0 14px 40px rgba(6,35,33,.28);
-  color:#fff;
-  align-items:center;
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--text-main);
+  background-color: var(--bg-primary);
+  line-height: 1.5;
+  padding: 16px;
 }
 
-.brand{display:flex;align-items:center;gap:12px;min-width:0;}
-.brand-icon{
-  width:42px;height:42px;border-radius:14px;
-  background:linear-gradient(135deg,rgba(94,234,212,.9),rgba(13,148,136,.85));
-  backdrop-filter:blur(6px);
-  -webkit-backdrop-filter:blur(6px);
-  border:1px solid rgba(255,255,255,.35);
-  display:flex;align-items:center;justify-content:center;
-  font-weight:900;
-  font-size:12px;
-  letter-spacing:-0.02em;
-  box-shadow:0 10px 24px rgba(13,148,136,.45), inset 0 1px 0 rgba(255,255,255,.5);
-  color:#053b34;
-  flex-shrink:0;
-}
-.brand-text h1{font-size:18px;margin:0;}
-.brand-subtitle{font-size:11px;color:#a7d9cd;}
-
-.nav{
-  display:flex;
-  gap:8px;
-  overflow-x:auto;
-  padding-bottom:2px;
-}
-.nav-btn{
-  flex-shrink:0;
-  border-radius:999px;
-  padding:9px 13px;
-  background:rgba(255,255,255,.08);
-  backdrop-filter:blur(10px);
-  -webkit-backdrop-filter:blur(10px);
-  border:1px solid rgba(255,255,255,.22);
-  color:#d3f5ec;
-  font-size:13px;
-  font-weight:700;
-  cursor:pointer;
-  white-space:nowrap;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.12);
-  transition:background .15s ease, border-color .15s ease, transform .15s ease;
-}
-.nav-btn:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.4);}
-.nav-btn.active{
-  background:linear-gradient(135deg,rgba(45,212,191,.85),rgba(13,148,136,.85));
-  color:#04302b;
-  border-color:rgba(255,255,255,.5);
-  box-shadow:0 6px 16px rgba(13,148,136,.35), inset 0 1px 0 rgba(255,255,255,.4);
+/* Container & Header Styles */
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
 }
 
-/* Content */
-.content{padding:8px 24px 86px;flex:1;}
-
-.top-row{
-  display:flex;
-  justify-content:space-between;
-  gap:14px;
-  margin:4px 0 8px;
-  align-items:flex-end;
-  flex-wrap:wrap;
+header {
+  margin-bottom: 24px;
 }
 
-.eyebrow{
-  text-transform:uppercase;
-  letter-spacing:.12em;
-  font-size:11px;
-  font-weight:800;
-  color:var(--muted);
+h1, h2, h3 {
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
-.title-block h2{font-size:25px;margin:2px 0 0;}
-
-.row-count-indicator{
-  display:inline-block;
-  margin-top:6px;
-  padding:3px 11px;
-  border-radius:999px;
-  background:rgba(13,148,136,.12);
-  color:#0f766e;
-  font-size:11px;
-  font-weight:800;
-}
-.row-count-indicator[hidden]{display:none;}
-
-.task-swipe-nav{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  margin:14px 0 4px;
-}
-.task-swipe-nav[hidden]{display:none;}
-.task-nav-btn{
-  flex:0 1 auto;
-  min-width:100px;
-  padding:11px 16px;
-  border-radius:999px;
-  border:1px solid rgba(255,255,255,.6);
-  background:rgba(255,255,255,.55);
-  backdrop-filter:blur(6px);
-  -webkit-backdrop-filter:blur(6px);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.5);
-  font-size:13px;
-  font-weight:800;
-  color:var(--text);
-  cursor:pointer;
-  text-align:center;
-  white-space:nowrap;
-}
-.task-nav-btn:hover{border-color:#5eead4;}
-.task-nav-btn:disabled{opacity:.35;cursor:default;}
-.task-position{
-  flex:0 0 auto;
-  min-width:64px;
-  text-align:center;
-  font-size:13px;
-  font-weight:800;
-  color:var(--text);
+/* Table & Card Components */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
 }
 
-.empty-state-cell{
-  display:block;
-  text-align:center;
-  padding:32px 12px;
-  color:var(--muted);
-  font-size:13px;
+.data-table th,
+.data-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
 }
 
-.actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;}
-
-.btn{
-  border:1px solid rgba(255,255,255,.5);
-  border-radius:12px;
-  background:rgba(255,255,255,.45);
-  backdrop-filter:blur(12px) saturate(160%);
-  -webkit-backdrop-filter:blur(12px) saturate(160%);
-  color:var(--text);
-  padding:9px 11px;
-  font-weight:800;
-  font-size:12px;
-  cursor:pointer;
-  box-shadow:0 4px 14px rgba(6,78,59,.10), inset 0 1px 0 rgba(255,255,255,.6);
-  transition:border-color .15s ease, transform .15s ease, background .15s ease;
-}
-.btn:hover{border-color:#5eead4;background:rgba(255,255,255,.65);transform:translateY(-1px);}
-.btn-primary{
-  background:linear-gradient(135deg,rgba(20,184,166,.82),rgba(15,118,110,.82));
-  backdrop-filter:blur(12px);
-  -webkit-backdrop-filter:blur(12px);
-  color:#fff;
-  border-color:rgba(255,255,255,.4);
-}
-.btn-danger{color:var(--danger);border-color:rgba(252,165,165,.7);}
-
-.floating-add{
-  position:fixed;
-  right:24px;
-  bottom:calc(24px + env(safe-area-inset-bottom));
-  z-index:9999;
-  border-radius:999px;
-  padding:14px 18px;
-  background:linear-gradient(135deg,rgba(251,146,60,.85),rgba(249,115,22,.85));
-  backdrop-filter:blur(14px) saturate(160%);
-  -webkit-backdrop-filter:blur(14px) saturate(160%);
-  border-color:rgba(255,255,255,.5);
-  box-shadow:0 18px 40px rgba(249,115,22,.45), inset 0 1px 0 rgba(255,255,255,.5);
+.data-table th {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--muted);
+  letter-spacing: 0.05em;
 }
 
-/* Table card */
-.table-card{
-  background:rgba(255,255,255,.38);
-  border:1px solid rgba(255,255,255,.55);
-  border-radius:18px;
-  box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.6);
-  backdrop-filter:blur(20px) saturate(160%);
-  -webkit-backdrop-filter:blur(20px) saturate(160%);
-  overflow:hidden;
-  padding:8px 10px 14px;
+/* Inputs & Form Elements */
+input, select, textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  background-color: #fff;
 }
 
-.table-scroller{
-  overflow:auto;
-  max-height:calc(100vh - 135px);
-  padding:0 4px 8px;
-}
-
-.data-table{
-  border-collapse:separate;
-  border-spacing:0 12px;
-  table-layout:fixed;
-  width:100%;
-}
-
-.data-table thead th{
-  position:sticky;
-  top:0;
-  z-index:6;
-  background:rgba(236,253,245,.72);
-  backdrop-filter:blur(10px);
-  -webkit-backdrop-filter:blur(10px);
-  color:#115e59;
-  font-size:11px;
-  text-align:left;
-  padding:9px 8px;
-  border-bottom:1px solid rgba(255,255,255,.6);
-  border-right:1px solid rgba(214,230,224,.7);
-  cursor:pointer;
-  user-select:none;
-  position:relative;
-}
-.data-table thead th:first-child{border-left:1px solid rgba(214,230,224,.7);}
-.data-table thead th.col-actions{cursor:default;}
-
-.filter-row th{
-  position:sticky;
-  top:32px;
-  z-index:5;
-  background:rgba(247,253,251,.65);
-  backdrop-filter:blur(10px);
-  -webkit-backdrop-filter:blur(10px);
-  box-shadow:0 4px 6px -4px rgba(6,78,59,.18);
-  padding:6px 6px;
-  border-right:1px solid rgba(214,230,224,.7);
-  border-bottom:1px solid rgba(255,255,255,.6);
-  cursor:default;
-}
-.filter-row th:first-child{border-left:1px solid rgba(214,230,224,.7);}
-
-.resize-handle{
-  position:absolute;
-  top:0;
-  right:0;
-  width:8px;
-  height:100%;
-  cursor:col-resize;
-  background:transparent;
-}
-.resize-handle:hover{background:rgba(13,148,136,.28);}
-.resize-handle.resizing{background:#0d9488;}
-
-.filter-search{
-  width:100%;
-  border:1px solid rgba(255,255,255,.6);
-  background:rgba(255,255,255,.55);
-  backdrop-filter:blur(6px);
-  -webkit-backdrop-filter:blur(6px);
-  border-radius:8px;
-  padding:4px 6px;
-  font-size:11px;
-  margin-bottom:4px;
-}
-.filter-select{
-  width:100%;
-  border:1px solid rgba(255,255,255,.6);
-  background:rgba(255,255,255,.55);
-  backdrop-filter:blur(6px);
-  -webkit-backdrop-filter:blur(6px);
-  border-radius:8px;
-  padding:3px 4px;
-  font-size:11px;
-}
-
-.data-table tbody tr{
-  background:rgba(255,255,255,.55);
-  backdrop-filter:blur(8px);
-  -webkit-backdrop-filter:blur(8px);
-  box-shadow:0 4px 10px rgba(6,78,59,.07), inset 0 1px 0 rgba(255,255,255,.5);
-}
-.data-table tbody tr:hover{background:rgba(236,253,245,.85);}
-.data-table tbody tr.row-highlight{background:rgba(254,243,199,.92) !important;}
-
-.data-table td{
-  border-top:1px solid rgba(255,255,255,.5);
-  border-bottom:1px solid rgba(255,255,255,.5);
-  border-right:1px solid rgba(214,230,224,.6);
-  padding:8px 8px;
-  vertical-align:top;
-  background:transparent;
-}
-.data-table td:first-child{border-left:1px solid rgba(214,230,224,.6);border-top-left-radius:10px;border-bottom-left-radius:10px;}
-.data-table td:last-child{border-top-right-radius:10px;border-bottom-right-radius:10px;}
-
-.cell-editable{
-  min-height:20px;
-  outline:none;
-  white-space:pre-wrap;
-  word-break:break-word;
-  border-radius:6px;
-  padding:2px 4px;
-  font-size:12px;
-  line-height:1.35;
-}
-.cell-editable.cell-large{font-size:14px;line-height:1.45;}
-.cell-editable:focus{
-  background:#fff7ed;
-  box-shadow:inset 0 0 0 2px #fb923c;
-}
-
-/* pills */
-.pill{
-  display:inline-block;
-  padding:3px 9px;
-  border-radius:999px;
-  font-size:11px;
-  font-weight:700;
-}
-.pill-red{background:#fee2e2;color:#b91c1c;}
-.pill-amber{background:#fef3c7;color:#92400e;}
-.pill-green{background:#d1fae5;color:#065f46;}
-.pill-blue{background:#e0f2fe;color:#0369a1;}
-.pill-purple{background:#ede9fe;color:#5b21b6;}
-.pill-lightblue{background:#ccfbf1;color:#0f766e;}
-.pill-gray{background:#e5e7eb;color:#374151;}
-
-/* status select */
-.status-select{
-  border-radius:999px;
-  min-width:112px;
-  padding:5px 8px;
-  font-size:11px;
-  font-weight:700;
-  border:1px solid rgba(255,255,255,.6);
-  backdrop-filter:blur(6px);
-  -webkit-backdrop-filter:blur(6px);
-  cursor:pointer;
-}
-.status-complete{background:rgba(209,250,229,.85);color:#065f46;}
-.status-inprogress{background:rgba(224,242,254,.85);color:#0369a1;}
-.status-notstarted{background:rgba(229,231,235,.85);color:#374151;}
-.status-hold{background:rgba(254,243,199,.85);color:#92400e;}
-.status-empty{background:rgba(237,233,254,.85);color:#5b21b6;}
-
-/* due date */
-.due-date-input{
-  width:100%;
-  min-width:110px;
-  background:rgba(255,255,255,.55);
-  backdrop-filter:blur(6px);
-  -webkit-backdrop-filter:blur(6px);
-  border:1px solid rgba(255,255,255,.6);
-  border-radius:8px;
-  padding:5px 6px;
-  cursor:pointer;
-  font-size:12px;
-}
-.due-date-input:focus{
-  outline:none;
-  box-shadow:0 0 0 3px rgba(13,148,136,.35);
-  border-color:var(--primary);
-}
-
-/* actions */
-.actions-cell{
-  display:flex;
-  flex-direction:row;
-  align-items:center;
-  justify-content:center;
-  flex-wrap:nowrap;
-  gap:7px;
-}
-.row-btn{
-  min-width:54px;
-  padding:7px 9px;
-  border-radius:10px;
-  border:1px solid rgba(255,255,255,.6);
-  background:rgba(255,255,255,.55);
-  backdrop-filter:blur(6px);
-  -webkit-backdrop-filter:blur(6px);
-  font-size:11px;
-  font-weight:800;
-  cursor:pointer;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.5);
-}
-.row-btn.move{background:rgba(255,237,213,.85);color:#78350f;}
-.row-btn.delete{color:var(--danger);}
-.clear-filters-btn{
-  min-width:54px;
-  padding:6px 8px;
-  border-radius:10px;
-  border:1px solid rgba(255,255,255,.6);
-  background:rgba(255,255,255,.55);
-  backdrop-filter:blur(6px);
-  -webkit-backdrop-filter:blur(6px);
-  font-size:11px;
-  font-weight:800;
-  cursor:pointer;
-}
-
-/* responsive */
-@media (max-width:980px){
-  .site-header{grid-template-columns:1fr;}
-  .nav{flex-wrap:wrap;overflow-x:visible;}
-  .top-row{flex-direction:column;align-items:stretch;}
-  .table-scroller{max-height:calc(100vh - 210px);}
-}
-
-/* Phone-width layout: compact header, and the data table collapses from
-   a wide, fixed-column grid into a stack of labeled cards - one card per
-   row, one labeled field per line - so nothing needs to be scrolled
-   sideways or squinted at on a narrow screen. */
-@media (max-width:680px){
-  .site-header{
-    padding:calc(8px + env(safe-area-inset-top, 0px)) 14px 8px;
-    gap:0;
-  }
-  /* The logo/title row is hidden entirely at phone width to leave more
-     room for task details - the page you're on is already shown by the
-     highlighted pill in the nav row below. */
-  .brand{display:none;}
-
-  /* All page pills fit in a single non-scrolling row: short names (see
-     NAV_SHORT_NAMES in script.js) plus equal-width flex segments. */
-  .nav{gap:4px;flex-wrap:nowrap;overflow-x:visible;}
-  .nav-btn{
-    flex:1 1 0;
-    min-width:0;
-    padding:7px 2px;
-    font-size:10.5px;
-    text-align:center;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
+/* Responsive / Mobile Layout Adjustments */
+@media (max-width: 680px) {
+  .data-table, 
+  .data-table tbody, 
+  .data-table tr, 
+  .data-table td {
+    display: block;
+    width: 100%;
   }
 
-  .content{padding:6px 12px 132px;}
-
-  /* The "CURRENT PAGE" eyebrow and full page-name heading are hidden to
-     save vertical space - the highlighted nav pill above already shows
-     which page is open. */
-  .title-block{display:none;}
-  .top-row{margin:2px 0 6px;}
-
-  /* All 6 action buttons fit in a single row the same way. */
-  .actions{flex-wrap:nowrap;gap:4px;width:100%;justify-content:stretch;}
-  .btn{
-    flex:1 1 0;
-    min-width:0;
-    padding:9px 2px;
-    font-size:10.5px;
-    text-align:center;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-  }
-  .btn-danger{flex-basis:0;}
-
-  .table-card{padding:6px 6px 10px;border-radius:14px;}
-
-  /* The single-task card is bounded to the space actually left on
-     screen (header + action row), with its own independent scroll -
-     so a normal short task needs no scrolling at all, and only a
-     field with genuinely long/multi-line text (Task/Meeting, Next
-     steps, Notes) causes this area specifically to scroll, rather
-     than the whole page. */
-  .table-scroller{
-    max-height:calc(100vh - 190px - env(safe-area-inset-top, 0px));
-    overflow-y:auto;
-    padding:0;
+  .data-table thead {
+    display: none;
   }
 
-  /* The position counter and Previous/Next buttons are docked to the
-     actual bottom edge of the screen (rather than sitting wherever
-     they land after a variable-height card, which could leave empty
-     space beneath them) - a fixed footer bar, always in the same
-     place regardless of how much content the current row has. */
-  .task-swipe-nav{
-    position:fixed;
-    left:0;
-    right:0;
-    bottom:0;
-    z-index:500;
-    justify-content:space-between;
-    gap:8px;
-    margin:0;
-    padding:10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
-    background:rgba(255,255,255,.86);
-    backdrop-filter:blur(18px) saturate(160%);
-    -webkit-backdrop-filter:blur(18px) saturate(160%);
-    border-top:1px solid rgba(255,255,255,.7);
-    box-shadow:0 -10px 26px rgba(6,78,59,.14);
-  }
-  .task-nav-btn{flex:1 1 0;min-width:0;}
-  .task-position{flex:0 0 auto;}
-
-  /* The floating Add Row button is raised clear of the new fixed
-     bottom bar instead of overlapping it. */
-  .floating-add{
-    bottom:calc(78px + env(safe-area-inset-bottom, 0px));
-    padding:15px 20px;
-    font-size:13px;
+  .data-table tr {
+    margin-bottom: 16px;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 12px;
   }
 
-  /* Collapse the table: hide the column headers and filter row (sorting
-     and per-column filters remain available on wider screens/desktop),
-     and stack every cell as its own labeled block inside a card-like
-     row instead of a grid column. */
-  .data-table{border-spacing:0;}
-  .data-table thead{display:none;}
-  .data-table, .data-table tbody, .data-table tr, .data-table td{
-    display:block;
-    width:100% !important;
-  }
-  .data-table tr{
-    margin-bottom:14px;
-    border-radius:16px;
-    padding:12px 14px 14px;
-  }
-  .data-table tr:last-child{margin-bottom:0;}
-  .data-table td{
-    border:none !important;
-    border-radius:0 !important;
-    padding:9px 0;
-    border-bottom:1px solid rgba(214,230,224,.55) !important;
-  }
-  .data-table td:last-child{border-bottom:none !important;padding-top:12px;}
-  .data-table td::before{
-    content:attr(data-label);
-    display:block;
-    font-size:10px;
-    font-weight:800;
-    text-transform:uppercase;
-    letter-spacing:.07em;
-    color:var(--muted);
-    margin-bottom:4px;
+  .data-table td {
+    padding: 6px 0;
+    border: none;
   }
 
-  /* The single-task view (see script.js isSingleTaskSwipeMode): short
-     fields (Date, Priority, Project, Status, Due date, Raised by, Work
-     with, weekday cells, etc.) pair up two-per-row via flex-wrap; long
-     free-text fields (Task/Meeting, Next steps, Notes) and the Actions
-     button row always take the full width. This is what lets a normal
-     task fit on screen without scrolling. */
-  .single-task-row{
-    display:flex !important;
-    flex-wrap:wrap;
-    align-content:flex-start;
-    gap:2px 10px;
-    padding:14px 14px 16px !important;
+  .data-table td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--muted);
+    margin-bottom: 4px;
   }
-  .single-task-row > td{
-    display:block !important;
-    width:auto !important;
-    border:none !important;
-    padding:7px 0 !important;
-  }
-  .single-task-row > td.long-field{flex:1 1 100%;}
-  .single-task-row > td.short-field{flex:1 1 calc(50% - 5px);min-width:0;}
-  .single-task-row > td.short-field-solo{flex-basis:100%;}
 
-  /* Bigger, easier-to-tap fields and controls at phone width */
-  .cell-editable{font-size:15px;line-height:1.5;padding:8px 10px;min-height:38px;border:1px solid rgba(214,230,224,.6);background:rgba(255,255,255,.5);}
-  .cell-editable.cell-large{font-size:15.5px;}
-  .status-select{width:100%;min-width:0;padding:10px 10px;font-size:13px;}
-  .due-date-input{padding:10px 10px;font-size:14px;}
-  .actions-cell{justify-content:flex-start;flex-wrap:wrap;gap:8px;}
-  .row-btn{min-width:64px;padding:9px 12px;font-size:12px;}
-  .clear-filters-btn{display:none;}
+  .data-table tr.single-task-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 10px;
+  }
+
+  .data-table td.short-field {
+    flex: 1 1 calc(50% - 5px);
+    width: auto !important;
+  }
+
+  .data-table td.long-field,
+  .data-table td.short-field-solo {
+    flex: 1 1 100%;
+    width: 100% !important;
+  }
 }
-
