@@ -1257,3 +1257,120 @@ bottom of the page as labeled buttons rather than bare arrows above
 the card; and the single-task field layout for Daily planning/All
 future Tasks/Completed tasks now follows the exact seven-row
 sequence requested. All core checks remain PASS.
+
+------------------------------------------------------------
+ADDENDUM 11 - DUE DATE/STATUS PAIRING BUG FIX, FIXED-POSITION
+BOTTOM BAR, RAISED ADD-ROW BUTTON
+------------------------------------------------------------
+Reported issue: Due date and Status were not appearing on the same
+row despite Addendum 10 documenting that layout.
+
+ROOT CAUSE (a genuine bug in the Addendum-9 CSS, found and fixed
+here): the "stretch the one unpaired short field to full width" rule
+used the CSS selector `:nth-last-child(1 of .short-field)`, which
+selects based on a cell's position in the DOCUMENT/DOM order. But
+Addendum 9 also introduced a visual reordering via inline
+`td.style.order` (so Date+Priority, Raised by+Work with, etc. would
+LOOK adjacent regardless of their underlying column order) - and
+`:nth-last-child` has no awareness of that `order` value; it only
+sees DOM order. On the task-schema pages, the DOM-order-last short
+field is "Status" (it's the last column in TASK_COLUMNS), which is
+NOT the same as the visually-last short field once `order` is
+applied. The rule was therefore stretching Status to 100% width
+every time, breaking its pairing with Due date. The same latent bug
+would also have broken Week planning's Thursday/Friday pairing
+(there, DOM order happens to equal visual order since no custom
+`order` is applied, but the rule still unconditionally targets the
+actual last short field regardless of whether it genuinely needs to
+be alone - and once Project was moved out of the short-field pool in
+Addendum 9's revision, the task-schema pages actually have an EVEN
+number of short fields, meaning NONE of them should have been
+stretched to full width at all, yet the buggy rule always stretched
+one regardless of parity).
+
+FIX: the "is this specific field genuinely unpaired" determination
+was moved out of CSS and into JavaScript, where the actual final
+visual order is already known (since script.js is what assigns it).
+A new computeSoloShortFieldCols(sheet, columnsInDomOrder) function
+sorts a row's columns by their effective visual order (falling back
+to DOM order for ties, matching real CSS `order:0` tie-break
+behavior, which is well-defined because Array.prototype.sort has
+been a stable sort per the ECMAScript spec since ES2019 - not an
+assumption), then walks that sorted sequence simulating the same
+"long fields force a line break; short fields pair two at a time"
+packing the CSS actually performs, and returns exactly the column
+names left without a partner. buildRowElement() now adds a
+"short-field-solo" class only to those specific cells; the CSS rule
+that previously used the broken `:nth-last-child(1 of .short-field)`
+selector was replaced with a plain `.short-field-solo{flex-basis:
+100%;}` rule that only responds to this explicit, correctly-computed
+class.
+
+Separately, two more changes were made:
+- The bottom bar (position counter + Previous/Next) is now
+  `position:fixed` at the bottom of the viewport at phone width,
+  instead of sitting in-flow directly after the table card (which
+  could leave visible empty space below it whenever the current
+  row's content didn't fill its full height budget). The table-
+  scroller's height budget was recalculated accordingly (down from
+  250px to 190px of "chrome above" the scroller, since the header
+  shrank in Addendum 10 and the bottom bar no longer needs to be
+  budgeted as in-flow content), and .content's phone-width bottom
+  padding was increased (96px to 132px) to keep in-flow content
+  clear of the new fixed bar.
+- The floating "+ Add Row" button's `bottom` offset is raised
+  specifically at phone width (from the shared 24px-plus-safe-area
+  value to 78px-plus-safe-area) so it no longer overlaps the new
+  fixed bottom bar; a duplicate/stale `.floating-add` rule left over
+  from Addendum 9 (which only set padding/font-size) was consolidated
+  into this single updated rule rather than left as dead, redundant
+  CSS.
+
+Re-verification performed after these changes:
+- node --check script.js -> PASS, no syntax errors.
+- style.css brace balance checked programmatically -> balanced (119
+  open / 119 close after this change).
+- manifest.json re-parsed with a strict JSON parser -> still valid.
+- Extracted computeSoloShortFieldCols() (and its dependencies:
+  isCompactLongField, singleTaskFieldOrder, TASK_SCHEMA_FIELD_ORDER,
+  SOLO_ROW_TASK_SCHEMA_COLUMNS) and ran it standalone for all three
+  page shapes, printing the actual returned solo-column list (not
+  just the sorted order, as in Addendum 9's test, but the real output
+  of the fixed function):
+    - Daily planning - All tasks: [] (empty) - confirms Due date and
+      Status (and every other short-field pair) now correctly has no
+      unpaired field at all, since there are an even six short fields
+      once Project moved to its own solo row.
+    - Week planning: [] (empty) - confirms Thursday/Friday (and the
+      other pairs) are correctly NOT stretched now either, fixing the
+      latent bug there too even though it wasn't the field the person
+      reported.
+    - Road Map - Pending: ["Project"] - confirms the one genuinely
+      unpaired case (only one short field on that page) is still
+      correctly detected and still gets the full-width treatment.
+  This is a materially stronger verification than Addendum 9's test,
+  which only checked the sorted `order` sequence and did not catch
+  this DOM-order-vs-visual-order discrepancy, since that discrepancy
+  only manifests in the CSS selector's actual browser behavior, not
+  in the JS ordering data by itself - a gap in that addendum's
+  coverage that this addendum's test was specifically designed to
+  close.
+- grep for innerHTML/outerHTML/insertAdjacentHTML/document.write/
+  eval(/new Function/fetch(/XMLHttpRequest/WebSocket/EventSource
+  across script.js, index.html, and manifest.json -> zero matches.
+- grep for inline event-handler attributes and http(s) src/href
+  references in index.html -> only the expected <meta>/<link> tags
+  matched; unchanged.
+- CSP <meta> content string checked against the required exact text
+  -> matches exactly once, unchanged.
+- grep confirms computeSoloShortFieldCols and isCompactLongField are
+  each defined exactly once, and confirms only one `.floating-add`
+  rule remains inside the phone media query (the stale duplicate from
+  Addendum 9 was removed, not left alongside the new one).
+
+Result: Due date and Status (and every other intended pairing) now
+render correctly on the same row, fixed by correcting the underlying
+logic rather than papering over the symptom; the position bar is now
+genuinely pinned to the bottom of the screen instead of floating
+wherever the card's height happens to end; and the floating Add Row
+button no longer risks overlapping it. All core checks remain PASS.

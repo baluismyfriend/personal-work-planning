@@ -866,12 +866,42 @@
   // paired with another field.
   var SOLO_ROW_TASK_SCHEMA_COLUMNS = ["Project", "Task/Meeting", "Next steps"];
 
-  function singleTaskFieldOrder(sheet, col) {
-    if (isTaskSheet(sheet)) {
-      if (col === "Actions") return 10;
-      if (Object.prototype.hasOwnProperty.call(TASK_SCHEMA_FIELD_ORDER, col)) return TASK_SCHEMA_FIELD_ORDER[col];
-    }
-    return null;
+  function isCompactLongField(sheet, col) {
+    return (col === "Actions") || isLongTextColumn(col) ||
+      (isTaskSheet(sheet) && SOLO_ROW_TASK_SCHEMA_COLUMNS.indexOf(col) !== -1);
+  }
+
+  // Determines which short fields end up genuinely unpaired once laid out
+  // in VISUAL order (i.e. after the `order` overrides above are applied),
+  // by simulating the same "long fields force a new row, short fields
+  // pair two-at-a-time" packing that the CSS flex-wrap layout performs.
+  // This has to be computed here (not with a CSS :nth-child selector)
+  // because visual order and DOM/source order are different once a
+  // column's `order` has been overridden - a selector that only looks at
+  // DOM order picks the wrong field on the task-schema pages (this is
+  // what broke the Due date/Status pairing before this fix).
+  function computeSoloShortFieldCols(sheet, columnsInDomOrder) {
+    var descriptors = columnsInDomOrder.map(function (col, i) {
+      var order = singleTaskFieldOrder(sheet, col);
+      return { col: col, isLong: isCompactLongField(sheet, col), order: (order === null ? 0 : order), domIndex: i };
+    });
+    descriptors.sort(function (a, b) {
+      if (a.order !== b.order) return a.order - b.order;
+      return a.domIndex - b.domIndex; // stable tie-break, matches CSS order:0 behavior
+    });
+    var solo = [];
+    var pending = null;
+    descriptors.forEach(function (item) {
+      if (item.isLong) {
+        if (pending) { solo.push(pending.col); pending = null; }
+      } else if (pending) {
+        pending = null; // paired with the previous pending short field
+      } else {
+        pending = item;
+      }
+    });
+    if (pending) solo.push(pending.col);
+    return solo;
   }
 
   function renderTableBody(sheet) {
@@ -907,11 +937,18 @@
     tr.dataset.sourceIdx = String(sourceIdx);
     if (compact) tr.classList.add("single-task-row");
 
+    var soloCols = {};
+    if (compact) {
+      computeSoloShortFieldCols(sheet, sheet.columns.concat(["Actions"])).forEach(function (c) {
+        soloCols[c] = true;
+      });
+    }
+
     function styleCompactCell(td, col) {
       if (!compact) return;
-      var isLong = (col === "Actions") || isLongTextColumn(col) ||
-        (isTaskSheet(sheet) && SOLO_ROW_TASK_SCHEMA_COLUMNS.indexOf(col) !== -1);
+      var isLong = isCompactLongField(sheet, col);
       td.classList.add(isLong ? "long-field" : "short-field");
+      if (!isLong && soloCols[col]) td.classList.add("short-field-solo");
       var order = singleTaskFieldOrder(sheet, col);
       if (order !== null) td.style.order = String(order);
     }

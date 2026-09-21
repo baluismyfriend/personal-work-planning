@@ -432,9 +432,10 @@ for space in a row of other buttons.
 ------------------------------------------------------------
 On a phone-width screen, EVERY page works this way: instead of a
 scrolling list of cards, you see ONE row at a time. A bar showing
-your position (e.g. "3 of 26") sits at the BOTTOM of the page, below
-the row itself, with a "‹ Previous" button on its left and a "Next
-›" button on its right.
+your position (e.g. "3 of 26") is docked to the very bottom edge of
+the screen - always in the same place, regardless of how tall the
+current row's content is - with a "‹ Previous" button on its left
+and a "Next ›" button on its right.
 
 - Swipe left anywhere on the card (except starting on a text field,
   dropdown, or button) to move to the next row; swipe right to move
@@ -455,6 +456,9 @@ the row itself, with a "‹ Previous" button on its left and a "Next
   is specific to phone-width screens. On a tablet or desktop/laptop
   browser window, every page always shows the normal full table/list
   regardless of width.
+- The floating "+ Add Row" button is raised a little higher than on
+  wider screens, so it sits clear of this bottom bar instead of
+  overlapping it.
 
 COMPACT FIELD LAYOUT (fitting a task on one screen): within that one
 row, fields are grouped into the following rows to minimize how much
@@ -483,14 +487,16 @@ you need to scroll:
   - a long note has to take the room it needs. Every other, shorter
   field is eligible to pair up with its neighbor, except Project on
   the three task-schema pages above, which was specifically kept on
-  its own row.
+  its own row. If a page ever has an odd number of pairable fields,
+  the one left without a partner automatically takes the full width
+  for that row rather than sitting half-empty.
 - The task card area has its own independent scroll, bounded to the
-  space left on screen below the action buttons and above the
-  Previous/Next bar - so a normal, short-value task fits with no
-  scrolling at all, and scrolling only ever happens within that one
-  card, only when a free-text field genuinely has more content than
-  fits, without ever hiding the action buttons or the Previous/Next
-  bar off screen. Exactly how much fits before scrolling starts
-  varies a little by phone model (screen height, notch size), since
-  this is sized relative to your actual screen rather than to a
-  fixed number of rows.
+  space left on screen between the action buttons and the fixed
+  bottom bar - so a normal, short-value task fits with no scrolling
+  at all, and scrolling only ever happens within that one card, only
+  when a free-text field genuinely has more content than fits,
+  without ever hiding the action buttons or the Previous/Next bar
+  off screen. Exactly how much fits before scrolling starts varies a
+  little by phone model (screen height, notch size), since this is
+  sized relative to your actual screen rather than to a fixed number
+  of rows.
