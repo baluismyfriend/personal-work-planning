@@ -1374,3 +1374,102 @@ logic rather than papering over the symptom; the position bar is now
 genuinely pinned to the bottom of the screen instead of floating
 wherever the card's height happens to end; and the floating Add Row
 button no longer risks overlapping it. All core checks remain PASS.
+
+------------------------------------------------------------
+ADDENDUM 12 - CRITICAL BUG: BLANK PAGES (MISSING FUNCTION), FOUND
+AND FIXED, WITH UPGRADED TEST METHODOLOGY
+------------------------------------------------------------
+Reported issue: after Addendum 11, every page showed a completely
+blank task card - no fields at all (Project, Date, Priority, etc.)
+on any page.
+
+ROOT CAUSE: while restructuring buildRowElement()/renderTableBody()
+in Addendum 11 to fix the Due date/Status pairing bug, the
+`function singleTaskFieldOrder(sheet, col) {...}` definition was
+accidentally deleted from the file - the str_replace edit that
+rewrote the surrounding code replaced a block that started with that
+function's definition, but the replacement text did not include a
+new copy of it, while two call sites (`singleTaskFieldOrder(sheet,
+col)`) were left in place a few lines later in the same edit. This
+is a plain JavaScript ReferenceError at runtime: the moment
+buildRowElement() tried to build the first cell of the first row and
+called the now-undefined function, it threw, which unwound out of
+buildRowElement() and out of renderTableBody(), leaving tableBodyEl
+with zero appended rows - a blank card, on every page, since every
+page's single-task rendering path goes through buildRowElement().
+
+WHY THIS WASN'T CAUGHT BEFORE SHIPPING: `node --check script.js`
+(used throughout every addendum in this file to date) only performs
+a JavaScript PARSE/SYNTAX check - it confirms the file is
+grammatically valid JavaScript, but it does not execute the code, so
+it cannot detect a reference to an undefined function; that is a
+RUNTIME error, not a syntax error, and the previous verification
+methodology never actually executed script.js against a DOM. This
+gap is called out explicitly and is corrected below.
+
+FIX: the missing `function singleTaskFieldOrder(sheet, col) {...}`
+was restored immediately above its first use, adjacent to
+SOLO_ROW_TASK_SCHEMA_COLUMNS and isCompactLongField() as it was
+originally.
+
+UPGRADED VERIFICATION METHODOLOGY (used for this fix, and adopted
+going forward for any future change that touches script.js): rather
+than relying on `node --check` alone, this fix was verified by
+actually installing jsdom (a real, spec-compliant DOM implementation
+for Node.js - a dev-only tool used solely for this verification step
+and removed from the delivered files afterward, not a runtime
+dependency of the shipped app, which still has zero dependencies)
+and genuinely EXECUTING index.html + script.js against it, then:
+  - Loading the app and firing DOMContentLoaded (the same event the
+    app waits for in a real browser) and confirming no exception was
+    thrown during init().
+  - Clicking through all five nav pills at simulated mobile width
+    (window.matchMedia stubbed to report <=680px) and confirming
+    every single page renders a non-empty row with the correct
+    number of cells (Daily planning: 10 td, Week planning: 7 td, All
+    future Tasks: 10 td, Road Map - Pending: 4 td, Completed tasks:
+    1 td for its correct empty-state message, since it starts with
+    zero rows) - this is what actually caught the bug, by printing
+    "NO ROWS FOUND" for the broken build before the fix, and full
+    row HTML (with real field values like the seeded "AA"/"1"/
+    "Analyze the responses..." row) after it.
+  - Repeating the same click-through at simulated desktop width and
+    confirming the normal multi-row table still renders correctly
+    (Week planning: 21 rows, All future Tasks: 26 rows, Road Map: 2
+    rows, Completed tasks correctly 0 rows since none exist yet).
+  - Simulating a full interaction sequence - Add Row, Copy row,
+    changing Status to "Complete" (triggering the auto-move to
+    Completed tasks), Move, Delete (auto-confirmed), the mobile-only
+    Next/Previous task buttons, and Reset Sheet (auto-confirmed) -
+    at both widths, and confirming zero uncaught window errors
+    across the entire sequence.
+  - Directly inspecting the rendered HTML of the seeded Daily
+    planning row to confirm every cell's data-label, CSS class
+    (short-field / long-field), and inline order style exactly
+    matched the intended layout from Addendum 11 (Project order:1
+    long-field, Date order:2 short-field, Priority order:3 short-
+    field, Task/Meeting order:4 long-field, Raised by order:5 short-
+    field, Work with order:6 short-field, Next steps order:7 long-
+    field, Due date order:8 short-field, Status order:9 short-field,
+    Actions order:10 long-field) - confirming the Due date/Status
+    pairing fix from Addendum 11 is intact and correctly rendered,
+    not just logically correct in isolation.
+
+Standard checks re-run after the fix (unchanged methodology, still
+passing): node --check script.js -> PASS; style.css brace balance
+-> balanced (119/119); manifest.json -> valid JSON; grep for
+innerHTML/outerHTML/insertAdjacentHTML/document.write/eval(/new
+Function/fetch(/XMLHttpRequest/WebSocket/EventSource across
+script.js/index.html/manifest.json -> zero matches; inline event-
+handler/remote-resource grep on index.html -> only the expected
+<meta>/<link> tags; CSP <meta> content matches the required exact
+text exactly once; grep confirms singleTaskFieldOrder is now defined
+exactly once (previously zero times) with its two call sites intact
+and no duplicate definitions of any other function.
+
+Result: the blank-page crash is fixed and, this time, verified by
+actually running the app end-to-end in a real DOM rather than by
+static inspection alone. All core checks remain PASS. Going forward,
+any change to script.js in this project should be verified the same
+way - a syntax check alone is not sufficient to catch a missing or
+misnamed function reference.

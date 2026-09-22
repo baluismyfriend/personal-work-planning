@@ -866,6 +866,14 @@
   // paired with another field.
   var SOLO_ROW_TASK_SCHEMA_COLUMNS = ["Project", "Task/Meeting", "Next steps"];
 
+  function singleTaskFieldOrder(sheet, col) {
+    if (isTaskSheet(sheet)) {
+      if (col === "Actions") return 10;
+      if (Object.prototype.hasOwnProperty.call(TASK_SCHEMA_FIELD_ORDER, col)) return TASK_SCHEMA_FIELD_ORDER[col];
+    }
+    return null;
+  }
+
   function isCompactLongField(sheet, col) {
     return (col === "Actions") || isLongTextColumn(col) ||
       (isTaskSheet(sheet) && SOLO_ROW_TASK_SCHEMA_COLUMNS.indexOf(col) !== -1);
