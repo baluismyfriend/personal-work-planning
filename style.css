@@ -570,8 +570,8 @@ body{
   }
 
   /* The single-task view (see script.js isSingleTaskSwipeMode): short
-     fields (Date, Priority, Project, Status, Due date, Raised by, Work
-     with, weekday cells, etc.) pair up two-per-row via flex-wrap; long
+     fields (Date, Priority, Project, Status, Due date, weekday cells,
+     etc.) pair up two-per-row via flex-wrap; long
      free-text fields (Task/Meeting, Next steps, Notes) and the Actions
      button row always take the full width. This is what lets a normal
      task fit on screen without scrolling. */

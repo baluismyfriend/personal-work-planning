@@ -16,7 +16,7 @@
   var IDB_STORE = "handles";
   var IDB_KEY = "workbookJson";
 
-  var TASK_COLUMNS = ["Date", "Project", "Priority", "Task/Meeting", "Raised by", "Work with", "Next steps", "Due date", "Status"];
+  var TASK_COLUMNS = ["Date", "Project", "Priority", "Task/Meeting", "Next steps", "Due date", "Status"];
   var TASK_SHEET_NAMES = ["Daily planning - All tasks", "All future Tasks", "Completed tasks"];
   var STATUS_OPTIONS = ["", "Complete", "In-Progress", "Not started", "Hold"];
   var MAX_ROWS = 5000;
@@ -25,8 +25,6 @@
 
   var LEGACY_MAP = {
     "Priority": ["Catogery"],
-    "Raised by": ["Task-From"],
-    "Work with": ["Assigned Resource"],
     "Next steps": ["Notes", "Deliver-TO"]
   };
 
@@ -406,7 +404,6 @@
     if (col === "Task/Meeting") return 230;
     if (col === "Next steps") return 190;
     if (col === "Date" || col === "Project" || col === "Priority") return 64;
-    if (col === "Raised by" || col === "Work with") return 105;
     if (col === "Status") return 126;
     if (col === "Due date") return 110;
     return 70;
@@ -414,8 +411,8 @@
 
   function pctWidthForColumn(sheet, col) {
     if (isTaskSheet(sheet)) {
-      if (col === "Task/Meeting") return 27;
-      if (col === "Next steps") return 20;
+      if (col === "Task/Meeting") return 39;
+      if (col === "Next steps") return 26;
       if (col === "Date" || col === "Project" || col === "Priority") return 5;
       if (col === "Status") return 10;
       if (col === "Due date") return 7;
@@ -843,21 +840,19 @@
   // via inline style) so related fields land in the requested row
   // groups - independent of the underlying column order used everywhere
   // else (the desktop table, CSV export, etc., which are unaffected).
-  // Only the 9-column task schema gets a custom order; every other
+  // Only the 7-column task schema gets a custom order; every other
   // page's fields already pair up sensibly in their natural left-to-
   // right order. Row layout: Project (own row) -> Date + Priority ->
-  // Task/Meeting (own row) -> Raised by + Work with -> Next steps (own
-  // row) -> Due date + Status -> Actions (own row, always last).
+  // Task/Meeting (own row) -> Next steps (own row) -> Due date + Status
+  // -> Actions (own row, always last).
   var TASK_SCHEMA_FIELD_ORDER = {
     "Project": 1,
     "Date": 2,
     "Priority": 3,
     "Task/Meeting": 4,
-    "Raised by": 5,
-    "Work with": 6,
-    "Next steps": 7,
-    "Due date": 8,
-    "Status": 9
+    "Next steps": 5,
+    "Due date": 6,
+    "Status": 7
   };
 
   // Columns that get the full row to themselves in the single-task view.
