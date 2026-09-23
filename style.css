@@ -393,6 +393,17 @@ body{
   box-shadow:0 0 0 3px rgba(13,148,136,.35);
   border-color:var(--primary);
 }
+.cell-readonly{
+  min-height:28px;
+  display:flex;
+  align-items:center;
+  padding:5px 6px;
+  color:#475569;
+  font-weight:700;
+  background:rgba(241,245,249,.65);
+  border:1px solid rgba(203,213,225,.85);
+  border-radius:8px;
+}
 
 /* actions */
 .actions-cell{
@@ -417,6 +428,7 @@ body{
   box-shadow:inset 0 1px 0 rgba(255,255,255,.5);
 }
 .row-btn.move{background:rgba(255,237,213,.85);color:#78350f;}
+.row-btn.create-tasks{background:rgba(255,247,237,.9);color:#c2410c;min-width:88px;}
 .row-btn.delete{color:var(--danger);}
 .clear-filters-btn{
   min-width:54px;

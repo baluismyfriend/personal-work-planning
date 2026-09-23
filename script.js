@@ -66,10 +66,10 @@
     sheets.push({ name: "All future Tasks", columns: TASK_COLUMNS.slice(), rows: futureRows });
 
     // 4. Road Map - Pending
-    var roadCols = ["Project", "Task/Meeting", "Notes"];
+    var roadCols = ["Project", "Key milestones", "Start date", "End date", "Duration"];
     var roadRows = [
-      { Project: "RR 2.0", "Task/Meeting": "Dedicated", Notes: "" },
-      { Project: "", "Task/Meeting": "", Notes: "" }
+      { Project: "RR 2.0", "Key milestones": "", "Start date": "", "End date": "", Duration: "" },
+      { Project: "", "Key milestones": "", "Start date": "", "End date": "", Duration: "" }
     ];
     sheets.push({ name: "Road Map - Pending", columns: roadCols, rows: roadRows });
 
@@ -145,6 +145,53 @@
     return { name: name, columns: columns, rows: outRows };
   }
 
+  var ROAD_MAP_COLUMNS = ["Project", "Key milestones", "Start date", "End date", "Duration"];
+
+  // Parses a strict MM/DD/YYYY string into a UTC millisecond timestamp,
+  // returning null for anything malformed or not a real calendar date.
+  function dateToUtcMs(value) {
+    var match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value || "");
+    if (!match) return null;
+    var month = Number(match[1]), day = Number(match[2]), year = Number(match[3]);
+    var time = Date.UTC(year, month - 1, day);
+    var check = new Date(time);
+    if (check.getUTCFullYear() !== year || check.getUTCMonth() !== month - 1 || check.getUTCDate() !== day) return null;
+    return time;
+  }
+
+  // Whole days between Start date and End date, inclusive of neither
+  // endpoint's time-of-day (both are date-only). Blank whenever either
+  // date is missing/invalid or End date is before Start date.
+  function roadMapDuration(startDate, endDate) {
+    var start = dateToUtcMs(startDate), end = dateToUtcMs(endDate);
+    if (start === null || end === null || end < start) return "";
+    return String(Math.round((end - start) / 86400000));
+  }
+
+  // Older saved workbooks may still have the previous Road Map schema
+  // (Project, Task/Meeting, Notes). Carry forward whatever free-text
+  // content they had into "Key milestones" and leave the new date
+  // fields blank rather than losing the page's content on upgrade.
+  function migrateRoadMapSheet(sheet) {
+    var rows = Array.isArray(sheet.rows) ? sheet.rows : [];
+    if (rows.length > MAX_ROWS) rows = rows.slice(0, MAX_ROWS);
+    var newRows = rows.map(function (r) {
+      if (!r || typeof r !== "object") r = {};
+      var start = sanitizeCell(r["Start date"], MAX_CELL_LEN);
+      var end = sanitizeCell(r["End date"], MAX_CELL_LEN);
+      var milestone = r["Key milestones"];
+      if (milestone === undefined) milestone = r["Task/Meeting"] || r["Notes"];
+      return {
+        Project: sanitizeCell(r.Project, MAX_CELL_LEN),
+        "Key milestones": sanitizeCell(milestone, MAX_CELL_LEN),
+        "Start date": start,
+        "End date": end,
+        Duration: roadMapDuration(start, end)
+      };
+    });
+    return { name: "Road Map - Pending", columns: ROAD_MAP_COLUMNS.slice(), rows: newRows };
+  }
+
   // Pages that used to exist in earlier versions of this app and have
   // since been removed. Any older saved workbook that still has them is
   // silently dropped down to the current page set on the next load,
@@ -164,9 +211,14 @@
         sheets.push(normalizeTaskSheet(name, s));
       } else {
         if (!Array.isArray(s.columns) || s.columns.length === 0) throw new Error("sheet '" + name + "' must have a nonempty columns array");
-        sheets.push(normalizeGenericSheet(s));
+        var generic = normalizeGenericSheet(s);
+        if (generic.name === "Road Map - Pending") generic = migrateRoadMapSheet(generic);
+        sheets.push(generic);
       }
     }
+    // Ensure Road Map - Pending always present
+    var hasRoadMap = sheets.some(function (s) { return s.name === "Road Map - Pending"; });
+    if (!hasRoadMap) sheets.push(migrateRoadMapSheet({ rows: [] }));
     // Ensure Completed tasks always present
     var hasCompleted = sheets.some(function (s) { return s.name === "Completed tasks"; });
     if (!hasCompleted) {
@@ -213,13 +265,22 @@
 
   // Columns that use the special calendar-picker date control (blank when
   // empty, switches to a native date input on focus/click, saves as
-  // MM/DD/YYYY). Keyed by sheet name -> column name.
+  // MM/DD/YYYY). Keyed by sheet name -> column name, or an array of
+  // column names when a sheet has more than one date column.
   var CALENDAR_DATE_COLUMNS = {
-    "Daily planning - All tasks": "Due date"
+    "Daily planning - All tasks": "Due date",
+    "Road Map - Pending": ["Start date", "End date"]
   };
 
   function isCalendarDateColumn(sheet, col) {
-    return CALENDAR_DATE_COLUMNS[sheet.name] === col;
+    var cols = CALENDAR_DATE_COLUMNS[sheet.name];
+    return Array.isArray(cols) ? cols.indexOf(col) !== -1 : cols === col;
+  }
+
+  // The Road Map's Duration column is derived from Start date/End date
+  // and rendered read-only rather than as an editable cell.
+  function isComputedColumn(sheet, col) {
+    return sheet.name === "Road Map - Pending" && col === "Duration";
   }
 
   // Pages that have a "Move" row action, and where that action sends the
@@ -401,11 +462,12 @@
      Column widths / min widths
      --------------------------------------------------------- */
   function minWidthForColumn(sheet, col) {
-    if (col === "Task/Meeting") return 230;
+    if (col === "Task/Meeting" || col === "Key milestones") return 230;
     if (col === "Next steps") return 190;
     if (col === "Date" || col === "Project" || col === "Priority") return 64;
     if (col === "Status") return 126;
-    if (col === "Due date") return 110;
+    if (col === "Due date" || col === "Start date" || col === "End date") return 110;
+    if (col === "Duration") return 80;
     return 70;
   }
 
@@ -417,6 +479,13 @@
       if (col === "Status") return 10;
       if (col === "Due date") return 7;
       return 9;
+    }
+    if (sheet.name === "Road Map - Pending") {
+      if (col === "Key milestones") return 39;
+      if (col === "Project") return 13;
+      if (col === "Start date" || col === "End date") return 12;
+      if (col === "Duration") return 9;
+      return 12;
     }
     if (col === "Task/Meeting" || col === "Notes" || col === "Next steps") return 27;
     if (col === "Project") return 13;
@@ -830,7 +899,7 @@
   // Columns that hold free-form, potentially multi-line text and so need
   // the full row width; everything else is short enough to pair two per
   // row in the single-task view (see below) without cramming.
-  var LONG_TEXT_COLUMNS = ["Task/Meeting", "Next steps", "Notes"];
+  var LONG_TEXT_COLUMNS = ["Task/Meeting", "Next steps", "Notes", "Key milestones"];
 
   function isLongTextColumn(col) {
     return LONG_TEXT_COLUMNS.indexOf(col) !== -1;
@@ -964,6 +1033,8 @@
         td.appendChild(buildStatusCell(sheet, row, sourceIdx));
       } else if (isCalendarDateColumn(sheet, col)) {
         td.appendChild(buildDueDateCell(sheet, row, sourceIdx, col));
+      } else if (isComputedColumn(sheet, col)) {
+        td.appendChild(buildDurationCell(row));
       } else {
         td.appendChild(buildEditableCell(sheet, row, sourceIdx, col));
       }
@@ -1166,7 +1237,9 @@
     input.addEventListener("change", function () {
       var mmddyyyy = isoToMmddyyyy(input.value);
       row[col] = mmddyyyy;
+      if (sheet.name === "Road Map - Pending") row.Duration = roadMapDuration(row["Start date"], row["End date"]);
       saveWorkbook();
+      if (sheet.name === "Road Map - Pending") refreshPillDependentUI(sheet);
     });
 
     input.addEventListener("blur", function () {
@@ -1176,6 +1249,18 @@
     });
 
     return input;
+  }
+
+  // Read-only cell for the Road Map's Duration column: always recomputed
+  // from the row's current Start/End date rather than trusted as stored
+  // data, so it can never drift out of sync with those two fields.
+  function buildDurationCell(row) {
+    var div = document.createElement("div");
+    div.className = "cell-readonly";
+    row.Duration = roadMapDuration(row["Start date"], row["End date"]);
+    div.textContent = row.Duration;
+    div.title = "Calculated from Start date and End date";
+    return div;
   }
 
   function buildActionsCell(sheet, row, sourceIdx) {
@@ -1201,6 +1286,17 @@
         moveRowToSheet(sheet, sourceIdx, moveTarget, false, true);
       });
       wrap.appendChild(moveBtn);
+    }
+
+    if (sheet.name === "Road Map - Pending") {
+      var createTasksBtn = document.createElement("button");
+      createTasksBtn.type = "button";
+      createTasksBtn.className = "row-btn create-tasks";
+      createTasksBtn.textContent = "Create tasks";
+      createTasksBtn.addEventListener("click", function () {
+        createDailyTaskFromRoadMap(row);
+      });
+      wrap.appendChild(createTasksBtn);
     }
 
     var delBtn = document.createElement("button");
@@ -1231,6 +1327,26 @@
     sheet.rows.splice(sourceIdx + 1, 0, copy);
     saveWorkbook();
     renderTable();
+  }
+
+  // Spins a Road Map row's Project + Key milestones off into a new row on
+  // Daily planning, dated today, so a milestone can be turned into an
+  // actionable task without retyping it.
+  function createDailyTaskFromRoadMap(roadRow) {
+    var project = sanitizeCell(roadRow.Project, MAX_CELL_LEN).trim();
+    var milestone = sanitizeCell(roadRow["Key milestones"], MAX_CELL_LEN).trim();
+    if (!project || !milestone) {
+      window.alert("Add both a Project and Key milestones value before creating a task.");
+      return;
+    }
+    var dailySheet = workbook.find(function (s) { return s.name === "Daily planning - All tasks"; });
+    if (!dailySheet || dailySheet.rows.length >= MAX_ROWS) {
+      window.alert("Row limit reached for Daily planning - All tasks.");
+      return;
+    }
+    dailySheet.rows.push(blankTaskRow({ Date: todayLocalMMDDYYYY(), Project: project, "Task/Meeting": milestone }));
+    saveWorkbook();
+    window.alert("Task created in Daily planning - All tasks.");
   }
 
   function moveRowToSheet(sourceSheet, sourceIdx, targetSheetName, forceComplete, insertAtBottom) {
