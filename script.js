@@ -50,15 +50,7 @@
     sheets.push({ name: "Daily planning - All tasks", columns: TASK_COLUMNS.slice(), rows: dailyRows });
 
     // 2. Week planning
-    var weekCols = ["Section", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
-    var weekRows = [];
-    function weekRow(section) {
-      return { Section: section, Monday: "", Tuesday: "", Wednesday: "", Thursday: "", Friday: "" };
-    }
-    for (var s = 1; s <= 10; s++) weekRows.push(weekRow(String(s)));
-    weekRows.push(weekRow("Added today"));
-    for (var s2 = 1; s2 <= 10; s2++) weekRows.push(weekRow(String(s2)));
-    sheets.push({ name: "Week planning", columns: weekCols, rows: weekRows });
+    sheets.push(buildWeekPlanningSheet());
 
     // 3. All future Tasks
     var futureRows = [];
@@ -207,6 +199,7 @@
       var name = sanitizeName(s.name, 120);
       if (!name) throw new Error("each sheet must have a name");
       if (REMOVED_PAGE_NAMES.indexOf(name) !== -1) continue;
+      if (name === "Week planning") { sheets.push(buildWeekPlanningSheet()); continue; }
       if (TASK_SHEET_NAMES.indexOf(name) !== -1) {
         sheets.push(normalizeTaskSheet(name, s));
       } else {
@@ -216,6 +209,9 @@
         sheets.push(generic);
       }
     }
+    // Ensure Week planning always present
+    var hasWeekPlanning = sheets.some(function (s) { return s.name === "Week planning"; });
+    if (!hasWeekPlanning) sheets.splice(1, 0, buildWeekPlanningSheet());
     // Ensure Road Map - Pending always present
     var hasRoadMap = sheets.some(function (s) { return s.name === "Road Map - Pending"; });
     if (!hasRoadMap) sheets.push(migrateRoadMapSheet({ rows: [] }));
@@ -244,11 +240,57 @@
   var sortState = {}; // { sheetName: { col, dir } }
 
   function todayLocalMMDDYYYY() {
-    var d = new Date();
+    return formatLocalMMDDYYYY(new Date());
+  }
+
+  function formatLocalMMDDYYYY(d) {
     var mm = String(d.getMonth() + 1).padStart(2, "0");
     var dd = String(d.getDate()).padStart(2, "0");
     var yyyy = d.getFullYear();
     return mm + "/" + dd + "/" + yyyy;
+  }
+
+  var WEEK_PLANNING_COLUMNS = ["Date", "Day"];
+  var WEEK_DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+
+  // Builds the Week planning page's 5 rows fresh from today's date: a
+  // rolling Monday-through-Friday view that always starts on today's row
+  // (or, on a weekend, on the coming Monday) and wraps into next week
+  // once Friday is passed - so the page always reads "today through the
+  // next 4 business days" instead of a fixed calendar week.
+  function computeWeekPlanningRows() {
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var dow = today.getDay(); // 0=Sun .. 6=Sat
+    var daysSinceMonday = (dow + 6) % 7;
+    var mondayThisWeek = new Date(today);
+    mondayThisWeek.setDate(today.getDate() - daysSinceMonday);
+
+    var startIndex, mondayBase;
+    if (dow >= 1 && dow <= 5) {
+      startIndex = dow - 1;
+      mondayBase = mondayThisWeek;
+    } else {
+      // Weekend: start the rolling view at the coming Monday instead.
+      startIndex = 0;
+      mondayBase = new Date(mondayThisWeek);
+      mondayBase.setDate(mondayThisWeek.getDate() + 7);
+    }
+
+    var rows = [];
+    for (var i = 0; i < 5; i++) {
+      var idx = startIndex + i;
+      var weekOffset = Math.floor(idx / 5);
+      var dayIdx = idx % 5;
+      var d = new Date(mondayBase);
+      d.setDate(mondayBase.getDate() + weekOffset * 7 + dayIdx);
+      rows.push({ Date: formatLocalMMDDYYYY(d), Day: WEEK_DAY_NAMES[dayIdx] });
+    }
+    return rows;
+  }
+
+  function buildWeekPlanningSheet() {
+    return { name: "Week planning", columns: WEEK_PLANNING_COLUMNS.slice(), rows: computeWeekPlanningRows() };
   }
 
   function currentSheet() {
@@ -277,10 +319,24 @@
     return Array.isArray(cols) ? cols.indexOf(col) !== -1 : cols === col;
   }
 
-  // The Road Map's Duration column is derived from Start date/End date
-  // and rendered read-only rather than as an editable cell.
+  // The Road Map's Duration column is derived from Start date/End date,
+  // and Week planning's Date/Day columns are derived from today's date;
+  // all are rendered read-only rather than as editable cells.
   function isComputedColumn(sheet, col) {
-    return sheet.name === "Road Map - Pending" && col === "Duration";
+    if (sheet.name === "Road Map - Pending" && col === "Duration") return true;
+    if (sheet.name === "Week planning") return true;
+    return false;
+  }
+
+  // Week planning has no user-entered data at all - every cell is
+  // computed from today's date - so it gets no row actions (nothing to
+  // copy/move/delete) and no manual add-row control.
+  function isComputedSheet(sheet) {
+    return sheet.name === "Week planning";
+  }
+
+  function hasActionsColumn(sheet) {
+    return !isComputedSheet(sheet);
   }
 
   // Pages that have a "Move" row action, and where that action sends the
@@ -651,13 +707,15 @@
       colgroupEl.appendChild(c);
     });
     var actionsCol = document.createElement("col");
-    var savedActionsW = manualWidths[widthKey(sheet.name, ACTIONS_KEY_TOKEN)];
-    if (savedActionsW) {
-      actionsCol.style.width = savedActionsW + "px";
-    } else {
-      actionsCol.style.width = actionsPct(sheet) + "%";
+    if (hasActionsColumn(sheet)) {
+      var savedActionsW = manualWidths[widthKey(sheet.name, ACTIONS_KEY_TOKEN)];
+      if (savedActionsW) {
+        actionsCol.style.width = savedActionsW + "px";
+      } else {
+        actionsCol.style.width = actionsPct(sheet) + "%";
+      }
+      colgroupEl.appendChild(actionsCol);
     }
-    colgroupEl.appendChild(actionsCol);
 
     renderTableHead(sheet);
     renderTableBody(sheet);
@@ -691,15 +749,17 @@
       headRow.appendChild(th);
     });
     var thActions = document.createElement("th");
-    thActions.className = "col-actions";
-    thActions.textContent = "Actions";
-    thActions.style.minWidth = "190px";
-    var handleActions = document.createElement("span");
-    handleActions.className = "resize-handle";
-    handleActions.title = "Drag to resize column";
-    handleActions.dataset.col = ACTIONS_KEY_TOKEN;
-    thActions.appendChild(handleActions);
-    headRow.appendChild(thActions);
+    if (hasActionsColumn(sheet)) {
+      thActions.className = "col-actions";
+      thActions.textContent = "Actions";
+      thActions.style.minWidth = "190px";
+      var handleActions = document.createElement("span");
+      handleActions.className = "resize-handle";
+      handleActions.title = "Drag to resize column";
+      handleActions.dataset.col = ACTIONS_KEY_TOKEN;
+      thActions.appendChild(handleActions);
+      headRow.appendChild(thActions);
+    }
     tableHeadEl.appendChild(headRow);
 
     // filter row
@@ -753,20 +813,22 @@
     });
 
     var thActionsFilter = document.createElement("th");
-    var clearBtn = document.createElement("button");
-    clearBtn.type = "button";
-    clearBtn.className = "clear-filters-btn";
-    clearBtn.textContent = "Clear";
-    clearBtn.addEventListener("click", function (e) {
-      e.stopPropagation();
-      clearSheetFilters(sheet.name);
-      renderTableHead(sheet);
-      renderTableBody(sheet);
-      applyManualWidths(sheet);
-      attachResizeHandles(sheet);
-    });
-    thActionsFilter.appendChild(clearBtn);
-    filterRow.appendChild(thActionsFilter);
+    if (hasActionsColumn(sheet)) {
+      var clearBtn = document.createElement("button");
+      clearBtn.type = "button";
+      clearBtn.className = "clear-filters-btn";
+      clearBtn.textContent = "Clear";
+      clearBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        clearSheetFilters(sheet.name);
+        renderTableHead(sheet);
+        renderTableBody(sheet);
+        applyManualWidths(sheet);
+        attachResizeHandles(sheet);
+      });
+      thActionsFilter.appendChild(clearBtn);
+      filterRow.appendChild(thActionsFilter);
+    }
 
     tableHeadEl.appendChild(filterRow);
   }
@@ -1034,18 +1096,20 @@
       } else if (isCalendarDateColumn(sheet, col)) {
         td.appendChild(buildDueDateCell(sheet, row, sourceIdx, col));
       } else if (isComputedColumn(sheet, col)) {
-        td.appendChild(buildDurationCell(row));
+        td.appendChild(buildComputedCell(sheet, row, col));
       } else {
         td.appendChild(buildEditableCell(sheet, row, sourceIdx, col));
       }
       tr.appendChild(td);
     });
 
-    var tdActions = document.createElement("td");
-    tdActions.dataset.label = "Actions";
-    styleCompactCell(tdActions, "Actions");
-    tdActions.appendChild(buildActionsCell(sheet, row, sourceIdx));
-    tr.appendChild(tdActions);
+    if (hasActionsColumn(sheet)) {
+      var tdActions = document.createElement("td");
+      tdActions.dataset.label = "Actions";
+      styleCompactCell(tdActions, "Actions");
+      tdActions.appendChild(buildActionsCell(sheet, row, sourceIdx));
+      tr.appendChild(tdActions);
+    }
 
     return tr;
   }
@@ -1263,6 +1327,16 @@
     return div;
   }
 
+  // Dispatches a computed (read-only) column to the right builder.
+  function buildComputedCell(sheet, row, col) {
+    if (sheet.name === "Road Map - Pending" && col === "Duration") return buildDurationCell(row);
+    var div = document.createElement("div");
+    div.className = "cell-readonly";
+    div.textContent = row[col] || "";
+    div.title = "Automatically set from today's date";
+    return div;
+  }
+
   function buildActionsCell(sheet, row, sourceIdx) {
     var wrap = document.createElement("div");
     wrap.className = "actions-cell";
@@ -1370,6 +1444,10 @@
 
   function handleAddRow() {
     var sheet = currentSheet();
+    if (isComputedSheet(sheet)) {
+      window.alert("This page's rows are generated automatically from today's date and can't be added to.");
+      return;
+    }
     if (sheet.rows.length >= MAX_ROWS) {
       window.alert("Row limit reached for this sheet.");
       return;
@@ -1404,8 +1482,17 @@
   }
 
   function handleResetSheet() {
-    if (!window.confirm("Clear all rows from this sheet?")) return;
     var sheet = currentSheet();
+    if (isComputedSheet(sheet)) {
+      // Nothing user-entered to lose here - repurpose Reset as a manual
+      // "refresh to today" in case the tab has been open since a
+      // previous day.
+      sheet.rows = computeWeekPlanningRows();
+      saveWorkbook();
+      renderTable();
+      return;
+    }
+    if (!window.confirm("Clear all rows from this sheet?")) return;
     sheet.rows = [];
     saveWorkbook();
     clearSheetFilters(sheet.name);
