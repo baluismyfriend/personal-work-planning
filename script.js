@@ -29,8 +29,9 @@
   };
 
   var ROAD_MAP_COLUMNS = ["Project", "Key milestones", "Start date", "End date", "Duration"];
-  var WEEK_PLANNING_COLUMNS = ["Date", "Day"];
-  var WEEK_DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+  var WEEK_PLANNING_COLUMNS = ["Date/Day", "Tasks"];
+  var DAY_ABBREV = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  var SUMMARY_COLUMNS = ["Project", "Task"];
 
   /* ---------------------------------------------------------
      Default workbook
@@ -72,6 +73,10 @@
     // 5. Completed tasks (kept last so completed/archived items sit at the
     // end of the page list rather than in the middle of the active pages)
     sheets.push({ name: "Completed tasks", columns: TASK_COLUMNS.slice(), rows: [] });
+
+    // 0. Summary - always first; built last here since it's derived from
+    // the Daily planning sheet already assembled above.
+    sheets.unshift(buildSummarySheet(sheets));
 
     return sheets;
   }
@@ -192,6 +197,15 @@
   // rather than showing stale pages that no longer have UI support.
   var REMOVED_PAGE_NAMES = ["Important TimeLines", "Rough Notes"];
 
+  // True when a saved sheet's columns already match the current Week
+  // planning schema, so its rows (the user's actual typed task text)
+  // should be kept as-is rather than replaced by a fresh default row.
+  function isCurrentWeekPlanningSchema(rawSheet) {
+    var cols = Array.isArray(rawSheet.columns) ? rawSheet.columns : [];
+    return cols.length === WEEK_PLANNING_COLUMNS.length &&
+      WEEK_PLANNING_COLUMNS.every(function (c, i) { return cols[i] === c; });
+  }
+
   function normalizeWorkbook(raw) {
     if (!Array.isArray(raw)) throw new Error("workbook root must be an array of sheets");
     var sheets = [];
@@ -201,7 +215,11 @@
       var name = sanitizeName(s.name, 120);
       if (!name) throw new Error("each sheet must have a name");
       if (REMOVED_PAGE_NAMES.indexOf(name) !== -1) continue;
-      if (name === "Week planning") { sheets.push(buildWeekPlanningSheet()); continue; }
+      if (name === "Summary") continue; // always recomputed fresh below
+      if (name === "Week planning") {
+        sheets.push(isCurrentWeekPlanningSchema(s) ? normalizeGenericSheet(s) : buildWeekPlanningSheet());
+        continue;
+      }
       if (TASK_SHEET_NAMES.indexOf(name) !== -1) {
         sheets.push(normalizeTaskSheet(name, s));
       } else {
@@ -229,6 +247,8 @@
       var completedSheet = sheets.splice(completedIdx, 1)[0];
       sheets.push(completedSheet);
     }
+    // Summary is derived from Daily planning and always sits first.
+    sheets.unshift(buildSummarySheet(sheets));
     return sheets;
   }
 
@@ -252,44 +272,59 @@
     return mm + "/" + dd + "/" + yyyy;
   }
 
-  // Builds the Week planning page's 5 rows fresh from today's date: a
-  // rolling Monday-through-Friday view that always starts on today's row
-  // (or, on a weekend, on the coming Monday) and wraps into next week
-  // once Friday is passed - so the page always reads "today through the
-  // next 4 business days" instead of a fixed calendar week.
-  function computeWeekPlanningRows() {
-    var today = new Date();
-    today.setHours(0, 0, 0, 0);
-    var dow = today.getDay(); // 0=Sun .. 6=Sat
-    var daysSinceMonday = (dow + 6) % 7;
-    var mondayThisWeek = new Date(today);
-    mondayThisWeek.setDate(today.getDate() - daysSinceMonday);
-
-    var startIndex, mondayBase;
-    if (dow >= 1 && dow <= 5) {
-      startIndex = dow - 1;
-      mondayBase = mondayThisWeek;
-    } else {
-      // Weekend: start the rolling view at the coming Monday instead.
-      startIndex = 0;
-      mondayBase = new Date(mondayThisWeek);
-      mondayBase.setDate(mondayThisWeek.getDate() + 7);
-    }
-
-    var rows = [];
-    for (var i = 0; i < 5; i++) {
-      var idx = startIndex + i;
-      var weekOffset = Math.floor(idx / 5);
-      var dayIdx = idx % 5;
-      var d = new Date(mondayBase);
-      d.setDate(mondayBase.getDate() + weekOffset * 7 + dayIdx);
-      rows.push({ Date: formatLocalMMDDYYYY(d), Day: WEEK_DAY_NAMES[dayIdx] });
-    }
-    return rows;
+  // "Thu, 09/24/2026" - the auto-populated value for Week planning's
+  // Date/Day column and for the Date/Day of freshly added rows.
+  function formatDateDay(d) {
+    return DAY_ABBREV[d.getDay()] + ", " + formatLocalMMDDYYYY(d);
   }
 
   function buildWeekPlanningSheet() {
-    return { name: "Week planning", columns: WEEK_PLANNING_COLUMNS.slice(), rows: computeWeekPlanningRows() };
+    return {
+      name: "Week planning",
+      columns: WEEK_PLANNING_COLUMNS.slice(),
+      rows: [{ "Date/Day": formatDateDay(new Date()), "Tasks": "" }]
+    };
+  }
+
+  // Builds the Summary page fresh from Daily planning - All tasks: one
+  // header row per project (Task left blank) followed by one row per
+  // task under that project (Task/Meeting text), in the order projects
+  // and tasks first appear on the Daily planning page. Rows with no
+  // Project or no Task/Meeting text are skipped, since they have
+  // nothing to summarize.
+  function computeSummaryRows(wb) {
+    var daily = (wb || []).find ? (wb || []).find(function (s) { return s.name === "Daily planning - All tasks"; }) : null;
+    if (!daily || !Array.isArray(daily.rows)) return [];
+    var order = [];
+    var byProject = {};
+    daily.rows.forEach(function (r) {
+      var project = ((r && r.Project) || "").toString().trim();
+      var task = ((r && r["Task/Meeting"]) || "").toString().trim();
+      if (!project || !task) return;
+      if (!byProject[project]) { byProject[project] = []; order.push(project); }
+      byProject[project].push(task);
+    });
+    var rows = [];
+    order.forEach(function (project) {
+      rows.push({ Project: project, Task: "" });
+      byProject[project].forEach(function (task) {
+        rows.push({ Project: "", Task: task });
+      });
+    });
+    return rows;
+  }
+
+  function buildSummarySheet(wb) {
+    return { name: "Summary", columns: SUMMARY_COLUMNS.slice(), rows: computeSummaryRows(wb) };
+  }
+
+  // Recomputes the Summary sheet in place within an already-loaded
+  // workbook array, so it picks up any Daily planning edits made earlier
+  // in the current session (not just what was true at page load/import).
+  function refreshSummarySheet(wb) {
+    var idx = wb.findIndex(function (s) { return s.name === "Summary"; });
+    var fresh = buildSummarySheet(wb);
+    if (idx === -1) wb.unshift(fresh); else wb[idx] = fresh;
   }
 
   function currentSheet() {
@@ -319,19 +354,20 @@
   }
 
   // The Road Map's Duration column is derived from Start date/End date,
-  // and Week planning's Date/Day columns are derived from today's date;
-  // all are rendered read-only rather than as editable cells.
+  // and Week planning's Date/Day is auto-populated when a row is added;
+  // both render read-only rather than as editable cells.
   function isComputedColumn(sheet, col) {
     if (sheet.name === "Road Map - Pending" && col === "Duration") return true;
-    if (sheet.name === "Week planning") return true;
+    if (sheet.name === "Week planning" && col === "Date/Day") return true;
+    if (sheet.name === "Summary") return true;
     return false;
   }
 
-  // Week planning has no user-entered data at all - every cell is
-  // computed from today's date - so it gets no row actions (nothing to
-  // copy/move/delete) and no manual add-row control.
+  // Summary is entirely derived from Daily planning - nothing on it is
+  // user-entered - so it gets no row actions (nothing to copy/move/
+  // delete) and no manual add-row control.
   function isComputedSheet(sheet) {
-    return sheet.name === "Week planning";
+    return sheet.name === "Summary";
   }
 
   function hasActionsColumn(sheet) {
@@ -350,6 +386,7 @@
   // name is still used for every internal check (isTaskSheet, MOVE_TARGETS,
   // CALENDAR_DATE_COLUMNS, storage, etc.) and is shown as a tooltip.
   var NAV_SHORT_NAMES = {
+    "Summary": "Summary",
     "Daily planning - All tasks": "Daily",
     "Week planning": "Week",
     "All future Tasks": "Future",
@@ -517,9 +554,10 @@
      Column widths / min widths
      --------------------------------------------------------- */
   function minWidthForColumn(sheet, col) {
-    if (col === "Task/Meeting" || col === "Key milestones") return 230;
+    if (col === "Task/Meeting" || col === "Key milestones" || col === "Tasks" || col === "Task") return 230;
     if (col === "Next steps") return 190;
     if (col === "Date" || col === "Project" || col === "Priority") return 64;
+    if (col === "Date/Day") return 120;
     if (col === "Status") return 126;
     if (col === "Due date" || col === "Start date" || col === "End date") return 110;
     if (col === "Duration") return 80;
@@ -541,6 +579,14 @@
       if (col === "Start date" || col === "End date") return 12;
       if (col === "Duration") return 9;
       return 12;
+    }
+    if (sheet.name === "Week planning") {
+      if (col === "Tasks") return 55;
+      return 22; // Date/Day
+    }
+    if (sheet.name === "Summary") {
+      if (col === "Task") return 65;
+      return 20; // Project
     }
     if (col === "Task/Meeting" || col === "Notes" || col === "Next steps") return 27;
     if (col === "Project") return 13;
@@ -580,7 +626,9 @@
     filters = loadFilters();
     manualWidths = loadWidths();
 
-    // Persist immediately in case normalization changed things (e.g. added Completed tasks)
+    // Summary is derived from Daily planning; refresh it once against
+    // whatever Daily planning data just loaded, then persist.
+    refreshSummarySheet(workbook);
     saveWorkbookSilently();
 
     document.getElementById("btnAddRow").addEventListener("click", handleAddRow);
@@ -615,6 +663,10 @@
     if (idx < 0 || idx >= workbook.length || idx === selectedSheetIndex) return;
     selectedSheetIndex = idx;
     persistSelectedSheet();
+    if (workbook[idx].name === "Summary") {
+      refreshSummarySheet(workbook);
+      saveWorkbookSilently();
+    }
     renderAll();
     var activeBtn = navEl.querySelector(".nav-btn.active");
     if (activeBtn) activeBtn.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
@@ -960,7 +1012,7 @@
   // Columns that hold free-form, potentially multi-line text and so need
   // the full row width; everything else is short enough to pair two per
   // row in the single-task view (see below) without cramming.
-  var LONG_TEXT_COLUMNS = ["Task/Meeting", "Next steps", "Notes", "Key milestones"];
+  var LONG_TEXT_COLUMNS = ["Task/Meeting", "Next steps", "Notes", "Key milestones", "Tasks", "Task"];
 
   function isLongTextColumn(col) {
     return LONG_TEXT_COLUMNS.indexOf(col) !== -1;
@@ -1069,6 +1121,7 @@
     var tr = document.createElement("tr");
     tr.dataset.sourceIdx = String(sourceIdx);
     if (compact) tr.classList.add("single-task-row");
+    if (sheet.name === "Summary" && !(row.Task || "").toString().trim()) tr.classList.add("row-highlight");
 
     var soloCols = {};
     if (compact) {
@@ -1102,8 +1155,8 @@
       tr.appendChild(td);
     });
 
+    var tdActions = document.createElement("td");
     if (hasActionsColumn(sheet)) {
-      var tdActions = document.createElement("td");
       tdActions.dataset.label = "Actions";
       styleCompactCell(tdActions, "Actions");
       tdActions.appendChild(buildActionsCell(sheet, row, sourceIdx));
@@ -1444,7 +1497,7 @@
   function handleAddRow() {
     var sheet = currentSheet();
     if (isComputedSheet(sheet)) {
-      window.alert("This page's rows are generated automatically from today's date and can't be added to.");
+      window.alert("Summary is generated automatically from Daily planning and can't be added to directly.");
       return;
     }
     if (sheet.rows.length >= MAX_ROWS) {
@@ -1454,6 +1507,7 @@
     var newRow = {};
     sheet.columns.forEach(function (col) { newRow[col] = ""; });
     if (hasDateColumn(sheet)) newRow["Date"] = todayLocalMMDDYYYY();
+    if (sheet.name === "Week planning") newRow["Date/Day"] = formatDateDay(new Date());
     sheet.rows.push(newRow);
     saveWorkbook();
     renderTable();
@@ -1483,10 +1537,10 @@
   function handleResetSheet() {
     var sheet = currentSheet();
     if (isComputedSheet(sheet)) {
-      // Nothing user-entered to lose here - repurpose Reset as a manual
-      // "refresh to today" in case the tab has been open since a
-      // previous day.
-      sheet.rows = computeWeekPlanningRows();
+      // Nothing user-entered here - repurpose Reset as a manual refresh
+      // from Daily planning, in case Daily planning changed since Summary
+      // was last viewed/recomputed.
+      refreshSummarySheet(workbook);
       saveWorkbook();
       renderTable();
       return;
