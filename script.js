@@ -28,6 +28,10 @@
     "Next steps": ["Notes", "Deliver-TO"]
   };
 
+  var ROAD_MAP_COLUMNS = ["Project", "Key milestones", "Start date", "End date", "Duration"];
+  var WEEK_PLANNING_COLUMNS = ["Date", "Day"];
+  var WEEK_DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+
   /* ---------------------------------------------------------
      Default workbook
      --------------------------------------------------------- */
@@ -136,8 +140,6 @@
     });
     return { name: name, columns: columns, rows: outRows };
   }
-
-  var ROAD_MAP_COLUMNS = ["Project", "Key milestones", "Start date", "End date", "Duration"];
 
   // Parses a strict MM/DD/YYYY string into a UTC millisecond timestamp,
   // returning null for anything malformed or not a real calendar date.
@@ -249,9 +251,6 @@
     var yyyy = d.getFullYear();
     return mm + "/" + dd + "/" + yyyy;
   }
-
-  var WEEK_PLANNING_COLUMNS = ["Date", "Day"];
-  var WEEK_DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
   // Builds the Week planning page's 5 rows fresh from today's date: a
   // rolling Monday-through-Friday view that always starts on today's row
