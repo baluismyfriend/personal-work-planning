@@ -308,11 +308,15 @@
       if (!byProject[project]) { byProject[project] = []; order.push(project); }
       byProject[project].push(task);
     });
+    // One row per task - the project name is shown on every one of its
+    // task rows (not a separate header row), so a project with a single
+    // task is a single row, not two. The first task row for each project
+    // is flagged so it can be visually highlighted as the start of a new
+    // group, without needing an extra blank row to do it.
     var rows = [];
     order.forEach(function (project) {
-      rows.push({ Project: project, Task: "" });
-      byProject[project].forEach(function (task) {
-        rows.push({ Project: "", Task: task });
+      byProject[project].forEach(function (task, i) {
+        rows.push({ Project: project, Task: task, _isGroupStart: i === 0 });
       });
     });
     return rows;
@@ -1125,7 +1129,7 @@
     var tr = document.createElement("tr");
     tr.dataset.sourceIdx = String(sourceIdx);
     if (compact) tr.classList.add("single-task-row");
-    if (sheet.name === "Summary" && !(row.Task || "").toString().trim()) tr.classList.add("row-highlight");
+    if (sheet.name === "Summary" && row._isGroupStart) tr.classList.add("row-highlight");
 
     var soloCols = {};
     if (compact) {
