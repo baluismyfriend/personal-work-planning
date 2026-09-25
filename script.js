@@ -971,6 +971,25 @@
     return isMobileWidth();
   }
 
+  // On every page except Summary, one swipe "page" is a single row. On
+  // Summary, one page is instead an entire project's worth of task rows,
+  // grouped together in the order they first appear among the (filtered/
+  // sorted) items - so Prev/Next flips between projects, and all of a
+  // project's tasks show stacked one after another on the same page.
+  function getSwipePages(sheet, items) {
+    if (sheet.name === "Summary") {
+      var order = [];
+      var byProject = {};
+      items.forEach(function (item) {
+        var project = ((item.row && item.row.Project) || "").toString();
+        if (!Object.prototype.hasOwnProperty.call(byProject, project)) { byProject[project] = []; order.push(project); }
+        byProject[project].push(item);
+      });
+      return order.map(function (project) { return byProject[project]; });
+    }
+    return items.map(function (item) { return [item]; });
+  }
+
   function clampTaskIndex(sheet, itemsLength) {
     var idx = currentTaskIndexBySheet[sheet.name];
     if (typeof idx !== "number" || isNaN(idx)) idx = 0;
@@ -984,9 +1003,10 @@
     var sheet = currentSheet();
     if (!isSingleTaskSwipeMode(sheet)) return;
     var items = getFilteredSortedRows(sheet);
-    var idx = clampTaskIndex(sheet, items.length);
+    var pages = getSwipePages(sheet, items);
+    var idx = clampTaskIndex(sheet, pages.length);
     var newIdx = idx + delta;
-    if (newIdx < 0 || newIdx > items.length - 1) return; // stop at the ends, no wraparound
+    if (newIdx < 0 || newIdx > pages.length - 1) return; // stop at the ends, no wraparound
     currentTaskIndexBySheet[sheet.name] = newIdx;
     renderTableBody(sheet);
   }
@@ -997,19 +1017,25 @@
     var posEl = document.getElementById("taskPositionLabel");
     if (!countEl || !swipeNavEl || !posEl) return;
     if (isSingleTaskSwipeMode(sheet)) {
+      var pages = getSwipePages(sheet, items);
       countEl.hidden = true;
       swipeNavEl.hidden = false;
-      if (items.length === 0) {
+      if (pages.length === 0) {
         posEl.textContent = "0 of 0";
       } else {
-        var idx = clampTaskIndex(sheet, items.length);
-        posEl.textContent = (idx + 1) + " of " + items.length;
+        var idx = clampTaskIndex(sheet, pages.length);
+        if (sheet.name === "Summary") {
+          var projectName = ((pages[idx][0].row && pages[idx][0].row.Project) || "").toString().trim() || "(No project)";
+          posEl.textContent = projectName + " \u2014 project " + (idx + 1) + " of " + pages.length;
+        } else {
+          posEl.textContent = (idx + 1) + " of " + pages.length;
+        }
       }
       var prevBtn = document.getElementById("taskPrevBtn");
       var nextBtn = document.getElementById("taskNextBtn");
-      var curIdx = clampTaskIndex(sheet, items.length);
-      if (prevBtn) prevBtn.disabled = (items.length === 0 || curIdx <= 0);
-      if (nextBtn) nextBtn.disabled = (items.length === 0 || curIdx >= items.length - 1);
+      var curIdx = clampTaskIndex(sheet, pages.length);
+      if (prevBtn) prevBtn.disabled = (pages.length === 0 || curIdx <= 0);
+      if (nextBtn) nextBtn.disabled = (pages.length === 0 || curIdx >= pages.length - 1);
     } else {
       swipeNavEl.hidden = true;
       countEl.hidden = false;
@@ -1103,7 +1129,8 @@
     tableBodyEl.replaceChildren();
 
     if (isSingleTaskSwipeMode(sheet)) {
-      if (items.length === 0) {
+      var pages = getSwipePages(sheet, items);
+      if (pages.length === 0) {
         var emptyTr = document.createElement("tr");
         var emptyTd = document.createElement("td");
         emptyTd.colSpan = sheet.columns.length + 1;
@@ -1113,9 +1140,11 @@
         tableBodyEl.appendChild(emptyTr);
         return;
       }
-      var idx = clampTaskIndex(sheet, items.length);
-      var only = items[idx];
-      tableBodyEl.appendChild(buildRowElement(sheet, only.row, only.idx, true));
+      var idx = clampTaskIndex(sheet, pages.length);
+      var page = pages[idx];
+      page.forEach(function (only) {
+        tableBodyEl.appendChild(buildRowElement(sheet, only.row, only.idx, true));
+      });
       return;
     }
 
