@@ -361,12 +361,12 @@
     return Array.isArray(cols) ? cols.indexOf(col) !== -1 : cols === col;
   }
 
-  // The Road Map's Duration column is derived from Start date/End date,
-  // and Week planning's Date/Day is auto-populated when a row is added;
-  // both render read-only rather than as editable cells.
+  // Week planning's Date/Day still gets auto-filled with today's date
+  // when a row is added (see handleAddRow), but is a normal editable
+  // text field after that - not computed/read-only - so it can be
+  // corrected to a different date.
   function isComputedColumn(sheet, col) {
     if (sheet.name === "Road Map - Pending" && col === "Duration") return true;
-    if (sheet.name === "Week planning" && col === "Date/Day") return true;
     if (sheet.name === "Summary") return true;
     return false;
   }
@@ -968,6 +968,11 @@
   }
 
   function isSingleTaskSwipeMode(sheet) {
+    // Week planning is a running list for the week, not a set of
+    // separate single-item pages - every task should stay stacked on
+    // the one page (like the desktop view) instead of being paged
+    // through one at a time with a "1 of N" counter.
+    if (sheet.name === "Week planning") return false;
     return isMobileWidth();
   }
 
@@ -1453,9 +1458,7 @@
     var div = document.createElement("div");
     div.className = "cell-readonly";
     div.textContent = row[col] || "";
-    div.title = sheet.name === "Summary"
-      ? "Generated automatically from Daily planning"
-      : "Automatically set from today's date";
+    div.title = "Generated automatically from Daily planning";
     return div;
   }
 
