@@ -1025,8 +1025,7 @@
       } else {
         var idx = clampTaskIndex(sheet, pages.length);
         if (sheet.name === "Summary") {
-          var projectName = ((pages[idx][0].row && pages[idx][0].row.Project) || "").toString().trim() || "(No project)";
-          posEl.textContent = projectName + " \u2014 project " + (idx + 1) + " of " + pages.length;
+          posEl.textContent = "Project " + (idx + 1) + " of " + pages.length;
         } else {
           posEl.textContent = (idx + 1) + " of " + pages.length;
         }
@@ -1142,6 +1141,14 @@
       }
       var idx = clampTaskIndex(sheet, pages.length);
       var page = pages[idx];
+      if (sheet.name === "Summary" && page.length) {
+        var projectName = ((page[0].row && page[0].row.Project) || "").toString().trim() || "(No project)";
+        tableBodyEl.appendChild(buildSummaryProjectHeaderRow(sheet, projectName));
+        page.forEach(function (only) {
+          tableBodyEl.appendChild(buildRowElement(sheet, only.row, only.idx, true, ["Project"]));
+        });
+        return;
+      }
       page.forEach(function (only) {
         tableBodyEl.appendChild(buildRowElement(sheet, only.row, only.idx, true));
       });
@@ -1154,7 +1161,30 @@
     });
   }
 
-  function buildRowElement(sheet, row, sourceIdx, compact) {
+  // On the Summary page's mobile swipe view, one page is a whole
+  // project's worth of task rows (see getSwipePages), and the project
+  // name is shown exactly once via this header row rather than
+  // repeated on every task row underneath it (see buildRowElement's
+  // omitCols param, used to leave "Project" out of each task row).
+  function buildSummaryProjectHeaderRow(sheet, projectName) {
+    var tr = document.createElement("tr");
+    tr.className = "summary-project-header-row";
+    var td = document.createElement("td");
+    td.colSpan = sheet.columns.length;
+    td.className = "summary-project-header";
+    var label = document.createElement("div");
+    label.className = "summary-project-header-label";
+    label.textContent = "Project";
+    var name = document.createElement("div");
+    name.className = "summary-project-header-name";
+    name.textContent = projectName;
+    td.appendChild(label);
+    td.appendChild(name);
+    tr.appendChild(td);
+    return tr;
+  }
+
+  function buildRowElement(sheet, row, sourceIdx, compact, omitCols) {
     var tr = document.createElement("tr");
     tr.dataset.sourceIdx = String(sourceIdx);
     if (compact) tr.classList.add("single-task-row");
@@ -1177,6 +1207,7 @@
     }
 
     sheet.columns.forEach(function (col) {
+      if (omitCols && omitCols.indexOf(col) !== -1) return;
       var td = document.createElement("td");
       td.dataset.label = col;
       styleCompactCell(td, col);
