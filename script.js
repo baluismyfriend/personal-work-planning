@@ -300,7 +300,11 @@
     daily.rows.forEach(function (r) {
       var project = ((r && r.Project) || "").toString().trim();
       var task = ((r && r["Task/Meeting"]) || "").toString().trim();
-      if (!project || !task) return;
+      // A task with no Project set still gets summarized - it's grouped
+      // under a catch-all label rather than dropped, since leaving
+      // Project blank is a normal, common case on Daily planning.
+      if (!task) return;
+      if (!project) project = "(No project)";
       if (!byProject[project]) { byProject[project] = []; order.push(project); }
       byProject[project].push(task);
     });
@@ -1385,7 +1389,9 @@
     var div = document.createElement("div");
     div.className = "cell-readonly";
     div.textContent = row[col] || "";
-    div.title = "Automatically set from today's date";
+    div.title = sheet.name === "Summary"
+      ? "Generated automatically from Daily planning"
+      : "Automatically set from today's date";
     return div;
   }
 
