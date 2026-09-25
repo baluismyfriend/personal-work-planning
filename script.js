@@ -1580,9 +1580,27 @@
     if (sheet.name === "Week planning") newRow["Date/Day"] = formatDateDay(new Date());
     sheet.rows.push(newRow);
     saveWorkbook();
-    renderTable();
 
     var newIdx = sheet.rows.length - 1;
+
+    // The mobile single-task swipe view only renders whichever one
+    // page currentTaskIndexBySheet points at (see renderTableBody) -
+    // so without this, the new row lands at the end of the sheet but
+    // the view stays parked on the page it was already showing. Jump
+    // the swipe position to the new row's page before rendering, so
+    // Add Row actually navigates there (mirrors the desktop
+    // scroll-to-new-row behavior below).
+    if (isSingleTaskSwipeMode(sheet)) {
+      var pages = getSwipePages(sheet, getFilteredSortedRows(sheet));
+      for (var p = 0; p < pages.length; p++) {
+        if (pages[p].some(function (item) { return item.idx === newIdx; })) {
+          currentTaskIndexBySheet[sheet.name] = p;
+          break;
+        }
+      }
+    }
+
+    renderTable();
     setTimeout(function () {
       var tr = tableBodyEl.querySelector('tr[data-source-idx="' + newIdx + '"]') ||
         Array.prototype.find.call(tableBodyEl.querySelectorAll("tr"), function (r) {
