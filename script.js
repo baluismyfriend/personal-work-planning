@@ -1193,6 +1193,7 @@
     var tr = document.createElement("tr");
     tr.dataset.sourceIdx = String(sourceIdx);
     if (compact) tr.classList.add("single-task-row");
+    if (sheet.name === "Week planning") tr.classList.add("week-row");
     if (sheet.name === "Summary" && row._isGroupStart) tr.classList.add("row-highlight");
 
     var soloCols = {};

@@ -630,6 +630,25 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
   .single-task-row > td.short-field{flex:1 1 calc(50% - 5px);min-width:0;}
   .single-task-row > td.short-field-solo{flex-basis:100%;}
 
+  /* Week planning: Date/Day and Actions share one row (visually
+     reordered ahead of Tasks via `order`, regardless of DOM order) so
+     Actions doesn't take up a whole row of its own - Tasks (the free-
+     text field) still gets the full width, below them. */
+  .data-table tr.week-row{
+    display:flex !important;
+    flex-wrap:wrap;
+    align-content:flex-start;
+    gap:2px 10px;
+  }
+  .data-table tr.week-row > td{
+    display:block !important;
+    width:auto !important;
+    border:none !important;
+  }
+  .data-table tr.week-row > td[data-label="Date/Day"]{flex:1 1 calc(50% - 5px);min-width:0;order:1;}
+  .data-table tr.week-row > td[data-label="Actions"]{flex:1 1 calc(50% - 5px);min-width:0;order:2;}
+  .data-table tr.week-row > td[data-label="Tasks"]{flex:1 1 100%;order:3;}
+
   /* Summary page swipe view: the project name is shown once, in this
      header row, instead of being repeated on every task row beneath it
      (see script.js buildSummaryProjectHeaderRow). A long project name
