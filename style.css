@@ -724,6 +724,13 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
     padding:4px 6px !important;
     min-width:0 !important;
   }
+  /* iOS Safari auto-zooms the page when a focused text field's font is
+     under 16px, and doesn't always reliably zoom back out afterward.
+     Bumping the font size to 16px only while the field is focused (it
+     drops back to the compact size above on blur) avoids the zoom
+     altogether rather than fighting with it after the fact. */
+  .data-table tr.week-row .cell-editable:focus{font-size:16px !important;}
+  .data-table tr.week-row .due-date-input:focus{font-size:16px !important;}
   .data-table tr.week-row .actions-cell{gap:5px !important;}
   .data-table tr.week-row .row-btn{
     min-width:0 !important;
@@ -855,10 +862,14 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
     padding:3px 6px !important;
     min-height:22px !important;
   }
+  /* See the matching comment on .week-row above - keeps iOS from
+     zooming the page in on focus and getting stuck zoomed in. */
+  .data-table tr.quick-list-row .cell-editable:focus{font-size:16px !important;}
 
   /* Bigger, easier-to-tap fields and controls at phone width */
   .cell-editable{font-size:15px;line-height:1.5;padding:8px 10px;min-height:38px;border:1px solid rgba(165,243,252,.6);background:rgba(255,255,255,.5);}
   .cell-editable.cell-large{font-size:15.5px;}
+  .cell-editable:focus{font-size:16px !important;}
   .status-select{width:100%;min-width:0;padding:10px 10px;font-size:13px;}
   .due-date-input{padding:10px 10px;font-size:14px;}
   .actions-cell{justify-content:flex-start;flex-wrap:wrap;gap:8px;}
