@@ -678,6 +678,11 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
     padding:4px 6px !important;
     min-height:24px !important;
   }
+  .data-table tr.week-row .due-date-input{
+    font-size:12.5px !important;
+    padding:4px 6px !important;
+    min-width:0 !important;
+  }
   .data-table tr.week-row .actions-cell{gap:5px !important;}
   .data-table tr.week-row .row-btn{
     min-width:0 !important;

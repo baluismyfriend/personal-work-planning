@@ -371,7 +371,8 @@
   // column names when a sheet has more than one date column.
   var CALENDAR_DATE_COLUMNS = {
     "Daily planning - All tasks": "Due date",
-    "Road Map - Pending": ["Start date", "End date"]
+    "Road Map - Pending": ["Start date", "End date"],
+    "Week planning": "Date/Day"
   };
 
   function isCalendarDateColumn(sheet, col) {
@@ -1257,7 +1258,7 @@
       if (col === "Status" && isTaskSheet(sheet)) {
         td.appendChild(buildStatusCell(sheet, row, sourceIdx));
       } else if (isCalendarDateColumn(sheet, col)) {
-        td.appendChild(buildDueDateCell(sheet, row, sourceIdx, col));
+        td.appendChild(sheet.name === "Week planning" ? buildWeekDateDayCell(sheet, row, sourceIdx, col) : buildDueDateCell(sheet, row, sourceIdx, col));
       } else if (isComputedColumn(sheet, col)) {
         td.appendChild(buildComputedCell(sheet, row, col));
       } else {
@@ -1467,6 +1468,62 @@
       if (sheet.name === "Road Map - Pending") row.Duration = roadMapDuration(row["Start date"], row["End date"]);
       saveWorkbook();
       if (sheet.name === "Road Map - Pending") refreshPillDependentUI(sheet);
+    });
+
+    input.addEventListener("blur", function () {
+      input.type = "text";
+      input.readOnly = true;
+      input.value = row[col] || "";
+    });
+
+    return input;
+  }
+
+  // Week planning's Date/Day is stored as "Thu, 09/24/2026" (weekday +
+  // date) rather than a plain date, so it needs its own calendar-picker
+  // cell: the picker itself only understands the MM/DD/YYYY part, and
+  // the weekday abbreviation is recomputed from whatever date is picked
+  // rather than trusted as stored text.
+  function buildWeekDateDayCell(sheet, row, sourceIdx, col) {
+    var input = document.createElement("input");
+    input.type = "text";
+    input.className = "due-date-input";
+    input.readOnly = true;
+    input.value = row[col] || "";
+    input.placeholder = "";
+
+    function mmddyyyyToIso(v) {
+      var m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(v || "");
+      if (!m) return "";
+      return m[3] + "-" + m[1] + "-" + m[2];
+    }
+    function isoToDateDay(v) {
+      var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+      if (!m) return "";
+      // Built from the picked year/month/day parts directly (rather than
+      // parsed from the ISO string as UTC) so the weekday can't shift by
+      // a day in timezones behind UTC.
+      var d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+      return formatDateDay(d);
+    }
+
+    function activate() {
+      input.readOnly = false;
+      input.type = "date";
+      var iso = mmddyyyyToIso(row[col] || "");
+      input.value = iso;
+      if (typeof input.showPicker === "function") {
+        try { input.showPicker(); } catch (e) { /* ignore */ }
+      }
+    }
+
+    input.addEventListener("focus", activate);
+    input.addEventListener("click", activate);
+
+    input.addEventListener("change", function () {
+      var formatted = isoToDateDay(input.value);
+      if (formatted) row[col] = formatted;
+      saveWorkbook();
     });
 
     input.addEventListener("blur", function () {
