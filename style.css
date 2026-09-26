@@ -646,27 +646,44 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
   /* Week planning: Date/Day and Actions share one row (visually
      reordered ahead of Tasks via `order`, regardless of DOM order) so
      Actions doesn't take up a whole row of its own - Tasks (the free-
-     text field) still gets the full width, below them. Padding and
-     row-to-row spacing are trimmed down from the default card style so
-     more tasks are visible on screen at once. */
+     text field) still gets the full width, below them. Padding, row
+     spacing, field height and font size are all trimmed well below the
+     defaults used elsewhere so around 7 day-rows fit on screen at once. */
   .data-table tr.week-row{
     display:flex !important;
     flex-wrap:wrap;
     align-content:flex-start;
-    gap:0 10px;
-    margin-bottom:6px !important;
-    padding:8px 12px !important;
+    gap:0 8px;
+    margin-bottom:3px !important;
+    padding:5px 10px !important;
+    border-radius:10px;
   }
   .data-table tr.week-row > td{
     display:block !important;
     width:auto !important;
     border:none !important;
-    padding:4px 0 !important;
+    padding:2px 0 !important;
   }
-  .data-table tr.week-row > td::before{margin-bottom:1px;}
-  .data-table tr.week-row > td[data-label="Date/Day"]{flex:1 1 calc(50% - 5px);min-width:0;order:1;}
-  .data-table tr.week-row > td[data-label="Actions"]{flex:1 1 calc(50% - 5px);min-width:0;order:2;}
+  .data-table tr.week-row > td::before{
+    font-size:8px;
+    margin-bottom:0;
+  }
+  .data-table tr.week-row > td[data-label="Date/Day"]{flex:1 1 calc(50% - 4px);min-width:0;order:1;}
+  .data-table tr.week-row > td[data-label="Actions"]{flex:1 1 calc(50% - 4px);min-width:0;order:2;}
   .data-table tr.week-row > td[data-label="Tasks"]{flex:1 1 100%;order:3;}
+
+  .data-table tr.week-row .cell-editable{
+    font-size:12.5px !important;
+    line-height:1.25 !important;
+    padding:4px 6px !important;
+    min-height:24px !important;
+  }
+  .data-table tr.week-row .actions-cell{gap:5px !important;}
+  .data-table tr.week-row .row-btn{
+    min-width:0 !important;
+    padding:4px 7px !important;
+    font-size:10px !important;
+  }
 
   /* Summary page swipe view: the project name is shown once, in this
      header row ("Project: Name" on a single line), instead of being
