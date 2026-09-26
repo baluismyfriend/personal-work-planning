@@ -312,7 +312,7 @@
     if (!daily || !Array.isArray(daily.rows)) return [];
     var order = [];
     var byProject = {};
-    daily.rows.forEach(function (r) {
+    daily.rows.forEach(function (r, dailyIdx) {
       var project = ((r && r.Project) || "").toString().trim();
       var task = ((r && r["Task/Meeting"]) || "").toString().trim();
       // A task with no Project set still gets summarized - it's grouped
@@ -321,7 +321,10 @@
       if (!task) return;
       if (!project) project = "(No project)";
       if (!byProject[project]) { byProject[project] = []; order.push(project); }
-      byProject[project].push(task);
+      // Keep the row's original index on Daily planning alongside its
+      // text, so a Summary row can later be tapped to jump straight to
+      // that same row on Daily planning (see goToDailyTaskFromSummary).
+      byProject[project].push({ task: task, dailyIdx: dailyIdx });
     });
     // One row per task - the project name is shown on every one of its
     // task rows (not a separate header row), so a project with a single
@@ -330,8 +333,8 @@
     // group, without needing an extra blank row to do it.
     var rows = [];
     order.forEach(function (project) {
-      byProject[project].forEach(function (task, i) {
-        rows.push({ Project: project, Task: task, _isGroupStart: i === 0 });
+      byProject[project].forEach(function (entry, i) {
+        rows.push({ Project: project, Task: entry.task, _isGroupStart: i === 0, _dailyIdx: entry.dailyIdx });
       });
     });
     return rows;
@@ -1283,8 +1286,11 @@
 
   function buildSummaryTaskRow(row, sourceIdx, taskNumber) {
     var tr = document.createElement("tr");
-    tr.className = "summary-task-row";
+    tr.className = "summary-task-row summary-task-link";
     tr.dataset.sourceIdx = String(sourceIdx);
+    tr.tabIndex = 0;
+    tr.setAttribute("role", "button");
+    tr.title = "Tap to open this task on Daily planning";
     var td = document.createElement("td");
     td.className = "summary-task-cell";
     var num = document.createElement("span");
@@ -1296,6 +1302,15 @@
     td.appendChild(num);
     td.appendChild(text);
     tr.appendChild(td);
+    tr.addEventListener("click", function () {
+      if (typeof row._dailyIdx === "number") goToDailyTaskFromSummary(row._dailyIdx);
+    });
+    tr.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        if (typeof row._dailyIdx === "number") goToDailyTaskFromSummary(row._dailyIdx);
+      }
+    });
     return tr;
   }
 
@@ -1622,11 +1637,74 @@
   // Dispatches a computed (read-only) column to the right builder.
   function buildComputedCell(sheet, row, col) {
     if (sheet.name === "Road Map - Pending" && col === "Duration") return buildDurationCell(row);
+    if (sheet.name === "Summary" && col === "Task") return buildSummaryTaskLinkCell(row);
     var div = document.createElement("div");
     div.className = "cell-readonly";
     div.textContent = row[col] || "";
     div.title = "Generated automatically from Daily planning";
     return div;
+  }
+
+  // Summary's Task cell (desktop/tablet table view): tapping/clicking it
+  // jumps straight to that same task's row on Daily planning - All tasks,
+  // since Summary itself has no editable fields of its own.
+  function buildSummaryTaskLinkCell(row) {
+    var div = document.createElement("div");
+    div.className = "cell-readonly summary-task-link";
+    div.textContent = row["Task"] || "";
+    div.title = "Tap to open this task on Daily planning";
+    div.tabIndex = 0;
+    div.setAttribute("role", "button");
+    div.addEventListener("click", function () {
+      if (typeof row._dailyIdx === "number") goToDailyTaskFromSummary(row._dailyIdx);
+    });
+    div.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        if (typeof row._dailyIdx === "number") goToDailyTaskFromSummary(row._dailyIdx);
+      }
+    });
+    return div;
+  }
+
+  // Jumps from a Summary row to the matching row on Daily planning - All
+  // tasks: switches to that page, clears any filter/sort there that could
+  // otherwise hide the target row, and scrolls to/highlights it (desktop)
+  // or lands on its single-task swipe page (phone width).
+  function goToDailyTaskFromSummary(dailyRowIdx) {
+    var dailySheetIdx = workbook.findIndex(function (s) { return s.name === "Daily planning - All tasks"; });
+    if (dailySheetIdx === -1) return;
+    var dailySheet = workbook[dailySheetIdx];
+    if (dailyRowIdx < 0 || dailyRowIdx >= dailySheet.rows.length) return;
+
+    clearSheetFilters(dailySheet.name);
+    delete sortState[dailySheet.name];
+
+    selectedSheetIndex = dailySheetIdx;
+    persistSelectedSheet();
+
+    if (isSingleTaskSwipeMode(dailySheet)) {
+      var pages = getSwipePages(dailySheet, getFilteredSortedRows(dailySheet));
+      for (var p = 0; p < pages.length; p++) {
+        if (pages[p].some(function (item) { return item.idx === dailyRowIdx; })) {
+          currentTaskIndexBySheet[dailySheet.name] = p;
+          break;
+        }
+      }
+    }
+
+    renderAll();
+    var activeBtn = navEl.querySelector(".nav-btn.active");
+    if (activeBtn) activeBtn.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+
+    setTimeout(function () {
+      var tr = tableBodyEl.querySelector('tr[data-source-idx="' + dailyRowIdx + '"]');
+      if (tr) {
+        tr.scrollIntoView({ behavior: "smooth", block: "center" });
+        tr.classList.add("row-highlight");
+        setTimeout(function () { tr.classList.remove("row-highlight"); }, 1800);
+      }
+    }, 80);
   }
 
   function buildActionsCell(sheet, row, sourceIdx) {
