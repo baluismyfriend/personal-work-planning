@@ -1149,8 +1149,8 @@
       if (sheet.name === "Summary" && page.length) {
         var projectName = ((page[0].row && page[0].row.Project) || "").toString().trim() || "(No project)";
         tableBodyEl.appendChild(buildSummaryProjectHeaderRow(sheet, projectName));
-        page.forEach(function (only) {
-          tableBodyEl.appendChild(buildRowElement(sheet, only.row, only.idx, true, ["Project"]));
+        page.forEach(function (only, taskPos) {
+          tableBodyEl.appendChild(buildSummaryTaskRow(only.row, only.idx, taskPos + 1));
         });
         return;
       }
@@ -1167,24 +1167,43 @@
   }
 
   // On the Summary page's mobile swipe view, one page is a whole
-  // project's worth of task rows (see getSwipePages), and the project
-  // name is shown exactly once via this header row rather than
-  // repeated on every task row underneath it (see buildRowElement's
-  // omitCols param, used to leave "Project" out of each task row).
+  // project's worth of task rows (see getSwipePages). The project name
+  // is shown once, inline as "Project: Name" (see buildSummaryProjectHeaderRow)
+  // rather than repeated above every task, and each task below is a
+  // single compact "Task N: ..." line (see buildSummaryTaskRow) rather
+  // than a full field-labeled card, so more tasks fit on screen at once.
   function buildSummaryProjectHeaderRow(sheet, projectName) {
     var tr = document.createElement("tr");
     tr.className = "summary-project-header-row";
     var td = document.createElement("td");
     td.colSpan = sheet.columns.length;
     td.className = "summary-project-header";
-    var label = document.createElement("div");
+    var label = document.createElement("span");
     label.className = "summary-project-header-label";
-    label.textContent = "Project";
-    var name = document.createElement("div");
+    label.textContent = "Project:";
+    var name = document.createElement("span");
     name.className = "summary-project-header-name";
     name.textContent = projectName;
     td.appendChild(label);
     td.appendChild(name);
+    tr.appendChild(td);
+    return tr;
+  }
+
+  function buildSummaryTaskRow(row, sourceIdx, taskNumber) {
+    var tr = document.createElement("tr");
+    tr.className = "summary-task-row";
+    tr.dataset.sourceIdx = String(sourceIdx);
+    var td = document.createElement("td");
+    td.className = "summary-task-cell";
+    var num = document.createElement("span");
+    num.className = "summary-task-num";
+    num.textContent = "Task " + taskNumber + ":";
+    var text = document.createElement("span");
+    text.className = "summary-task-text";
+    text.textContent = (row["Task"] || "").toString();
+    td.appendChild(num);
+    td.appendChild(text);
     tr.appendChild(td);
     return tr;
   }
