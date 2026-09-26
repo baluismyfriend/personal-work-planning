@@ -67,6 +67,17 @@
   </main>
 
   <button id="btnAddRowFloating" type="button" class="btn btn-primary floating-add" title="Add Row">+ Add Row</button>
+
+  <div id="backupPrompt" class="backup-prompt" hidden role="status" aria-live="polite">
+    <div class="backup-prompt-text">
+      <strong>Daily backup reminder</strong>
+      <span>You haven't exported a backup today. Save a fresh copy to keep your data safe.</span>
+    </div>
+    <div class="backup-prompt-actions">
+      <button id="backupPromptExportBtn" type="button" class="btn btn-primary">Export now</button>
+      <button id="backupPromptDismissBtn" type="button" class="btn">Not today</button>
+    </div>
+  </div>
 </div>
 <script src="script.js"></script>
 </body>

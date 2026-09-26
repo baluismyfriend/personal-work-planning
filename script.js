@@ -10,6 +10,8 @@
   var STORAGE_SHEET_KEY = "workPlanningFinal.v2.selectedSheet";
   var STORAGE_FILTERS_KEY = "workPlanningFinal.v2.filters";
   var STORAGE_WIDTHS_KEY = "workPlanningFinal.v2.safeManualColumnWidths";
+  var STORAGE_LAST_EXPORT_DATE_KEY = "workPlanningFinal.v2.lastExportDate";
+  var STORAGE_LAST_PROMPT_DISMISS_KEY = "workPlanningFinal.v2.lastBackupPromptDismiss";
 
   var IDB_NAME = "workPlanningFinal.v2.autoBackup";
   var IDB_VERSION = 1;
@@ -529,6 +531,24 @@
     try { localStorage.setItem(STORAGE_WIDTHS_KEY, JSON.stringify(manualWidths)); } catch (e) { /* ignore */ }
   }
 
+  // Daily backup reminder bookkeeping. Both dates are stored as plain
+  // MM/DD/YYYY local-date strings (see todayLocalMMDDYYYY), so a simple
+  // string comparison against "today" is enough to know whether the
+  // reminder has already been handled today - no time-of-day/timezone
+  // math needed.
+  function loadLastExportDate() {
+    try { return localStorage.getItem(STORAGE_LAST_EXPORT_DATE_KEY) || ""; } catch (e) { return ""; }
+  }
+  function saveLastExportDate(dateStr) {
+    try { localStorage.setItem(STORAGE_LAST_EXPORT_DATE_KEY, dateStr); } catch (e) { /* ignore */ }
+  }
+  function loadLastPromptDismissDate() {
+    try { return localStorage.getItem(STORAGE_LAST_PROMPT_DISMISS_KEY) || ""; } catch (e) { return ""; }
+  }
+  function saveLastPromptDismissDate(dateStr) {
+    try { localStorage.setItem(STORAGE_LAST_PROMPT_DISMISS_KEY, dateStr); } catch (e) { /* ignore */ }
+  }
+
   function saveWorkbook() {
     try {
       localStorage.setItem(STORAGE_DATA_KEY, JSON.stringify(workbook));
@@ -650,6 +670,7 @@
      RENDERING
      ============================================================ */
   var navEl, pageTitleEl, colgroupEl, tableHeadEl, tableBodyEl, tableScrollerEl;
+  var backupPromptEl, backupPromptExportBtn, backupPromptDismissBtn;
 
   function init() {
     navEl = document.getElementById("nav");
@@ -658,6 +679,9 @@
     tableHeadEl = document.getElementById("tableHead");
     tableBodyEl = document.getElementById("tableBody");
     tableScrollerEl = document.getElementById("tableScroller");
+    backupPromptEl = document.getElementById("backupPrompt");
+    backupPromptExportBtn = document.getElementById("backupPromptExportBtn");
+    backupPromptDismissBtn = document.getElementById("backupPromptDismissBtn");
 
     workbook = loadWorkbook();
     selectedSheetIndex = loadSelectedSheetIndex(workbook.length);
@@ -686,6 +710,8 @@
     document.getElementById("btnAutoBackup").addEventListener("click", handleAutoBackupButton);
     document.getElementById("taskPrevBtn").addEventListener("click", function () { stepTask(-1); });
     document.getElementById("taskNextBtn").addEventListener("click", function () { stepTask(1); });
+    if (backupPromptExportBtn) backupPromptExportBtn.addEventListener("click", handleBackupPromptExport);
+    if (backupPromptDismissBtn) backupPromptDismissBtn.addEventListener("click", handleBackupPromptDismiss);
 
     var resizeDebounceTimer = null;
     window.addEventListener("resize", function () {
@@ -696,6 +722,7 @@
     renderAll();
     initAutoBackupOnStartup();
     initSwipeNavigation();
+    maybeShowBackupPrompt();
   }
 
   function saveWorkbookSilently() {
@@ -1963,6 +1990,36 @@
   }
 
   /* ---------------------------------------------------------
+     Daily backup reminder
+     --------------------------------------------------------- */
+  // Shows the reminder banner once per calendar day: skipped if a JSON
+  // backup has already been exported today, or if the user already
+  // tapped "Not today" today. A home-screen web app on iOS has no
+  // background execution, so this can't run silently in the background -
+  // it can only check and prompt whenever the app is actually opened.
+  function maybeShowBackupPrompt() {
+    if (!backupPromptEl) return;
+    var today = todayLocalMMDDYYYY();
+    if (loadLastExportDate() === today) { backupPromptEl.hidden = true; return; }
+    if (loadLastPromptDismissDate() === today) { backupPromptEl.hidden = true; return; }
+    backupPromptEl.hidden = false;
+  }
+
+  function markExportedToday() {
+    saveLastExportDate(todayLocalMMDDYYYY());
+    if (backupPromptEl) backupPromptEl.hidden = true;
+  }
+
+  function handleBackupPromptExport() {
+    handleExportJson();
+  }
+
+  function handleBackupPromptDismiss() {
+    saveLastPromptDismissDate(todayLocalMMDDYYYY());
+    if (backupPromptEl) backupPromptEl.hidden = true;
+  }
+
+  /* ---------------------------------------------------------
      JSON export / import
      --------------------------------------------------------- */
   function handleExportJson() {
@@ -1976,6 +2033,7 @@
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+    markExportedToday();
   }
 
   function handleImportFileChosen(e) {
@@ -2171,6 +2229,7 @@
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+    markExportedToday();
   }
 
   function flashAutoBackupFeedback(text) {
