@@ -74,9 +74,12 @@
     // end of the page list rather than in the middle of the active pages)
     sheets.push({ name: "Completed tasks", columns: TASK_COLUMNS.slice(), rows: [] });
 
-    // 0. Summary - always first; built last here since it's derived from
-    // the Daily planning sheet already assembled above.
+    // 0. Summary - built last here since it's derived from the Daily
+    // planning sheet already assembled above.
     sheets.unshift(buildSummarySheet(sheets));
+
+    // Projects (Road Map) leads the nav row, with Summary right after it.
+    putProjectsAndSummaryFirst(sheets);
 
     return sheets;
   }
@@ -247,8 +250,10 @@
       var completedSheet = sheets.splice(completedIdx, 1)[0];
       sheets.push(completedSheet);
     }
-    // Summary is derived from Daily planning and always sits first.
+    // Summary is derived from Daily planning; Projects (Road Map) and
+    // Summary lead the nav row (see putProjectsAndSummaryFirst).
     sheets.unshift(buildSummarySheet(sheets));
+    putProjectsAndSummaryFirst(sheets);
     return sheets;
   }
 
@@ -326,6 +331,19 @@
     return { name: "Summary", columns: SUMMARY_COLUMNS.slice(), rows: computeSummaryRows(wb) };
   }
 
+  // Projects (internal name "Road Map - Pending") leads the nav row,
+  // with Summary right after it; every other sheet keeps whatever
+  // relative order it already had. Used for both a fresh workbook and
+  // one loaded/migrated from storage, so the ordering is consistent
+  // either way.
+  function putProjectsAndSummaryFirst(sheets) {
+    var summaryIdx = sheets.findIndex(function (s) { return s.name === "Summary"; });
+    if (summaryIdx !== -1) sheets.unshift(sheets.splice(summaryIdx, 1)[0]);
+    var roadIdx = sheets.findIndex(function (s) { return s.name === "Road Map - Pending"; });
+    if (roadIdx !== -1) sheets.unshift(sheets.splice(roadIdx, 1)[0]);
+    return sheets;
+  }
+
   // Recomputes the Summary sheet in place within an already-loaded
   // workbook array, so it picks up any Daily planning edits made earlier
   // in the current session (not just what was true at page load/import).
@@ -394,11 +412,11 @@
   // name is still used for every internal check (isTaskSheet, MOVE_TARGETS,
   // CALENDAR_DATE_COLUMNS, storage, etc.) and is shown as a tooltip.
   var NAV_SHORT_NAMES = {
-    "Summary": "Summary",
+    "Summary": "Sumry",
     "Daily planning - All tasks": "Daily",
     "Week planning": "Week",
     "All future Tasks": "Future",
-    "Road Map - Pending": "Roadmap",
+    "Road Map - Pending": "Projects",
     "Completed tasks": "Completed"
   };
 
@@ -740,7 +758,7 @@
       btn.type = "button";
       btn.className = "nav-btn" + (idx === selectedSheetIndex ? " active" : "");
       btn.textContent = shortSheetName(sheet);
-      btn.title = sheet.name;
+      btn.title = shortSheetName(sheet);
       btn.addEventListener("click", function () {
         goToSheetIndex(idx);
       });
@@ -750,7 +768,7 @@
 
   function renderTable() {
     var sheet = currentSheet();
-    pageTitleEl.textContent = sheet.name;
+    pageTitleEl.textContent = shortSheetName(sheet);
 
     // colgroup
     colgroupEl.replaceChildren();
@@ -1694,7 +1712,7 @@
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
     a.href = url;
-    a.download = sanitizeFilename(sheet.name) + ".csv";
+    a.download = sanitizeFilename(shortSheetName(sheet)) + ".csv";
     document.body.appendChild(a);
     a.click();
     a.remove();
