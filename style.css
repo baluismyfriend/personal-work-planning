@@ -730,6 +730,33 @@ div.summary-task-link{
   .data-table tr.week-row > td[data-label="Actions"]{flex:1 1 calc(50% - 4px);min-width:0;order:2;}
   .data-table tr.week-row > td[data-label="Tasks"]{flex:1 1 100%;order:3;}
 
+  /* Road Map - Pending: Start date, End date and Duration are short
+     fields that would otherwise each take a full stacked row (Duration
+     especially, since it's read-only and tiny) - shown as a single
+     three-across row instead to save vertical space, while Project,
+     Key milestones and Actions keep the full row width they need. */
+  .data-table tr.roadmap-row{
+    display:flex !important;
+    flex-wrap:wrap;
+    align-content:flex-start;
+    gap:0 10px;
+  }
+  .data-table tr.roadmap-row > td{
+    display:block !important;
+    width:auto !important;
+  }
+  .data-table tr.roadmap-row > td[data-label="Project"],
+  .data-table tr.roadmap-row > td[data-label="Key milestones"],
+  .data-table tr.roadmap-row > td[data-label="Actions"]{
+    flex:1 1 100%;
+  }
+  .data-table tr.roadmap-row > td[data-label="Start date"],
+  .data-table tr.roadmap-row > td[data-label="End date"],
+  .data-table tr.roadmap-row > td[data-label="Duration"]{
+    flex:1 1 calc(33.333% - 7px);
+    min-width:0;
+  }
+
   .data-table tr.week-row .cell-editable{
     font-size:12.5px !important;
     line-height:1.25 !important;

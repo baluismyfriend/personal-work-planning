@@ -1006,8 +1006,10 @@
     // Week planning and Quick list are both running lists, not a set of
     // separate single-item pages - every row should stay stacked on the
     // one page (like the desktop view) instead of being paged through
-    // one at a time with a "1 of N" counter.
-    if (sheet.name === "Week planning" || sheet.name === "Quick list") return false;
+    // one at a time with a "1 of N" counter. Road Map - Pending is a
+    // short list of projects the user wants to scroll through all at
+    // once too, rather than flipping through one project per screen.
+    if (sheet.name === "Week planning" || sheet.name === "Quick list" || sheet.name === "Road Map - Pending") return false;
     return isMobileWidth();
   }
 
@@ -1319,6 +1321,7 @@
     tr.dataset.sourceIdx = String(sourceIdx);
     if (compact) tr.classList.add("single-task-row");
     if (sheet.name === "Week planning") tr.classList.add("week-row");
+    if (sheet.name === "Road Map - Pending") tr.classList.add("roadmap-row");
     if (sheet.name === "Summary" && row._isGroupStart) tr.classList.add("row-highlight");
 
     var soloCols = {};
@@ -1773,24 +1776,57 @@
     renderTable();
   }
 
-  // Spins a Road Map row's Project + Key milestones off into a new row on
-  // Daily planning, dated today, so a milestone can be turned into an
-  // actionable task without retyping it.
+  // Splits a Key milestones cell into individual milestone items, so each
+  // one becomes its own task. Handles milestones typed on separate lines
+  // (each optionally prefixed with "1.", "1)", "-", "*", etc.) as well as
+  // a single line containing several inline numbered items like
+  // "1. Abc 2. Jjjd 3. Kkr". A milestone with no numbering/bullets at all
+  // is treated as one single item, same as before this feature existed.
+  function splitMilestoneItems(text) {
+    var raw = (text || "").toString();
+    if (!raw.trim()) return [];
+    var normalized = raw.replace(/\r\n|\r/g, "\n");
+    // Break inline numbered items apart onto their own line by inserting
+    // a line break before any numbered marker that isn't already at the
+    // very start of the text.
+    normalized = normalized.replace(/(?!^)(\s+)(\d{1,3}\s*[.)])/g, "\n$2");
+    var items = [];
+    normalized.split("\n").forEach(function (line) {
+      var cleaned = line
+        .replace(/^\s*[-*\u2022]\s*/, "")
+        .replace(/^\s*\d{1,3}\s*[.)]\s*/, "")
+        .trim();
+      if (cleaned) items.push(cleaned);
+    });
+    return items;
+  }
+
+  // Spins a Road Map row's Project + Key milestones off into new rows on
+  // Daily planning, dated today - one task per milestone item, so a list
+  // of milestones can be turned into individually trackable tasks without
+  // retyping them.
   function createDailyTaskFromRoadMap(roadRow) {
     var project = sanitizeCell(roadRow.Project, MAX_CELL_LEN).trim();
-    var milestone = sanitizeCell(roadRow["Key milestones"], MAX_CELL_LEN).trim();
-    if (!project || !milestone) {
-      window.alert("Add both a Project and Key milestones value before creating a task.");
+    var items = splitMilestoneItems(roadRow["Key milestones"]);
+    if (!project || items.length === 0) {
+      window.alert("Add both a Project and Key milestones value before creating tasks.");
       return;
     }
     var dailySheet = workbook.find(function (s) { return s.name === "Daily planning - All tasks"; });
-    if (!dailySheet || dailySheet.rows.length >= MAX_ROWS) {
+    if (!dailySheet) return;
+    var room = MAX_ROWS - dailySheet.rows.length;
+    if (room <= 0) {
       window.alert("Row limit reached for Daily planning - All tasks.");
       return;
     }
-    dailySheet.rows.push(blankTaskRow({ Date: todayLocalMMDDYYYY(), Project: project, "Task/Meeting": milestone }));
+    var toCreate = items.slice(0, room);
+    toCreate.forEach(function (milestone) {
+      dailySheet.rows.push(blankTaskRow({ Date: todayLocalMMDDYYYY(), Project: project, "Task/Meeting": milestone }));
+    });
     saveWorkbook();
-    window.alert("Task created in Daily planning - All tasks.");
+    var msg = toCreate.length === 1 ? "1 task created in Daily planning - All tasks." : (toCreate.length + " tasks created in Daily planning - All tasks.");
+    if (toCreate.length < items.length) msg += " (" + (items.length - toCreate.length) + " skipped - row limit reached.)";
+    window.alert(msg);
   }
 
   function moveRowToSheet(sourceSheet, sourceIdx, targetSheetName, forceComplete, insertAtBottom) {
