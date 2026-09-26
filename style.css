@@ -260,6 +260,12 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
 .backup-prompt-text span{font-size:12.5px;color:var(--muted);line-height:1.4;}
 .backup-prompt-actions{display:flex;gap:8px;}
 .backup-prompt-actions .btn{flex:1 1 0;text-align:center;}
+/* An element's own display:flex/etc. rule always beats the browser's
+   built-in [hidden]{display:none} rule (author styles win over the
+   user-agent stylesheet regardless of selector specificity), so without
+   this override, setting backupPromptEl.hidden = true from script.js
+   would silently do nothing and the banner would never disappear. */
+.backup-prompt[hidden]{display:none !important;}
 
 /* Table card */
 .table-card{

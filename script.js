@@ -1992,6 +1992,16 @@
   /* ---------------------------------------------------------
      Daily backup reminder
      --------------------------------------------------------- */
+  // Shows/hides the reminder banner. Sets an explicit inline display
+  // style in addition to the hidden attribute/property, so visibility
+  // never depends on how backup-prompt's own CSS display rule happens
+  // to interact with the browser's [hidden] rule.
+  function setBackupPromptVisible(visible) {
+    if (!backupPromptEl) return;
+    backupPromptEl.hidden = !visible;
+    backupPromptEl.style.display = visible ? "" : "none";
+  }
+
   // Shows the reminder banner once per calendar day: skipped if a JSON
   // backup has already been exported today, or if the user already
   // tapped "Not today" today. A home-screen web app on iOS has no
@@ -2000,14 +2010,14 @@
   function maybeShowBackupPrompt() {
     if (!backupPromptEl) return;
     var today = todayLocalMMDDYYYY();
-    if (loadLastExportDate() === today) { backupPromptEl.hidden = true; return; }
-    if (loadLastPromptDismissDate() === today) { backupPromptEl.hidden = true; return; }
-    backupPromptEl.hidden = false;
+    if (loadLastExportDate() === today) { setBackupPromptVisible(false); return; }
+    if (loadLastPromptDismissDate() === today) { setBackupPromptVisible(false); return; }
+    setBackupPromptVisible(true);
   }
 
   function markExportedToday() {
     saveLastExportDate(todayLocalMMDDYYYY());
-    if (backupPromptEl) backupPromptEl.hidden = true;
+    setBackupPromptVisible(false);
   }
 
   function handleBackupPromptExport() {
@@ -2016,7 +2026,7 @@
 
   function handleBackupPromptDismiss() {
     saveLastPromptDismissDate(todayLocalMMDDYYYY());
-    if (backupPromptEl) backupPromptEl.hidden = true;
+    setBackupPromptVisible(false);
   }
 
   /* ---------------------------------------------------------
