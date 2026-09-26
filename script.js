@@ -70,7 +70,10 @@
     ];
     sheets.push({ name: "Road Map - Pending", columns: roadCols, rows: roadRows });
 
-    // 5. Completed tasks (kept last so completed/archived items sit at the
+    // 5. Quick list
+    sheets.push(buildQuickListSheet());
+
+    // 6. Completed tasks (kept last so completed/archived items sit at the
     // end of the page list rather than in the middle of the active pages)
     sheets.push({ name: "Completed tasks", columns: TASK_COLUMNS.slice(), rows: [] });
 
@@ -238,6 +241,9 @@
     // Ensure Road Map - Pending always present
     var hasRoadMap = sheets.some(function (s) { return s.name === "Road Map - Pending"; });
     if (!hasRoadMap) sheets.push(migrateRoadMapSheet({ rows: [] }));
+    // Ensure Quick list always present
+    var hasQuickList = sheets.some(function (s) { return s.name === "Quick list"; });
+    if (!hasQuickList) sheets.push(buildQuickListSheet());
     // Ensure Completed tasks always present
     var hasCompleted = sheets.some(function (s) { return s.name === "Completed tasks"; });
     if (!hasCompleted) {
@@ -281,6 +287,10 @@
   // Date/Day column and for the Date/Day of freshly added rows.
   function formatDateDay(d) {
     return DAY_ABBREV[d.getDay()] + ", " + formatLocalMMDDYYYY(d);
+  }
+
+  function buildQuickListSheet() {
+    return { name: "Quick list", columns: ["Item"], rows: [{ Item: "" }] };
   }
 
   function buildWeekPlanningSheet() {
@@ -398,7 +408,9 @@
   }
 
   function hasActionsColumn(sheet) {
-    return !isComputedSheet(sheet);
+    // Quick list deletes a row via tapping its radio button instead of a
+    // Copy/Move/Delete actions column (see buildQuickListRow).
+    return !isComputedSheet(sheet) && sheet.name !== "Quick list";
   }
 
   // Pages that have a "Move" row action, and where that action sends the
@@ -418,6 +430,7 @@
     "Week planning": "Week",
     "All future Tasks": "Future",
     "Road Map - Pending": "Projects",
+    "Quick list": "QL",
     "Completed tasks": "Completed"
   };
 
@@ -987,11 +1000,11 @@
   }
 
   function isSingleTaskSwipeMode(sheet) {
-    // Week planning is a running list for the week, not a set of
-    // separate single-item pages - every task should stay stacked on
-    // the one page (like the desktop view) instead of being paged
-    // through one at a time with a "1 of N" counter.
-    if (sheet.name === "Week planning") return false;
+    // Week planning and Quick list are both running lists, not a set of
+    // separate single-item pages - every row should stay stacked on the
+    // one page (like the desktop view) instead of being paged through
+    // one at a time with a "1 of N" counter.
+    if (sheet.name === "Week planning" || sheet.name === "Quick list") return false;
     return isMobileWidth();
   }
 
@@ -1179,10 +1192,69 @@
       return;
     }
 
+    if (sheet.name === "Quick list") {
+      tableBodyEl.appendChild(buildQuickListHeaderRow());
+      items.forEach(function (item) {
+        tableBodyEl.appendChild(buildQuickListRow(sheet, item.row, item.idx));
+      });
+      return;
+    }
+
     items.forEach(function (item) {
       var tr = buildRowElement(sheet, item.row, item.idx, false);
       tableBodyEl.appendChild(tr);
     });
+  }
+
+  // Quick list: a bare checklist of one-line items. Column headings are
+  // shown once via the normal <thead> (desktop) or this standalone
+  // header row (phone width, where <thead> is hidden - see
+  // buildQuickListHeaderRow), never repeated per row like the rest of
+  // the app's mobile card layout. Tapping the radio button removes that
+  // item immediately rather than marking it done - it's a fast add/
+  // remove scratch list, not a tracked task list.
+  function buildQuickListHeaderRow() {
+    var tr = document.createElement("tr");
+    tr.className = "quick-list-header-row";
+    var tdItem = document.createElement("td");
+    tdItem.className = "quick-list-header-item";
+    tdItem.textContent = "Item";
+    tr.appendChild(tdItem);
+    var tdRadio = document.createElement("td");
+    tdRadio.className = "quick-list-header-radio";
+    tr.appendChild(tdRadio);
+    return tr;
+  }
+
+  function buildQuickListRow(sheet, row, sourceIdx) {
+    var tr = document.createElement("tr");
+    tr.className = "quick-list-row";
+    tr.dataset.sourceIdx = String(sourceIdx);
+
+    // The editable item field comes first in the DOM (so Add Row's
+    // auto-focus lands here, not on the radio button) and is only
+    // moved visually ahead of the radio button via CSS `order`.
+    var tdItem = document.createElement("td");
+    tdItem.className = "quick-list-item-cell";
+    tdItem.appendChild(buildEditableCell(sheet, row, sourceIdx, "Item"));
+    tr.appendChild(tdItem);
+
+    var tdRadio = document.createElement("td");
+    tdRadio.className = "quick-list-radio-cell";
+    var radioBtn = document.createElement("button");
+    radioBtn.type = "button";
+    radioBtn.className = "quick-list-radio";
+    radioBtn.setAttribute("aria-label", "Delete this item");
+    radioBtn.title = "Tap to delete this item";
+    radioBtn.addEventListener("click", function () {
+      sheet.rows.splice(sourceIdx, 1);
+      saveWorkbook();
+      renderTable();
+    });
+    tdRadio.appendChild(radioBtn);
+    tr.appendChild(tdRadio);
+
+    return tr;
   }
 
   // On the Summary page's mobile swipe view, one page is a whole

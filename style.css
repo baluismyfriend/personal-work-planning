@@ -464,6 +464,35 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
   cursor:pointer;
 }
 
+/* quick list */
+.data-table tr.quick-list-row{
+  display:flex !important;
+  align-items:center;
+  gap:10px;
+}
+.quick-list-item-cell{order:0;flex:1 1 auto;min-width:0;}
+.quick-list-radio-cell{order:-1;flex:0 0 auto;display:flex;align-items:center;}
+.quick-list-radio{
+  width:22px;
+  height:22px;
+  border-radius:50%;
+  border:2px solid var(--primary);
+  background:rgba(255,255,255,.7);
+  cursor:pointer;
+  padding:0;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6);
+}
+.quick-list-radio:hover{background:rgba(251,113,133,.16);}
+.quick-list-radio:active{background:var(--primary);}
+.quick-list-header-row{
+  display:none;
+}
+.quick-list-header-item, .quick-list-header-radio{
+  border:none !important;
+  background:transparent !important;
+  padding:0 !important;
+}
+
 /* responsive */
 @media (max-width:980px){
   .header-row{grid-template-columns:1fr;}
@@ -767,6 +796,47 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
     color:var(--text);
     word-break:break-word;
     overflow-wrap:anywhere;
+  }
+
+  /* Quick list: one line per item, header shown once at the top (the
+     normal <thead> is hidden at this width - see the display:none rule
+     above), minimal row padding/spacing and a smaller font so roughly
+     10-15 items fit on screen without scrolling. */
+  .quick-list-header-row{
+    display:flex !important;
+    align-items:center;
+    gap:10px;
+    padding:2px 12px 6px !important;
+    margin-bottom:2px !important;
+    background:transparent !important;
+    box-shadow:none !important;
+  }
+  .quick-list-header-item{
+    order:0;
+    flex:1 1 auto;
+    font-size:10.5px;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--muted);
+  }
+  .quick-list-header-radio{order:-1;flex:0 0 22px;}
+  .quick-list-item-cell::before, .quick-list-radio-cell::before{content:none !important;margin:0;}
+  .data-table tr.quick-list-row{
+    margin-bottom:3px !important;
+    padding:4px 12px !important;
+    border-radius:10px;
+  }
+  .data-table tr.quick-list-row > td{
+    padding:0 !important;
+    border:none !important;
+  }
+  .quick-list-radio{width:19px;height:19px;}
+  .data-table tr.quick-list-row .cell-editable{
+    font-size:13px !important;
+    line-height:1.3 !important;
+    padding:3px 6px !important;
+    min-height:22px !important;
   }
 
   /* Bigger, easier-to-tap fields and controls at phone width */
