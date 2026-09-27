@@ -567,17 +567,27 @@ div.summary-task-link{
   justify-content:center;
 }
 .quick-list-radio{
+  position:relative;
   width:24px;
   height:24px;
-  border-radius:0;
-  clip-path:polygon(50% 0%, 61.8% 35.3%, 98.1% 35.3%, 68.2% 57.4%, 79.4% 90.5%, 50% 69.1%, 20.6% 90.5%, 31.8% 57.4%, 1.9% 35.3%, 38.2% 35.3%);
-  border:2.5px solid #ef4444;
-  background:#ffffff;
-  cursor:pointer;
   padding:0;
+  border:none;
+  background:#dc2626;
+  clip-path:polygon(50% 0%, 61.8% 35.3%, 98.1% 35.3%, 68.2% 57.4%, 79.4% 90.5%, 50% 69.1%, 20.6% 90.5%, 31.8% 57.4%, 1.9% 35.3%, 38.2% 35.3%);
+  cursor:pointer;
 }
-.quick-list-radio:hover{background:#fee2e2;}
-.quick-list-radio:active{background:#ef4444;}
+.quick-list-radio::after{
+  content:"";
+  position:absolute;
+  top:3px;
+  left:3px;
+  right:3px;
+  bottom:3px;
+  background:#ffffff;
+  clip-path:polygon(50% 0%, 61.8% 35.3%, 98.1% 35.3%, 68.2% 57.4%, 79.4% 90.5%, 50% 69.1%, 20.6% 90.5%, 31.8% 57.4%, 1.9% 35.3%, 38.2% 35.3%);
+}
+.quick-list-radio:hover{background:#b91c1c;}
+.quick-list-radio:active::after{background:#dc2626;}
 .quick-list-header-row{
   display:none;
 }
@@ -616,12 +626,17 @@ div.summary-task-link{
   /* All remaining page pills fit in a single non-scrolling row: short
      names (see NAV_SHORT_NAMES in script.js) plus equal-width flex
      segments. */
-  .nav{gap:6px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .nav{gap:3px;flex-wrap:nowrap;overflow-x:hidden;}
   .nav-btn{
-    flex:0 0 auto;
-    padding:8px 13px;
-    font-size:11.5px;
-    white-space:nowrap;
+    flex:1 1 0;
+    min-width:0;
+    padding:6px 2px;
+    font-size:9.5px;
+    line-height:1.15;
+    letter-spacing:-0.01em;
+    text-align:center;
+    white-space:normal;
+    overflow-wrap:break-word;
   }
 
   .content{padding:6px 12px 132px;}
