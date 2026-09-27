@@ -614,7 +614,7 @@ div.summary-task-link{
     gap:6px;
   }
   .header-row{gap:6px;margin-bottom:8px;}
-  .nav-btn-spaces,.nav-btn-nospace{padding:10px 12px;font-size:13.5px;}
+  .nav-btn-spaces,.nav-btn-nospace{padding:9px 8px;font-size:10.5px;font-weight:800;}
 
   /* The icon and tagline drop out at phone width to leave room for the
      Spaces/NoSpace buttons to sit right next to the app name on the
@@ -630,10 +630,11 @@ div.summary-task-link{
   .nav-btn{
     flex:1 1 0;
     min-width:0;
-    padding:6px 2px;
-    font-size:9.5px;
+    padding:9px 1px;
+    font-size:10.5px;
+    font-weight:800;
     line-height:1.15;
-    letter-spacing:-0.01em;
+    letter-spacing:-0.02em;
     text-align:center;
     white-space:normal;
     overflow-wrap:break-word;

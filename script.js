@@ -1987,6 +1987,19 @@
 
     var newIdx = sheet.rows.length - 1;
 
+    // iOS only raises the keyboard for focus() calls made synchronously
+    // inside the tap. The new row doesn't exist until after the render
+    // below, so focus a throwaway input right now (opening the keyboard),
+    // then hand focus to the new row's text box once it's rendered - the
+    // keyboard stays up during that hand-off.
+    var kbHelper = document.createElement("input");
+    kbHelper.type = "text";
+    kbHelper.setAttribute("aria-hidden", "true");
+    kbHelper.tabIndex = -1;
+    kbHelper.style.cssText = "position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;border:0;padding:0;font-size:16px;pointer-events:none;";
+    document.body.appendChild(kbHelper);
+    kbHelper.focus({ preventScroll: true });
+
     // The mobile single-task swipe view only renders whichever one
     // page currentTaskIndexBySheet points at (see renderTableBody) -
     // so without this, the new row lands at the end of the sheet but
@@ -2023,6 +2036,7 @@
         var focusable = tr.querySelector('[contenteditable="true"], input, select, button');
         if (focusable) focusable.focus({ preventScroll: true });
       }
+      if (kbHelper.parentNode) kbHelper.parentNode.removeChild(kbHelper);
     }, 80);
   }
 
