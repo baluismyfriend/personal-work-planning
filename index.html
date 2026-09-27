@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
-<title>Personal Work Planning - Final Secure Portal</title>
+<title>Personal Space Planning - Final Secure Portal</title>
 <link rel="stylesheet" href="style.css">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -13,18 +13,18 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Work Planning">
+<meta name="apple-mobile-web-app-title" content="Space Planning">
 </head>
 <body>
 <div id="app" class="app">
   <header class="site-header">
-    <div class="app-page-title">Personal Work Planning</div>
+    <div class="app-page-title">Personal Space Planning</div>
     <div class="header-row">
       <div class="brand">
-        <div class="brand-icon">PWP</div>
+        <div class="brand-icon">PSP</div>
         <div class="brand-text">
-          <h1>Personal Work Planning</h1>
-          <div class="brand-subtitle">Local secure task portal</div>
+          <h1>Personal Space Planning</h1>
+          <div class="brand-subtitle">Local secure timeframe portal</div>
         </div>
       </div>
       <nav id="nav" class="nav" aria-label="Workbook pages"></nav>
@@ -39,7 +39,7 @@
         <div id="rowCountIndicator" class="row-count-indicator" hidden></div>
       </div>
       <div class="actions">
-        <button id="btnAddRow" type="button" class="btn" title="Add a new row">+ Add</button>
+        <button id="btnAddRow" type="button" class="btn" title="Add a new space">+ Add</button>
         <button id="btnExportJson" type="button" class="btn" title="Export the whole workbook as a JSON backup">Export</button>
         <button id="btnAutoBackup" type="button" class="btn" title="Enable Auto Backup">Backup</button>
         <button id="btnImportJson" type="button" class="btn" title="Import a JSON backup">Import</button>
@@ -66,7 +66,7 @@
     </div>
   </main>
 
-  <button id="btnAddRowFloating" type="button" class="btn btn-primary floating-add" title="Add Row">+ Add Row</button>
+  <button id="btnAddRowFloating" type="button" class="btn btn-primary floating-add" title="Add Space">+ Add Space</button>
 
   <div id="backupPrompt" class="backup-prompt" hidden role="status" aria-live="polite">
     <div class="backup-prompt-text">

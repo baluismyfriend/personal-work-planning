@@ -769,12 +769,12 @@ div.summary-task-link{
   }
   .data-table tr.week-row > td[data-label="Date/Day"]{flex:1 1 calc(50% - 4px);min-width:0;order:1;}
   .data-table tr.week-row > td[data-label="Actions"]{flex:1 1 calc(50% - 4px);min-width:0;order:2;}
-  .data-table tr.week-row > td[data-label="Tasks"]{flex:1 1 100%;order:3;}
+  .data-table tr.week-row > td[data-label="Timeframes"]{flex:1 1 100%;order:3;}
 
   /* Road Map - Pending: Start date, End date and Duration are short
      fields that would otherwise each take a full stacked row (Duration
      especially, since it's read-only and tiny) - shown as a single
-     three-across row instead to save vertical space, while Project,
+     three-across row instead to save vertical space, while Space,
      Key milestones and Actions keep the full row width they need. */
   .data-table tr.roadmap-row{
     display:flex !important;
@@ -786,7 +786,7 @@ div.summary-task-link{
     display:block !important;
     width:auto !important;
   }
-  .data-table tr.roadmap-row > td[data-label="Project"],
+  .data-table tr.roadmap-row > td[data-label="Space"],
   .data-table tr.roadmap-row > td[data-label="Key milestones"],
   .data-table tr.roadmap-row > td[data-label="Actions"]{
     flex:1 1 100%;

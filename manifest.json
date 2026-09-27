@@ -1,7 +1,7 @@
 {
-  "name": "Personal Work Planning",
-  "short_name": "Work Planning",
-  "description": "Local secure task portal - all data stays on this device.",
+  "name": "Personal Space Planning",
+  "short_name": "Space Planning",
+  "description": "Local secure timeframe portal - all data stays on this device.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
