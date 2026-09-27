@@ -107,8 +107,8 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
 .nav-btn-spaces,.nav-btn-nospace{
   flex-shrink:0;
   font-weight:900;
-  font-size:14.5px;
-  padding:10px 15px;
+  font-size:16px;
+  padding:11px 17px;
   border-color:rgba(165,243,252,.55);
   background:rgba(165,243,252,.14);
 }
@@ -122,13 +122,13 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
 .nav-btn{
   flex-shrink:0;
   border-radius:999px;
-  padding:9px 13px;
+  padding:10px 15px;
   background:rgba(255,255,255,.09);
   backdrop-filter:blur(10px);
   -webkit-backdrop-filter:blur(10px);
   border:1px solid rgba(255,255,255,.16);
   color:#cffafe;
-  font-size:13px;
+  font-size:14.5px;
   font-weight:700;
   cursor:pointer;
   white-space:nowrap;
@@ -567,14 +567,14 @@ div.summary-task-link{
   justify-content:center;
 }
 .quick-list-radio{
-  width:22px;
-  height:22px;
-  border-radius:50%;
+  width:24px;
+  height:24px;
+  border-radius:0;
+  clip-path:polygon(50% 0%, 61.8% 35.3%, 98.1% 35.3%, 68.2% 57.4%, 79.4% 90.5%, 50% 69.1%, 20.6% 90.5%, 31.8% 57.4%, 1.9% 35.3%, 38.2% 35.3%);
   border:2px solid var(--primary);
   background:rgba(255,255,255,.7);
   cursor:pointer;
   padding:0;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.6);
 }
 .quick-list-radio:hover{background:rgba(251,113,133,.16);}
 .quick-list-radio:active{background:var(--primary);}
@@ -604,7 +604,7 @@ div.summary-task-link{
     gap:6px;
   }
   .header-row{gap:6px;margin-bottom:8px;}
-  .nav-btn-spaces,.nav-btn-nospace{padding:9px 11px;font-size:12.5px;}
+  .nav-btn-spaces,.nav-btn-nospace{padding:10px 12px;font-size:13.5px;}
 
   /* The icon and tagline drop out at phone width to leave room for the
      Spaces/NoSpace buttons to sit right next to the app name on the
@@ -620,8 +620,8 @@ div.summary-task-link{
   .nav-btn{
     flex:1 1 0;
     min-width:0;
-    padding:7px 2px;
-    font-size:10.5px;
+    padding:8px 3px;
+    font-size:11.5px;
     text-align:center;
     white-space:nowrap;
     overflow:hidden;
@@ -785,8 +785,8 @@ div.summary-task-link{
     margin-bottom:0;
   }
   .data-table tr.week-row > td[data-col="Date/Day"]{flex:0 0 auto;width:auto !important;min-width:0;order:1;}
-  .data-table tr.week-row > td[data-col="Timeframes"]{flex:1 1 auto;min-width:0;order:2;}
-  .data-table tr.week-row > td[data-col="Transforms"]{flex:1 1 100%;order:3;}
+  .data-table tr.week-row > td[data-col="Transforms"]{flex:1 1 auto;min-width:0;order:2;}
+  .data-table tr.week-row > td[data-col="Timeframes"]{flex:1 1 100%;order:3;}
 
   /* Road Map - Pending: Start date, End date and Duration are short
      fields that would otherwise each take a full stacked row (Duration
@@ -968,7 +968,7 @@ div.summary-task-link{
     padding:0 !important;
     border:none !important;
   }
-  .quick-list-radio{width:19px;height:19px;}
+  .quick-list-radio{width:21px;height:21px;}
   .data-table tr.quick-list-row .cell-editable{
     font-size:13px !important;
     line-height:1.3 !important;

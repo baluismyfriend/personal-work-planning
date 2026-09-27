@@ -485,8 +485,8 @@
   // CALENDAR_DATE_COLUMNS, storage, etc.) and is shown as a tooltip.
   var NAV_SHORT_NAMES = {
     "Summary": "Spacetime",
-    "Daily planning - All tasks": "24hr",
-    "Week planning": "24hrX7",
+    "Daily planning - All tasks": "Times",
+    "Week planning": "TimesX7",
     "All future Tasks": "Next in",
     "Road Map - Pending": "Spaces",
     "Quick list": "Stars",
@@ -928,6 +928,8 @@
     if (sheet.name === "Daily planning - All tasks" && col === "Next Timeframes") return "Next in Time";
     if (sheet.name === "Road Map - Pending" && col === "Key milestones") return "Time";
     if (sheet.name === "Week planning" && col === "Timeframes") return "Times";
+    if (sheet.name === "Week planning" && col === "Date/Day") return "Defined time on";
+    if (sheet.name === "Quick list" && col === "Small Times") return "Small Stars";
     return col;
   }
 
@@ -1312,7 +1314,7 @@
     }
 
     if (sheet.name === "Quick list") {
-      tableBodyEl.appendChild(buildQuickListHeaderRow());
+      tableBodyEl.appendChild(buildQuickListHeaderRow(sheet));
       items.forEach(function (item) {
         tableBodyEl.appendChild(buildQuickListRow(sheet, item.row, item.idx));
       });
@@ -1332,12 +1334,12 @@
   // the app's mobile card layout. Tapping the radio button removes that
   // item immediately rather than marking it done - it's a fast add/
   // remove scratch list, not a tracked task list.
-  function buildQuickListHeaderRow() {
+  function buildQuickListHeaderRow(sheet) {
     var tr = document.createElement("tr");
     tr.className = "quick-list-header-row";
     var tdItem = document.createElement("td");
     tdItem.className = "quick-list-header-item";
-    tdItem.textContent = "Small Times";
+    tdItem.textContent = displayColumnLabel(sheet, "Small Times");
     tr.appendChild(tdItem);
     var tdRadio = document.createElement("td");
     tdRadio.className = "quick-list-header-radio";
