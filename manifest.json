@@ -1,6 +1,6 @@
 {
-  "name": "Personal Space Planning",
-  "short_name": "Space Planning",
+  "name": "Participant - Spaces & Time",
+  "short_name": "Participant",
   "description": "Local secure timeframe portal - all data stays on this device.",
   "start_url": "./index.html",
   "scope": "./",

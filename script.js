@@ -1,7 +1,7 @@
 "use strict";
 
 /* ============================================================
-   Personal Space Planning - Final Secure Portal
+   Participant - Spaces & Time - Final Secure Portal
    Local-first, dependency-free vanilla JS application.
    ============================================================ */
 
@@ -18,7 +18,7 @@
   var IDB_STORE = "handles";
   var IDB_KEY = "workbookJson";
 
-  var TASK_COLUMNS = ["Date", "Space", "Priority", "Timeframe/Meeting", "Next Timeframes", "Time Zero on", "Timing"];
+  var TASK_COLUMNS = ["Date", "Space", "Demand", "Timeframe/Meeting", "Next Timeframes", "Time Zero on", "Timing"];
   var TASK_SHEET_NAMES = ["Daily planning - All tasks", "All future Tasks", "Completed tasks"];
   var STATUS_OPTIONS = ["", "Complete", "In-Progress", "Not started", "Hold"];
   var MAX_ROWS = 5000;
@@ -29,7 +29,7 @@
   // workbook saved before a column rename still carries its data forward
   // instead of showing blank cells after the rename ships.
   var LEGACY_MAP = {
-    "Priority": ["Catogery"],
+    "Demand": ["Priority", "Catogery"],
     "Space": ["Project"],
     "Timeframe/Meeting": ["Task/Meeting"],
     "Next Timeframes": ["Next steps", "Notes", "Deliver-TO"],
@@ -37,7 +37,7 @@
     "Timing": ["Status"]
   };
 
-  var ROAD_MAP_COLUMNS = ["Space", "Key milestones", "Start date", "End date", "Duration"];
+  var ROAD_MAP_COLUMNS = ["Space", "Key milestones", "Life began", "Life Ends", "Life span"];
   var WEEK_PLANNING_COLUMNS = ["Date/Day", "Timeframes"];
   var DAY_ABBREV = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   var SUMMARY_COLUMNS = ["Space", "Timeframe"];
@@ -59,7 +59,7 @@
 
     // 1. Daily planning - All tasks
     var dailyRows = [
-      blankTaskRow({ Space: "AA", Priority: "1", "Timeframe/Meeting": "Analyze the responses from esd - 123 etc" })
+      blankTaskRow({ Space: "AA", Demand: "1", "Timeframe/Meeting": "Analyze the responses from esd - 123 etc" })
     ];
     sheets.push({ name: "Daily planning - All tasks", columns: TASK_COLUMNS.slice(), rows: dailyRows });
 
@@ -72,10 +72,10 @@
     sheets.push({ name: "All future Tasks", columns: TASK_COLUMNS.slice(), rows: futureRows });
 
     // 4. Road Map - Pending
-    var roadCols = ["Space", "Key milestones", "Start date", "End date", "Duration"];
+    var roadCols = ["Space", "Key milestones", "Life began", "Life Ends", "Life span"];
     var roadRows = [
-      { Space: "RR 2.0", "Key milestones": "", "Start date": "", "End date": "", Duration: "" },
-      { Space: "", "Key milestones": "", "Start date": "", "End date": "", Duration: "" }
+      { Space: "RR 2.0", "Key milestones": "", "Life began": "", "Life Ends": "", "Life span": "" },
+      { Space: "", "Key milestones": "", "Life began": "", "Life Ends": "", "Life span": "" }
     ];
     sheets.push({ name: "Road Map - Pending", columns: roadCols, rows: roadRows });
 
@@ -183,25 +183,28 @@
   }
 
   // Older saved workbooks may still have the previous Road Map schema
-  // (Project, Task/Meeting, Notes) or the pre-rename "Project" column.
-  // Carry forward whatever free-text content they had rather than
-  // losing the page's content on upgrade.
+  // (Project, Task/Meeting, Notes), the pre-rename "Project" column, or
+  // the pre-rename "Start date"/"End date"/"Duration" columns. Carry
+  // forward whatever free-text content they had rather than losing the
+  // page's content on upgrade.
   function migrateRoadMapSheet(sheet) {
     var rows = Array.isArray(sheet.rows) ? sheet.rows : [];
     if (rows.length > MAX_ROWS) rows = rows.slice(0, MAX_ROWS);
     var newRows = rows.map(function (r) {
       if (!r || typeof r !== "object") r = {};
-      var start = sanitizeCell(r["Start date"], MAX_CELL_LEN);
-      var end = sanitizeCell(r["End date"], MAX_CELL_LEN);
+      var startRaw = r["Life began"] !== undefined ? r["Life began"] : r["Start date"];
+      var endRaw = r["Life Ends"] !== undefined ? r["Life Ends"] : r["End date"];
+      var start = sanitizeCell(startRaw, MAX_CELL_LEN);
+      var end = sanitizeCell(endRaw, MAX_CELL_LEN);
       var milestone = r["Key milestones"];
       if (milestone === undefined) milestone = r["Task/Meeting"] || r["Notes"];
       var space = r.Space !== undefined ? r.Space : r.Project;
       return {
         Space: sanitizeCell(space, MAX_CELL_LEN),
         "Key milestones": sanitizeCell(milestone, MAX_CELL_LEN),
-        "Start date": start,
-        "End date": end,
-        Duration: roadMapDuration(start, end)
+        "Life began": start,
+        "Life Ends": end,
+        "Life span": roadMapDuration(start, end)
       };
     });
     return { name: "Road Map - Pending", columns: ROAD_MAP_COLUMNS.slice(), rows: newRows };
@@ -437,7 +440,7 @@
   // column names when a sheet has more than one date column.
   var CALENDAR_DATE_COLUMNS = {
     "Daily planning - All tasks": "Time Zero on",
-    "Road Map - Pending": ["Start date", "End date"],
+    "Road Map - Pending": ["Life began", "Life Ends"],
     "Week planning": "Date/Day"
   };
 
@@ -451,7 +454,7 @@
   // text field after that - not computed/read-only - so it can be
   // corrected to a different date.
   function isComputedColumn(sheet, col) {
-    if (sheet.name === "Road Map - Pending" && col === "Duration") return true;
+    if (sheet.name === "Road Map - Pending" && col === "Life span") return true;
     if (sheet.name === "Summary") return true;
     return false;
   }
@@ -482,8 +485,8 @@
   // CALENDAR_DATE_COLUMNS, storage, etc.) and is shown as a tooltip.
   var NAV_SHORT_NAMES = {
     "Summary": "Spacetime",
-    "Daily planning - All tasks": "Daily",
-    "Week planning": "Week",
+    "Daily planning - All tasks": "24hr",
+    "Week planning": "24hrX7",
     "All future Tasks": "Next in time",
     "Road Map - Pending": "Spaces",
     "Quick list": "Small Times",
@@ -670,11 +673,11 @@
   function minWidthForColumn(sheet, col) {
     if (col === "Timeframe/Meeting" || col === "Key milestones" || col === "Timeframes" || col === "Timeframe") return 230;
     if (col === "Next Timeframes") return 190;
-    if (col === "Date" || col === "Space" || col === "Priority") return 64;
+    if (col === "Date" || col === "Space" || col === "Demand") return 64;
     if (col === "Date/Day") return 120;
     if (col === "Timing") return 126;
-    if (col === "Time Zero on" || col === "Start date" || col === "End date") return 110;
-    if (col === "Duration") return 80;
+    if (col === "Time Zero on" || col === "Life began" || col === "Life Ends") return 110;
+    if (col === "Life span") return 80;
     return 70;
   }
 
@@ -682,7 +685,7 @@
     if (isTaskSheet(sheet)) {
       if (col === "Timeframe/Meeting") return 39;
       if (col === "Next Timeframes") return 26;
-      if (col === "Date" || col === "Space" || col === "Priority") return 5;
+      if (col === "Date" || col === "Space" || col === "Demand") return 5;
       if (col === "Timing") return 10;
       if (col === "Time Zero on") return 7;
       return 9;
@@ -690,8 +693,8 @@
     if (sheet.name === "Road Map - Pending") {
       if (col === "Key milestones") return 39;
       if (col === "Space") return 13;
-      if (col === "Start date" || col === "End date") return 12;
-      if (col === "Duration") return 9;
+      if (col === "Life began" || col === "Life Ends") return 12;
+      if (col === "Life span") return 9;
       return 12;
     }
     if (sheet.name === "Week planning") {
@@ -923,7 +926,7 @@
     var thActions = document.createElement("th");
     if (hasActionsColumn(sheet)) {
       thActions.className = "col-actions";
-      thActions.textContent = "Actions";
+      thActions.textContent = "Transforms";
       thActions.style.minWidth = "190px";
       var handleActions = document.createElement("span");
       handleActions.className = "resize-handle";
@@ -1183,7 +1186,7 @@
   var TASK_SCHEMA_FIELD_ORDER = {
     "Space": 1,
     "Date": 2,
-    "Priority": 3,
+    "Demand": 3,
     "Timeframe/Meeting": 4,
     "Next Timeframes": 5,
     "Time Zero on": 6,
@@ -1198,14 +1201,14 @@
 
   function singleTaskFieldOrder(sheet, col) {
     if (isTaskSheet(sheet)) {
-      if (col === "Actions") return 10;
+      if (col === "Transforms") return 10;
       if (Object.prototype.hasOwnProperty.call(TASK_SCHEMA_FIELD_ORDER, col)) return TASK_SCHEMA_FIELD_ORDER[col];
     }
     return null;
   }
 
   function isCompactLongField(sheet, col) {
-    return (col === "Actions") || isLongTextColumn(col) ||
+    return (col === "Transforms") || isLongTextColumn(col) ||
       (isTaskSheet(sheet) && SOLO_ROW_TASK_SCHEMA_COLUMNS.indexOf(col) !== -1);
   }
 
@@ -1404,7 +1407,7 @@
 
     var soloCols = {};
     if (compact) {
-      computeSoloShortFieldCols(sheet, sheet.columns.concat(["Actions"])).forEach(function (c) {
+      computeSoloShortFieldCols(sheet, sheet.columns.concat(["Transforms"])).forEach(function (c) {
         soloCols[c] = true;
       });
     }
@@ -1437,8 +1440,8 @@
 
     var tdActions = document.createElement("td");
     if (hasActionsColumn(sheet)) {
-      tdActions.dataset.label = "Actions";
-      styleCompactCell(tdActions, "Actions");
+      tdActions.dataset.label = "Transforms";
+      styleCompactCell(tdActions, "Transforms");
       tdActions.appendChild(buildActionsCell(sheet, row, sourceIdx));
       tr.appendChild(tdActions);
     }
@@ -1541,7 +1544,7 @@
       div.textContent = value;
       return;
     }
-    if (col === "Priority") {
+    if (col === "Demand") {
       var pc = priorityPillClass(value);
       if (pc && value.trim().length > 0) {
         div.replaceChildren();
@@ -1633,7 +1636,7 @@
     input.addEventListener("change", function () {
       var mmddyyyy = isoToMmddyyyy(input.value);
       row[col] = mmddyyyy;
-      if (sheet.name === "Road Map - Pending") row.Duration = roadMapDuration(row["Start date"], row["End date"]);
+      if (sheet.name === "Road Map - Pending") row["Life span"] = roadMapDuration(row["Life began"], row["Life Ends"]);
       saveWorkbook();
       if (sheet.name === "Road Map - Pending") refreshPillDependentUI(sheet);
     });
@@ -1703,21 +1706,22 @@
     return input;
   }
 
-  // Read-only cell for the Road Map's Duration column: always recomputed
-  // from the row's current Start/End date rather than trusted as stored
-  // data, so it can never drift out of sync with those two fields.
+  // Read-only cell for the Road Map's Life span column: always
+  // recomputed from the row's current Life began/Life Ends rather than
+  // trusted as stored data, so it can never drift out of sync with
+  // those two fields.
   function buildDurationCell(row) {
     var div = document.createElement("div");
     div.className = "cell-readonly";
-    row.Duration = roadMapDuration(row["Start date"], row["End date"]);
-    div.textContent = row.Duration;
-    div.title = "Calculated from Start date and End date";
+    row["Life span"] = roadMapDuration(row["Life began"], row["Life Ends"]);
+    div.textContent = row["Life span"];
+    div.title = "Calculated from Life began and Life Ends";
     return div;
   }
 
   // Dispatches a computed (read-only) column to the right builder.
   function buildComputedCell(sheet, row, col) {
-    if (sheet.name === "Road Map - Pending" && col === "Duration") return buildDurationCell(row);
+    if (sheet.name === "Road Map - Pending" && col === "Life span") return buildDurationCell(row);
     if (sheet.name === "Summary" && col === "Timeframe") return buildSummaryTaskLinkCell(row);
     var div = document.createElement("div");
     div.className = "cell-readonly";
@@ -2090,7 +2094,7 @@
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
     a.href = url;
-    a.download = "personal-space-planning-local-backup.json";
+    a.download = "participant-spaces-and-time-local-backup.json";
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -2286,7 +2290,7 @@
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
     a.href = url;
-    a.download = "personal-space-planning-autobackup.json";
+    a.download = "participant-spaces-and-time-autobackup.json";
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -2397,7 +2401,7 @@
         return;
       }
       window.showSaveFilePicker({
-        suggestedName: "personal-space-planning-autobackup.json",
+        suggestedName: "participant-spaces-and-time-autobackup.json",
         types: [{ description: "JSON file", accept: { "application/json": [".json"] } }]
       }).then(function (handle) {
         autoBackupHandle = handle;

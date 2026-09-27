@@ -768,7 +768,7 @@ div.summary-task-link{
     margin-bottom:0;
   }
   .data-table tr.week-row > td[data-label="Date/Day"]{flex:1 1 calc(50% - 4px);min-width:0;order:1;}
-  .data-table tr.week-row > td[data-label="Actions"]{flex:1 1 calc(50% - 4px);min-width:0;order:2;}
+  .data-table tr.week-row > td[data-label="Transforms"]{flex:1 1 calc(50% - 4px);min-width:0;order:2;}
   .data-table tr.week-row > td[data-label="Timeframes"]{flex:1 1 100%;order:3;}
 
   /* Road Map - Pending: Start date, End date and Duration are short
@@ -788,12 +788,12 @@ div.summary-task-link{
   }
   .data-table tr.roadmap-row > td[data-label="Space"],
   .data-table tr.roadmap-row > td[data-label="Key milestones"],
-  .data-table tr.roadmap-row > td[data-label="Actions"]{
+  .data-table tr.roadmap-row > td[data-label="Transforms"]{
     flex:1 1 100%;
   }
-  .data-table tr.roadmap-row > td[data-label="Start date"],
-  .data-table tr.roadmap-row > td[data-label="End date"],
-  .data-table tr.roadmap-row > td[data-label="Duration"]{
+  .data-table tr.roadmap-row > td[data-label="Life began"],
+  .data-table tr.roadmap-row > td[data-label="Life Ends"],
+  .data-table tr.roadmap-row > td[data-label="Life span"]{
     flex:1 1 calc(33.333% - 7px);
     min-width:0;
   }
