@@ -40,7 +40,7 @@
   var ROAD_MAP_COLUMNS = ["Space", "Key milestones", "Life began", "Life Ends", "Life span"];
   var WEEK_PLANNING_COLUMNS = ["Date/Day", "Timeframes"];
   var DAY_ABBREV = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  var SUMMARY_COLUMNS = ["Space", "Timeframe"];
+  var SUMMARY_COLUMNS = ["Space", "Time"];
 
   /* ---------------------------------------------------------
      Default workbook
@@ -390,7 +390,7 @@
     var rows = [];
     order.forEach(function (project) {
       byProject[project].forEach(function (entry, i) {
-        rows.push({ Space: project, Timeframe: entry.task, _isGroupStart: i === 0, _dailyIdx: entry.dailyIdx });
+        rows.push({ Space: project, Time: entry.task, _isGroupStart: i === 0, _dailyIdx: entry.dailyIdx });
       });
     });
     return rows;
@@ -671,7 +671,7 @@
      Column widths / min widths
      --------------------------------------------------------- */
   function minWidthForColumn(sheet, col) {
-    if (col === "Timeframe/Meeting" || col === "Key milestones" || col === "Timeframes" || col === "Timeframe") return 230;
+    if (col === "Timeframe/Meeting" || col === "Key milestones" || col === "Timeframes" || col === "Time") return 230;
     if (col === "Next Timeframes") return 190;
     if (col === "Date" || col === "Space" || col === "Demand") return 64;
     if (col === "Date/Day") return 120;
@@ -702,7 +702,7 @@
       return 22; // Date/Day
     }
     if (sheet.name === "Summary") {
-      if (col === "Timeframe") return 65;
+      if (col === "Time") return 65;
       return 20; // Space
     }
     if (col === "Timeframe/Meeting" || col === "Notes" || col === "Next Timeframes") return 27;
@@ -724,10 +724,13 @@
      RENDERING
      ============================================================ */
   var navEl, pageTitleEl, colgroupEl, tableHeadEl, tableBodyEl, tableScrollerEl;
+  var navSpacesBtn, navNoSpaceBtn;
   var backupPromptEl, backupPromptExportBtn, backupPromptDismissBtn;
 
   function init() {
     navEl = document.getElementById("nav");
+    navSpacesBtn = document.getElementById("navSpacesBtn");
+    navNoSpaceBtn = document.getElementById("navNoSpaceBtn");
     pageTitleEl = document.getElementById("pageTitle");
     colgroupEl = document.getElementById("colgroup");
     tableHeadEl = document.getElementById("tableHead");
@@ -792,7 +795,7 @@
       saveWorkbookSilently();
     }
     renderAll();
-    var activeBtn = navEl.querySelector(".nav-btn.active");
+    var activeBtn = document.querySelector(".nav-btn.active");
     if (activeBtn) activeBtn.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
   }
 
@@ -849,9 +852,25 @@
     renderTable();
   }
 
+  // The Spaces (Road Map) and NoSpace (Completed) page buttons are
+  // rendered separately, pinned to the title row - Spaces leftmost,
+  // NoSpace rightmost (see #navSpacesBtn/#navNoSpaceBtn in index.html) -
+  // rather than mixed in with the rest of the page pills below. Every
+  // other sheet still gets its normal pill in #nav.
   function renderNav() {
     navEl.replaceChildren();
     workbook.forEach(function (sheet, idx) {
+      if (sheet.name === "Road Map - Pending" || sheet.name === "Completed tasks") {
+        var pinnedBtn = sheet.name === "Road Map - Pending" ? navSpacesBtn : navNoSpaceBtn;
+        var pinnedClass = sheet.name === "Road Map - Pending" ? "nav-btn-spaces" : "nav-btn-nospace";
+        if (pinnedBtn) {
+          pinnedBtn.className = "nav-btn " + pinnedClass + (idx === selectedSheetIndex ? " active" : "");
+          pinnedBtn.textContent = shortSheetName(sheet);
+          pinnedBtn.title = shortSheetName(sheet);
+          pinnedBtn.onclick = function () { goToSheetIndex(idx); };
+        }
+        return;
+      }
       var btn = document.createElement("button");
       btn.type = "button";
       btn.className = "nav-btn" + (idx === selectedSheetIndex ? " active" : "");
@@ -898,6 +917,16 @@
     attachResizeHandles(sheet);
   }
 
+  // Some columns keep their underlying key the same across sheets (so
+  // moving/copying rows between them, e.g. Daily planning -> Completed,
+  // still lines fields up correctly) but should read differently to the
+  // user depending on which page they're on. Right now this is just
+  // "Date" on the 24hr (Daily planning) page reading as "time on".
+  function displayColumnLabel(sheet, col) {
+    if (sheet.name === "Daily planning - All tasks" && col === "Date") return "time on";
+    return col;
+  }
+
   function renderTableHead(sheet) {
     tableHeadEl.replaceChildren();
 
@@ -911,7 +940,7 @@
       var sort = sortState[sheet.name];
       var arrow = "";
       if (sort && sort.col === col) arrow = sort.dir === "asc" ? " \u25B2" : " \u25BC";
-      label.textContent = col + arrow;
+      label.textContent = displayColumnLabel(sheet, col) + arrow;
       th.appendChild(label);
       th.addEventListener("click", function (e) {
         handleSortClick(sheet, col);
@@ -947,7 +976,7 @@
       var search = document.createElement("input");
       search.type = "text";
       search.className = "filter-search";
-      search.placeholder = "Search " + col;
+      search.placeholder = "Search " + displayColumnLabel(sheet, col);
       search.maxLength = 200;
       search.value = cf.text;
       search.addEventListener("click", function (e) { e.stopPropagation(); });
@@ -1168,7 +1197,7 @@
   // Columns that hold free-form, potentially multi-line text and so need
   // the full row width; everything else is short enough to pair two per
   // row in the single-task view (see below) without cramming.
-  var LONG_TEXT_COLUMNS = ["Timeframe/Meeting", "Next Timeframes", "Notes", "Key milestones", "Timeframes", "Timeframe"];
+  var LONG_TEXT_COLUMNS = ["Timeframe/Meeting", "Next Timeframes", "Notes", "Key milestones", "Timeframes", "Time"];
 
   function isLongTextColumn(col) {
     return LONG_TEXT_COLUMNS.indexOf(col) !== -1;
@@ -1373,15 +1402,15 @@
     tr.dataset.sourceIdx = String(sourceIdx);
     tr.tabIndex = 0;
     tr.setAttribute("role", "button");
-    tr.title = "Tap to open this timeframe on Daily planning";
+    tr.title = "Tap to open this time on Daily planning";
     var td = document.createElement("td");
     td.className = "summary-task-cell";
     var num = document.createElement("span");
     num.className = "summary-task-num";
-    num.textContent = "Timeframe " + taskNumber + ":";
+    num.textContent = "Time " + taskNumber + ":";
     var text = document.createElement("span");
     text.className = "summary-task-text";
-    text.textContent = (row["Timeframe"] || "").toString();
+    text.textContent = (row["Time"] || "").toString();
     td.appendChild(num);
     td.appendChild(text);
     tr.appendChild(td);
@@ -1424,7 +1453,7 @@
     sheet.columns.forEach(function (col) {
       if (omitCols && omitCols.indexOf(col) !== -1) return;
       var td = document.createElement("td");
-      td.dataset.label = col;
+      td.dataset.label = displayColumnLabel(sheet, col);
       styleCompactCell(td, col);
       if (col === "Timing" && isTaskSheet(sheet)) {
         td.appendChild(buildStatusCell(sheet, row, sourceIdx));
@@ -1722,7 +1751,7 @@
   // Dispatches a computed (read-only) column to the right builder.
   function buildComputedCell(sheet, row, col) {
     if (sheet.name === "Road Map - Pending" && col === "Life span") return buildDurationCell(row);
-    if (sheet.name === "Summary" && col === "Timeframe") return buildSummaryTaskLinkCell(row);
+    if (sheet.name === "Summary" && col === "Time") return buildSummaryTaskLinkCell(row);
     var div = document.createElement("div");
     div.className = "cell-readonly";
     div.textContent = row[col] || "";
@@ -1730,14 +1759,14 @@
     return div;
   }
 
-  // Summary's Timeframe cell (desktop/tablet table view): tapping/clicking
-  // it jumps straight to that same timeframe's row on Daily planning - All
+  // Summary's Time cell (desktop/tablet table view): tapping/clicking
+  // it jumps straight to that same time's row on Daily planning - All
   // tasks, since Summary itself has no editable fields of its own.
   function buildSummaryTaskLinkCell(row) {
     var div = document.createElement("div");
     div.className = "cell-readonly summary-task-link";
-    div.textContent = row["Timeframe"] || "";
-    div.title = "Tap to open this timeframe on Daily planning";
+    div.textContent = row["Time"] || "";
+    div.title = "Tap to open this time on Daily planning";
     div.tabIndex = 0;
     div.setAttribute("role", "button");
     div.addEventListener("click", function () {
@@ -1779,7 +1808,7 @@
     }
 
     renderAll();
-    var activeBtn = navEl.querySelector(".nav-btn.active");
+    var activeBtn = document.querySelector(".nav-btn.active");
     if (activeBtn) activeBtn.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
 
     setTimeout(function () {
@@ -1907,7 +1936,7 @@
       dailySheet.rows.push(blankTaskRow({ Date: todayLocalMMDDYYYY(), Space: project, "Timeframe/Meeting": milestone }));
     });
     saveWorkbook();
-    var msg = toCreate.length === 1 ? ("1 timeframe created in " + dailyLabel + ".") : (toCreate.length + " timeframes created in " + dailyLabel + ".");
+    var msg = toCreate.length === 1 ? ("1 time created in " + dailyLabel + ".") : (toCreate.length + " times created in " + dailyLabel + ".");
     if (toCreate.length < items.length) msg += " (" + (items.length - toCreate.length) + " skipped - row limit reached.)";
     window.alert(msg);
   }
@@ -2029,7 +2058,7 @@
   function handleExportCsv() {
     var sheet = currentSheet();
     var lines = [];
-    lines.push(sheet.columns.map(csvFieldEscape).join(","));
+    lines.push(sheet.columns.map(function (col) { return csvFieldEscape(displayColumnLabel(sheet, col)); }).join(","));
     sheet.rows.forEach(function (row) {
       lines.push(sheet.columns.map(function (col) { return csvFieldEscape(row[col]); }).join(","));
     });
