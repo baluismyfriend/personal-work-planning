@@ -1457,6 +1457,7 @@
     sheet.columns.forEach(function (col) {
       if (omitCols && omitCols.indexOf(col) !== -1) return;
       var td = document.createElement("td");
+      td.dataset.col = col;
       td.dataset.label = displayColumnLabel(sheet, col);
       styleCompactCell(td, col);
       if (col === "Timing" && isTaskSheet(sheet)) {
@@ -1473,6 +1474,7 @@
 
     var tdActions = document.createElement("td");
     if (hasActionsColumn(sheet)) {
+      tdActions.dataset.col = "Transforms";
       tdActions.dataset.label = "Transforms";
       styleCompactCell(tdActions, "Transforms");
       tdActions.appendChild(buildActionsCell(sheet, row, sourceIdx));

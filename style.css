@@ -784,9 +784,9 @@ div.summary-task-link{
     font-size:8px;
     margin-bottom:0;
   }
-  .data-table tr.week-row > td[data-label="Date/Day"]{flex:1 1 calc(50% - 4px);min-width:0;order:1;}
-  .data-table tr.week-row > td[data-label="Transforms"]{flex:1 1 calc(50% - 4px);min-width:0;order:2;}
-  .data-table tr.week-row > td[data-label="Timeframes"]{flex:1 1 100%;order:3;}
+  .data-table tr.week-row > td[data-col="Date/Day"]{flex:0 0 auto;width:auto !important;min-width:0;order:1;}
+  .data-table tr.week-row > td[data-col="Timeframes"]{flex:1 1 auto;min-width:0;order:2;}
+  .data-table tr.week-row > td[data-col="Transforms"]{flex:1 1 100%;order:3;}
 
   /* Road Map - Pending: Start date, End date and Duration are short
      fields that would otherwise each take a full stacked row (Duration
@@ -803,14 +803,14 @@ div.summary-task-link{
     display:block !important;
     width:auto !important;
   }
-  .data-table tr.roadmap-row > td[data-label="Space"],
-  .data-table tr.roadmap-row > td[data-label="Key milestones"],
-  .data-table tr.roadmap-row > td[data-label="Transforms"]{
+  .data-table tr.roadmap-row > td[data-col="Space"],
+  .data-table tr.roadmap-row > td[data-col="Key milestones"],
+  .data-table tr.roadmap-row > td[data-col="Transforms"]{
     flex:1 1 100%;
   }
-  .data-table tr.roadmap-row > td[data-label="Life began"],
-  .data-table tr.roadmap-row > td[data-label="Life Ends"],
-  .data-table tr.roadmap-row > td[data-label="Life span"]{
+  .data-table tr.roadmap-row > td[data-col="Life began"],
+  .data-table tr.roadmap-row > td[data-col="Life Ends"],
+  .data-table tr.roadmap-row > td[data-col="Life span"]{
     flex:1 1 calc(33.333% - 7px);
     min-width:0;
   }
@@ -825,6 +825,10 @@ div.summary-task-link{
     font-size:12.5px !important;
     padding:4px 6px !important;
     min-width:0 !important;
+    width:auto !important;
+  }
+  .data-table tr.week-row > td[data-col="Date/Day"] .due-date-input{
+    width:112px !important;
   }
   /* iOS Safari auto-zooms the page when a focused text field's font is
      under 16px, and doesn't always reliably zoom back out afterward.
