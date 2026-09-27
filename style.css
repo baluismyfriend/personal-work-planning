@@ -797,7 +797,7 @@ div.summary-task-link{
     margin-bottom:0;
   }
   .data-table tr.week-row > td[data-col="Date/Day"]{flex:0 0 auto;width:auto !important;min-width:0;order:1;}
-  .data-table tr.week-row > td[data-col="Transforms"]{flex:1 1 auto;min-width:0;order:2;}
+  .data-table tr.week-row > td[data-col="Transforms"]{flex:0 0 auto;width:auto !important;min-width:0;order:2;margin-left:auto;}
   .data-table tr.week-row > td[data-col="Timeframes"]{flex:1 1 100%;order:3;}
 
   /* Road Map - Pending: Start date, End date and Duration are short

@@ -1183,7 +1183,7 @@
       } else {
         var idx = clampTaskIndex(sheet, pages.length);
         if (sheet.name === "Summary") {
-          posEl.textContent = "Project " + (idx + 1) + " of " + pages.length;
+          posEl.textContent = "Space " + (idx + 1) + " of " + pages.length;
         } else {
           posEl.textContent = (idx + 1) + " of " + pages.length;
         }
