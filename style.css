@@ -571,13 +571,13 @@ div.summary-task-link{
   height:24px;
   border-radius:0;
   clip-path:polygon(50% 0%, 61.8% 35.3%, 98.1% 35.3%, 68.2% 57.4%, 79.4% 90.5%, 50% 69.1%, 20.6% 90.5%, 31.8% 57.4%, 1.9% 35.3%, 38.2% 35.3%);
-  border:2px solid var(--primary);
-  background:rgba(255,255,255,.7);
+  border:2.5px solid #ef4444;
+  background:#ffffff;
   cursor:pointer;
   padding:0;
 }
-.quick-list-radio:hover{background:rgba(251,113,133,.16);}
-.quick-list-radio:active{background:var(--primary);}
+.quick-list-radio:hover{background:#fee2e2;}
+.quick-list-radio:active{background:#ef4444;}
 .quick-list-header-row{
   display:none;
 }
@@ -616,16 +616,12 @@ div.summary-task-link{
   /* All remaining page pills fit in a single non-scrolling row: short
      names (see NAV_SHORT_NAMES in script.js) plus equal-width flex
      segments. */
-  .nav{gap:4px;flex-wrap:nowrap;overflow-x:visible;}
+  .nav{gap:6px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;}
   .nav-btn{
-    flex:1 1 0;
-    min-width:0;
-    padding:8px 3px;
+    flex:0 0 auto;
+    padding:8px 13px;
     font-size:11.5px;
-    text-align:center;
     white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
   }
 
   .content{padding:6px 12px 132px;}
@@ -944,7 +940,7 @@ div.summary-task-link{
     box-shadow:none !important;
   }
   .data-table tr.quick-list-header-row > td.quick-list-header-item{
-    order:0;
+    order:-1;
     flex:1 1 auto !important;
     width:auto !important;
     font-size:10.5px;
@@ -954,7 +950,7 @@ div.summary-task-link{
     color:var(--muted);
   }
   .data-table tr.quick-list-header-row > td.quick-list-header-radio{
-    order:-1;
+    order:0;
     flex:0 0 30px !important;
     width:30px !important;
   }
