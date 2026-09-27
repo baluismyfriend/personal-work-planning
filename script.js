@@ -487,9 +487,9 @@
     "Summary": "Spacetime",
     "Daily planning - All tasks": "24hr",
     "Week planning": "24hrX7",
-    "All future Tasks": "Next in time",
+    "All future Tasks": "Next in",
     "Road Map - Pending": "Spaces",
-    "Quick list": "Small Times",
+    "Quick list": "Stars",
     "Completed tasks": "NoSpace"
   };
 
@@ -924,6 +924,10 @@
   // "Date" on the 24hr (Daily planning) page reading as "time on".
   function displayColumnLabel(sheet, col) {
     if (sheet.name === "Daily planning - All tasks" && col === "Date") return "time on";
+    if (sheet.name === "Daily planning - All tasks" && col === "Timeframe/Meeting") return "Time";
+    if (sheet.name === "Daily planning - All tasks" && col === "Next Timeframes") return "Next in Time";
+    if (sheet.name === "Road Map - Pending" && col === "Key milestones") return "Time";
+    if (sheet.name === "Week planning" && col === "Timeframes") return "Times";
     return col;
   }
 
