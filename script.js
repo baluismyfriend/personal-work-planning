@@ -1761,6 +1761,9 @@
     }
 
     function activate() {
+      // focus and click both call this; re-running it while the picker
+      // is already open resets the control and closes the calendar.
+      if (input.type === "date") return;
       input.readOnly = false;
       input.type = "date";
       var iso = mmddyyyyToIso(row[col] || "");
@@ -1778,8 +1781,16 @@
       row[col] = mmddyyyy;
       if (sheet.name === "Road Map - Pending") row["Life span"] = roadMapDuration(row["Life began"], row["Life Ends"]);
       saveWorkbook();
-      if (sheet.name === "Road Map - Pending" || sheet.name === "Daily planning - All tasks") autoAddToWeekPlanning();
-      if (sheet.name === "Road Map - Pending") refreshPillDependentUI(sheet);
+      // Do NOT re-render the table here: iOS fires "change" as soon as the
+      // calendar opens (pre-selecting today) and again as the wheel moves,
+      // and rebuilding the table would destroy this input and close the
+      // picker. Update the calculated Life span cell in place instead;
+      // the TimesX7 sync runs when the cell loses focus (see focusout).
+      if (sheet.name === "Road Map - Pending") {
+        var tr = input.closest("tr");
+        var spanCell = tr && tr.querySelector('td[data-col="Life span"] .cell-readonly');
+        if (spanCell) spanCell.textContent = row["Life span"] || "";
+      }
     });
 
     input.addEventListener("blur", function () {
@@ -1820,6 +1831,9 @@
     }
 
     function activate() {
+      // focus and click both call this; re-running it while the picker
+      // is already open resets the control and closes the calendar.
+      if (input.type === "date") return;
       input.readOnly = false;
       input.type = "date";
       var iso = mmddyyyyToIso(row[col] || "");
