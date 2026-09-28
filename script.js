@@ -367,7 +367,7 @@
     var daily = (wb || []).find ? (wb || []).find(function (s) { return s.name === "Daily planning - All tasks"; }) : null;
     if (!daily || !Array.isArray(daily.rows)) return [];
     var order = [];
-    var byProject = {};
+    var byProject = Object.create(null);
     daily.rows.forEach(function (r, dailyIdx) {
       var project = ((r && r.Space) || "").toString().trim();
       var task = ((r && r["Timeframe/Meeting"]) || "").toString().trim();
@@ -1137,7 +1137,7 @@
   function getSwipePages(sheet, items) {
     if (sheet.name === "Summary") {
       var order = [];
-      var byProject = {};
+      var byProject = Object.create(null);
       items.forEach(function (item) {
         var project = ((item.row && item.row.Space) || "").toString();
         if (!Object.prototype.hasOwnProperty.call(byProject, project)) { byProject[project] = []; order.push(project); }
@@ -1184,6 +1184,8 @@
         var idx = clampTaskIndex(sheet, pages.length);
         if (sheet.name === "Summary") {
           posEl.textContent = "Space " + (idx + 1) + " of " + pages.length;
+        } else if (sheet.name === "Daily planning - All tasks") {
+          posEl.textContent = "Time " + (idx + 1) + " of " + pages.length;
         } else {
           posEl.textContent = (idx + 1) + " of " + pages.length;
         }
