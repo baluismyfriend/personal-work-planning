@@ -757,6 +757,14 @@
     autoAddToWeekPlanning();
     saveWorkbookSilently();
 
+    // Re-check every time an edit is committed (a cell loses focus), so
+    // a date entered before its Space/Time text - or the other way
+    // round - still creates the TimesX7 row as soon as both exist.
+    tableBodyEl.addEventListener("focusout", function () {
+      setTimeout(autoAddToWeekPlanning, 150);
+    });
+    window.addEventListener("pageshow", function () { autoAddToWeekPlanning(); });
+
     // Re-check whenever the app comes back to the foreground, so a new
     // day (or a date entered earlier) is picked up without a reload.
     document.addEventListener("visibilitychange", function () {
