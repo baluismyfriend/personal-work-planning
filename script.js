@@ -10,6 +10,7 @@
   var STORAGE_SHEET_KEY = "workPlanningFinal.v2.selectedSheet";
   var STORAGE_FILTERS_KEY = "workPlanningFinal.v2.filters";
   var STORAGE_WIDTHS_KEY = "workPlanningFinal.v2.safeManualColumnWidths";
+  var STORAGE_WEEK_AUTOADD_KEY = "workPlanningFinal.v2.weekAutoAdded";
   var STORAGE_LAST_EXPORT_DATE_KEY = "workPlanningFinal.v2.lastExportDate";
   var STORAGE_LAST_PROMPT_DISMISS_KEY = "workPlanningFinal.v2.lastBackupPromptDismiss";
 
@@ -753,7 +754,14 @@
     // Summary is derived from Daily planning; refresh it once against
     // whatever Daily planning data just loaded, then persist.
     refreshSummarySheet(workbook);
+    autoAddToWeekPlanning();
     saveWorkbookSilently();
+
+    // Re-check whenever the app comes back to the foreground, so a new
+    // day (or a date entered earlier) is picked up without a reload.
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible") autoAddToWeekPlanning();
+    });
 
     document.getElementById("btnAddRow").addEventListener("click", handleAddRow);
     document.getElementById("btnAddRowFloating").addEventListener("click", handleAddRow);
@@ -786,8 +794,93 @@
     try { localStorage.setItem(STORAGE_DATA_KEY, JSON.stringify(workbook)); } catch (e) { /* ignore */ }
   }
 
+  /* ---------------------------------------------------------
+     Auto-add upcoming dates to TimesX7 (Week planning)
+     ---------------------------------------------------------
+     - Spaces page: a row whose "Life Ends" date falls today..+7 days
+       gets a TimesX7 row: Defined time on = that date, Times = the
+       row's Space.
+     - Times page: a row whose "Time Zero on" date falls today..+7
+       days gets a TimesX7 row: Defined time on = that date, Times =
+       the row's Time text (falls back to the Space if Time is blank).
+     Each (source, date, text) is added only once - remembered in
+     localStorage - so a row you delete from TimesX7 stays deleted. */
+  function loadWeekAutoAdded() {
+    var out = Object.create(null);
+    try {
+      var arr = JSON.parse(localStorage.getItem(STORAGE_WEEK_AUTOADD_KEY) || "[]");
+      if (Array.isArray(arr)) arr.forEach(function (k) { if (typeof k === "string") out[k] = true; });
+    } catch (e) { /* ignore */ }
+    return out;
+  }
+  function saveWeekAutoAdded(map) {
+    var keys = Object.keys(map);
+    if (keys.length > 3000) keys = keys.slice(keys.length - 3000);
+    try { localStorage.setItem(STORAGE_WEEK_AUTOADD_KEY, JSON.stringify(keys)); } catch (e) { /* ignore */ }
+  }
+  function clearWeekAutoAdded() {
+    try { localStorage.removeItem(STORAGE_WEEK_AUTOADD_KEY); } catch (e) { /* ignore */ }
+  }
+
+  function autoAddToWeekPlanning() {
+    if (!Array.isArray(workbook)) return 0;
+    var week = workbook.find(function (s) { return s.name === "Week planning"; });
+    var road = workbook.find(function (s) { return s.name === "Road Map - Pending"; });
+    var daily = workbook.find(function (s) { return s.name === "Daily planning - All tasks"; });
+    if (!week || !Array.isArray(week.rows)) return 0;
+
+    var now = new Date();
+    var todayMs = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+    var synced = loadWeekAutoAdded();
+    var added = 0, changedKeys = false;
+
+    function consider(tag, dateStr, text) {
+      var ms = dateToUtcMs(dateStr);
+      if (ms === null) return;
+      var diff = Math.round((ms - todayMs) / 86400000);
+      if (diff < 0 || diff > 7) return;
+      text = sanitizeCell(text, MAX_CELL_LEN).trim();
+      if (!text) return;
+      var key = tag + "|" + dateStr + "|" + text;
+      if (synced[key]) return;
+      var parts = dateStr.split("/");
+      var dateDay = formatDateDay(new Date(Number(parts[2]), Number(parts[0]) - 1, Number(parts[1])));
+      var exists = week.rows.some(function (r) {
+        return r && r["Date/Day"] === dateDay && String(r["Timeframes"] || "").trim() === text;
+      });
+      if (!exists) {
+        if (week.rows.length >= MAX_ROWS) return;
+        week.rows.push({ "Date/Day": dateDay, "Timeframes": text });
+        added++;
+      }
+      synced[key] = true;
+      changedKeys = true;
+    }
+
+    if (road && Array.isArray(road.rows)) {
+      road.rows.forEach(function (r) {
+        if (r) consider("R", r["Life Ends"], r.Space);
+      });
+    }
+    if (daily && Array.isArray(daily.rows)) {
+      daily.rows.forEach(function (r) {
+        if (!r) return;
+        var text = String(r["Timeframe/Meeting"] || "").trim() || String(r.Space || "").trim();
+        consider("T", r["Time Zero on"], text);
+      });
+    }
+    if (changedKeys) saveWeekAutoAdded(synced);
+    if (added > 0) {
+      saveWorkbook();
+      var cur = currentSheet();
+      if (cur && cur.name === "Week planning") renderAll();
+    }
+    return added;
+  }
+
   function goToSheetIndex(idx) {
     if (idx < 0 || idx >= workbook.length || idx === selectedSheetIndex) return;
+    autoAddToWeekPlanning();
     selectedSheetIndex = idx;
     persistSelectedSheet();
     if (workbook[idx].name === "Summary") {
@@ -1677,6 +1770,7 @@
       row[col] = mmddyyyy;
       if (sheet.name === "Road Map - Pending") row["Life span"] = roadMapDuration(row["Life began"], row["Life Ends"]);
       saveWorkbook();
+      if (sheet.name === "Road Map - Pending" || sheet.name === "Daily planning - All tasks") autoAddToWeekPlanning();
       if (sheet.name === "Road Map - Pending") refreshPillDependentUI(sheet);
     });
 
@@ -2182,6 +2276,7 @@
       }
       if (!window.confirm("Import this JSON backup and replace all current local data?")) return;
       workbook = normalized;
+      clearWeekAutoAdded();
       selectedSheetIndex = 0;
       filters = {};
       sortState = {};
