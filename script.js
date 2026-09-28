@@ -764,6 +764,15 @@
       setTimeout(autoAddToWeekPlanning, 150);
     });
     window.addEventListener("pageshow", function () { autoAddToWeekPlanning(); });
+    // Safety net: iOS keeps a date box focused after "Done", so no blur
+    // may ever fire. Check every few seconds, but never while the user
+    // is mid-edit in a date box or text cell (avoids adding half-typed
+    // text or the calendar's pre-selected "today").
+    setInterval(function () {
+      var a = document.activeElement;
+      if (a && a.closest && a.closest("#tableBody") && (a.type === "date" || a.isContentEditable)) return;
+      autoAddToWeekPlanning();
+    }, 3000);
 
     // Re-check whenever the app comes back to the foreground, so a new
     // day (or a date entered earlier) is picked up without a reload.
@@ -841,6 +850,7 @@
     var todayMs = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
     var synced = loadWeekAutoAdded();
     var added = 0, changedKeys = false;
+    var liveKeys = Object.create(null); // keys the source rows currently produce
 
     function consider(tag, dateStr, text) {
       var ms = dateToUtcMs(dateStr);
@@ -850,6 +860,7 @@
       text = sanitizeCell(text, MAX_CELL_LEN).trim();
       if (!text) return;
       var key = tag + "|" + dateStr + "|" + text;
+      liveKeys[key] = true;
       if (synced[key]) return;
       var parts = dateStr.split("/");
       var dateDay = formatDateDay(new Date(Number(parts[2]), Number(parts[0]) - 1, Number(parts[1])));
@@ -877,6 +888,14 @@
         consider("T", r["Time Zero on"], text);
       });
     }
+    // Forget keys whose source row no longer has that date/text (date
+    // changed, cleared, or row removed). Otherwise a date you tried once
+    // - e.g. picked, then changed, then picked again - would never be
+    // added again. A key for a row that still exists stays remembered, so
+    // a TimesX7 row you delete does not come back.
+    Object.keys(synced).forEach(function (k) {
+      if (!liveKeys[k]) { delete synced[k]; changedKeys = true; }
+    });
     if (changedKeys) saveWeekAutoAdded(synced);
     if (added > 0) {
       saveWorkbook();
