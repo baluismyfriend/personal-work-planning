@@ -1184,7 +1184,7 @@
         var idx = clampTaskIndex(sheet, pages.length);
         if (sheet.name === "Summary") {
           posEl.textContent = "Space " + (idx + 1) + " of " + pages.length;
-        } else if (sheet.name === "Daily planning - All tasks") {
+        } else if (sheet.name === "Daily planning - All tasks" || sheet.name === "All future Tasks") {
           posEl.textContent = "Time " + (idx + 1) + " of " + pages.length;
         } else {
           posEl.textContent = (idx + 1) + " of " + pages.length;
