@@ -85,8 +85,8 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
 }
 .brand-text{min-width:0;}
 .brand-text h1{
-  font-size:24px;
-  font-weight:800;
+  font-size:26px;
+  font-weight:900;
   letter-spacing:-0.01em;
   margin:0;
   white-space:nowrap;
@@ -107,8 +107,8 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
 .nav-btn-spaces,.nav-btn-nospace{
   flex-shrink:0;
   font-weight:900;
-  font-size:16px;
-  padding:11px 17px;
+  font-size:17.5px;
+  padding:12px 19px;
   border-color:rgba(251,113,133,.45);
   background:rgba(251,113,133,.14);
 }
@@ -623,14 +623,14 @@ div.summary-task-link{
     gap:6px;
   }
   .header-row{gap:6px;margin-bottom:8px;}
-  .nav-btn-spaces,.nav-btn-nospace{padding:9px 8px;font-size:10.5px;font-weight:800;}
+  .nav-btn-spaces,.nav-btn-nospace{padding:10px 10px;font-size:11.5px;font-weight:900;}
 
   /* The icon and tagline drop out at phone width to leave room for the
      Spaces/NoSpace buttons to sit right next to the app name on the
      same line; the title itself stays visible (just smaller) rather
      than disappearing, per the title row also shown at wider widths. */
   .brand-icon,.brand-subtitle{display:none;}
-  .brand-text h1{font-size:17.5px;}
+  .brand-text h1{font-size:19px;}
 
   /* All remaining page pills fit in a single non-scrolling row: short
      names (see NAV_SHORT_NAMES in script.js) plus equal-width flex
