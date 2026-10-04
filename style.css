@@ -108,8 +108,8 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
   flex-shrink:0;
   border-radius:12px;
   font-weight:900;
-  font-size:19px;
-  padding:14px 22px;
+  font-size:20px;
+  padding:15px 28px;
   border-color:rgba(251,113,133,.45);
   background:rgba(251,113,133,.14);
 }
@@ -624,7 +624,7 @@ div.summary-task-link{
     gap:6px;
   }
   .header-row{gap:6px;margin-bottom:8px;}
-  .nav-btn-spaces,.nav-btn-nospace{padding:11px 13px;font-size:13px;font-weight:900;}
+  .nav-btn-spaces,.nav-btn-nospace{padding:13px 18px;font-size:14.5px;font-weight:900;}
 
   /* The icon and tagline drop out at phone width to leave room for the
      Spaces/NoSpace buttons to sit right next to the app name on the
