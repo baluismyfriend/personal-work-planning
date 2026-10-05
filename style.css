@@ -53,20 +53,19 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
   box-shadow:0 18px 46px rgba(15,23,42,.30), inset 0 -1px 0 rgba(255,255,255,.08);
   color:#fff;
 }
-/* Grid (not flex) so the middle title column centers on the row as a
-   whole - independent of the two side buttons being different widths
-   ("Spaces" vs "NoSpace"). A flex layout with flex:1 on the title would
-   only center it between the buttons' inner edges, drifting off true
-   center whenever the buttons aren't the same width. */
+/* Grid (not flex): the Spaces/NoSpace columns are flexible and stretch
+   to fill the row, while the title column is sized to just its own
+   content in the middle - so the buttons take up as much width as
+   possible instead of sitting narrow with empty space around them. */
 .header-row{
   display:grid;
-  grid-template-columns:auto 1fr auto;
+  grid-template-columns:1fr auto 1fr;
   align-items:center;
   gap:12px;
   margin-bottom:12px;
 }
-.header-row .nav-btn-spaces{justify-self:start;}
-.header-row .nav-btn-nospace{justify-self:end;}
+.header-row .nav-btn-spaces{justify-self:stretch;}
+.header-row .nav-btn-nospace{justify-self:stretch;}
 
 .brand{display:flex;align-items:center;justify-content:center;gap:12px;min-width:0;}
 .brand-icon{
@@ -105,11 +104,12 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
    #navNoSpaceBtn in index.html), rather than mixed in with the rest of
    the page pills below. */
 .nav-btn-spaces,.nav-btn-nospace{
-  flex-shrink:0;
+  width:100%;
+  text-align:center;
   border-radius:12px;
   font-weight:900;
   font-size:20px;
-  padding:15px 28px;
+  padding:15px 14px;
   border-color:rgba(251,113,133,.45);
   background:rgba(251,113,133,.14);
 }
@@ -624,7 +624,7 @@ div.summary-task-link{
     gap:6px;
   }
   .header-row{gap:6px;margin-bottom:8px;}
-  .nav-btn-spaces,.nav-btn-nospace{padding:13px 18px;font-size:14.5px;font-weight:900;}
+  .nav-btn-spaces,.nav-btn-nospace{padding:13px 10px;font-size:14.5px;font-weight:900;}
 
   /* The icon and tagline drop out at phone width to leave room for the
      Spaces/NoSpace buttons to sit right next to the app name on the
