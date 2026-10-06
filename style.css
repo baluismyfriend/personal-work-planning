@@ -1012,3 +1012,31 @@ div.summary-task-link{
   .clear-filters-btn{display:none;}
 }
 
+
+/* TimesX7 weekday group titles */
+.data-table tr.week-day-header-row > td.week-day-header{
+  background:rgba(251,113,133,.12);
+  font-size:13px;
+  font-weight:800;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--text);
+  padding:9px 12px;
+}
+.btn[hidden]{display:none;}
+@media (max-width:680px){
+  .data-table tr.week-day-header-row{
+    display:block;
+    background:rgba(251,113,133,.12);
+    border-radius:10px;
+    margin:10px 0 6px;
+    padding:0;
+    box-shadow:none;
+  }
+  .data-table tr.week-day-header-row > td.week-day-header{
+    display:block;
+    width:auto !important;
+    border:none;
+    padding:9px 12px;
+  }
+}

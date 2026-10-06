@@ -781,6 +781,7 @@
     });
 
     document.getElementById("btnAddRow").addEventListener("click", handleAddRow);
+    document.getElementById("btnRefreshWeek").addEventListener("click", handleRefreshWeek);
     document.getElementById("btnAddRowFloating").addEventListener("click", handleAddRow);
     document.getElementById("btnExportJson").addEventListener("click", handleExportJson);
     document.getElementById("btnImportJson").addEventListener("click", function () {
@@ -1006,6 +1007,13 @@
   function renderTable() {
     var sheet = currentSheet();
     pageTitleEl.textContent = shortSheetName(sheet);
+
+    // TimesX7 only: swap the "+ Add" button for a Refresh button.
+    var isWeek = sheet.name === "Week planning";
+    var addBtnEl = document.getElementById("btnAddRow");
+    var refreshBtnEl = document.getElementById("btnRefreshWeek");
+    if (addBtnEl) addBtnEl.hidden = isWeek;
+    if (refreshBtnEl) refreshBtnEl.hidden = !isWeek;
 
     // colgroup
     colgroupEl.replaceChildren();
@@ -1443,10 +1451,89 @@
       return;
     }
 
+    if (sheet.name === "Week planning") {
+      groupWeekItemsByDay(items).forEach(function (group) {
+        tableBodyEl.appendChild(buildWeekDayHeaderRow(sheet, group.label));
+        group.items.forEach(function (item) {
+          tableBodyEl.appendChild(buildRowElement(sheet, item.row, item.idx, false));
+        });
+      });
+      return;
+    }
+
     items.forEach(function (item) {
       var tr = buildRowElement(sheet, item.row, item.idx, false);
       tableBodyEl.appendChild(tr);
     });
+  }
+
+  // TimesX7: group rows under a weekday title (Monday..Friday, then
+  // Saturday/Sunday if any rows fall there, then rows with no readable
+  // date). All Mondays - past or future - land under one Monday heading.
+  var WEEK_GROUP_ORDER = [
+    { label: "Monday", day: 1 }, { label: "Tuesday", day: 2 }, { label: "Wednesday", day: 3 },
+    { label: "Thursday", day: 4 }, { label: "Friday", day: 5 },
+    { label: "Saturday", day: 6 }, { label: "Sunday", day: 0 }
+  ];
+
+  function weekRowDayIndex(row) {
+    var v = String((row && row["Date/Day"]) || "");
+    var m = /(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(v);
+    if (m) {
+      var d = new Date(Number(m[3]), Number(m[1]) - 1, Number(m[2]));
+      if (!isNaN(d.getTime())) return d.getDay();
+    }
+    var a = DAY_ABBREV.indexOf(v.trim().slice(0, 3));
+    return a === -1 ? null : a;
+  }
+
+  function weekRowTime(row) {
+    var m = /(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(String((row && row["Date/Day"]) || ""));
+    return m ? new Date(Number(m[3]), Number(m[1]) - 1, Number(m[2])).getTime() : Infinity;
+  }
+
+  function groupWeekItemsByDay(items) {
+    var userSorted = !!sortState["Week planning"];
+    var groups = WEEK_GROUP_ORDER.map(function (g) { return { label: g.label, day: g.day, items: [] }; });
+    var other = { label: "No date", day: null, items: [] };
+    items.forEach(function (item) {
+      var di = weekRowDayIndex(item.row);
+      var g = groups.find(function (x) { return x.day === di; });
+      (g || other).items.push(item);
+    });
+    groups.push(other);
+    if (!userSorted) {
+      groups.forEach(function (g) {
+        // earliest date first within a weekday; ties keep original order
+        g.items.sort(function (a, b) { return (weekRowTime(a.row) - weekRowTime(b.row)) || (a.idx - b.idx); });
+      });
+    }
+    return groups.filter(function (g) { return g.items.length > 0; });
+  }
+
+  function buildWeekDayHeaderRow(sheet, label) {
+    var tr = document.createElement("tr");
+    tr.className = "week-day-header-row";
+    var td = document.createElement("td");
+    td.colSpan = sheet.columns.length + (hasActionsColumn(sheet) ? 1 : 0);
+    td.className = "week-day-header";
+    td.textContent = label;
+    tr.appendChild(td);
+    return tr;
+  }
+
+  // TimesX7 Refresh: discard the rows on this page and rebuild them from
+  // the Spaces (Life Ends) and Times (Time Zero on) pages, exactly the
+  // way the automatic sync builds them.
+  function handleRefreshWeek() {
+    var week = workbook.find(function (s) { return s.name === "Week planning"; });
+    if (!week) return;
+    if (!window.confirm("Rebuild TimesX7 from the Spaces and Times pages?\n\nRows currently on this page (including any added or edited by hand) will be replaced.")) return;
+    week.rows = [];
+    clearWeekAutoAdded();
+    autoAddToWeekPlanning();
+    saveWorkbook();
+    renderAll();
   }
 
   // Quick list: a bare checklist of one-line items. Column headings are
