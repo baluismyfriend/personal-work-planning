@@ -840,7 +840,8 @@
     try { localStorage.removeItem(STORAGE_WEEK_AUTOADD_KEY); } catch (e) { /* ignore */ }
   }
 
-  function autoAddToWeekPlanning() {
+  function autoAddToWeekPlanning(includeOverdue) {
+    includeOverdue = includeOverdue === true; // only the Refresh button passes true
     if (!Array.isArray(workbook)) return 0;
     var week = workbook.find(function (s) { return s.name === "Week planning"; });
     var road = workbook.find(function (s) { return s.name === "Road Map - Pending"; });
@@ -857,7 +858,7 @@
       var ms = dateToUtcMs(dateStr);
       if (ms === null) return;
       var diff = Math.round((ms - todayMs) / 86400000);
-      if (diff < 0 || diff > 7) return;
+      if (diff > 7 || (diff < 0 && !includeOverdue)) return;
       text = sanitizeCell(text, MAX_CELL_LEN).trim();
       if (!text) return;
       var key = tag + "|" + dateStr + "|" + text;
@@ -1531,7 +1532,7 @@
     if (!window.confirm("Rebuild TimesX7 from the Spaces and Times pages?\n\nRows currently on this page (including any added or edited by hand) will be replaced.")) return;
     week.rows = [];
     clearWeekAutoAdded();
-    autoAddToWeekPlanning();
+    autoAddToWeekPlanning(true); // Refresh also pulls in overdue items
     saveWorkbook();
     renderAll();
   }
