@@ -6,6 +6,16 @@
    ============================================================ */
 
 (function () {
+  // Clickjacking defense. A <meta> CSP cannot carry frame-ancestors (browsers
+  // ignore it there) and GitHub Pages cannot send X-Frame-Options, so refuse
+  // to run at all if this page has been embedded inside another page.
+  var isFramed = true;
+  try { isFramed = window.top !== window.self; } catch (e) { isFramed = true; }
+  if (isFramed) {
+    document.documentElement.replaceChildren();
+    return;
+  }
+
   var STORAGE_DATA_KEY = "workPlanningFinal.v2.data";
   var STORAGE_SHEET_KEY = "workPlanningFinal.v2.selectedSheet";
   var STORAGE_FILTERS_KEY = "workPlanningFinal.v2.filters";
@@ -25,6 +35,21 @@
   var MAX_ROWS = 5000;
   var MAX_CELL_LEN = 5000;
   var MAX_IMPORT_BYTES = 2 * 1024 * 1024;
+  var MAX_EXTRA_SHEETS = 8;   // pages beyond the built-in ones, per workbook
+  var MAX_COLUMNS = 30;       // columns per page
+  var MIN_COL_WIDTH = 60;     // px, manual column width bounds
+  var MAX_COL_WIDTH = 2000;
+  var RESERVED_KEYS = ["__proto__", "constructor", "prototype"];
+  var KNOWN_SHEET_NAMES = ["Daily planning - All tasks", "All future Tasks", "Completed tasks",
+    "Week planning", "Road Map - Pending", "Quick list", "Summary"];
+
+  // Own-property helpers. Page names and column names can come from an
+  // imported file, so they must never be used as keys on a plain object
+  // (a page called "__proto__" or "constructor" would otherwise reach
+  // Object.prototype). Maps keyed by user-controlled text use newMap().
+  function hasOwn(obj, key) { return Object.prototype.hasOwnProperty.call(obj, key); }
+  function newMap() { return Object.create(null); }
+  function isReservedKey(k) { return RESERVED_KEYS.indexOf(k) !== -1; }
 
   // Maps each current column name to the older name(s) it replaced, so a
   // workbook saved before a column rename still carries its data forward
@@ -111,6 +136,9 @@
     if (value === null || value === undefined) return "";
     var str = String(value);
     str = str.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
+    // Bidi override/embedding/isolate controls can visually reorder text
+    // (spoofing); nothing in this app needs them.
+    str = str.replace(/[\u202A-\u202E\u2066-\u2069]/g, "");
     str = str.replace(/\r\n|\r/g, "\n");
     if (str.length > max) str = str.slice(0, max);
     return str;
@@ -147,7 +175,16 @@
 
   function normalizeGenericSheet(rawSheet) {
     var name = sanitizeName(rawSheet.name, 120);
-    var columns = Array.isArray(rawSheet.columns) ? rawSheet.columns.map(function (c) { return sanitizeName(c, 120); }).filter(function (c) { return c.length > 0; }) : [];
+    var columns = [];
+    var seenCols = newMap();
+    if (Array.isArray(rawSheet.columns)) {
+      rawSheet.columns.forEach(function (c) {
+        var n = sanitizeName(c, 120);
+        if (!n || isReservedKey(n) || seenCols[n] || columns.length >= MAX_COLUMNS) return;
+        seenCols[n] = true;
+        columns.push(n);
+      });
+    }
     if (columns.length === 0) columns = ["Notes"];
     var rows = Array.isArray(rawSheet.rows) ? rawSheet.rows : [];
     if (rows.length > MAX_ROWS) rows = rows.slice(0, MAX_ROWS);
@@ -155,7 +192,9 @@
       if (!r || typeof r !== "object") r = {};
       var out = {};
       for (var i = 0; i < columns.length; i++) {
-        out[columns[i]] = sanitizeCell(r[columns[i]], MAX_CELL_LEN);
+        // Own properties only, so a column called "toString" can't pick up
+        // an inherited function and print its source into the cell.
+        out[columns[i]] = hasOwn(r, columns[i]) ? sanitizeCell(r[columns[i]], MAX_CELL_LEN) : "";
       }
       return out;
     });
@@ -251,16 +290,13 @@
   // The Quick list schema before "Item" was renamed to "Small Times".
   // Detected separately so existing checklist text is carried forward
   // into the new column instead of being dropped.
-  function isLegacyQuickListSchema(rawSheet) {
-    var cols = Array.isArray(rawSheet.columns) ? rawSheet.columns : [];
-    return cols.length === 1 && cols[0] === "Item";
-  }
   function migrateLegacyQuickListSheet(rawSheet) {
     var rows = Array.isArray(rawSheet.rows) ? rawSheet.rows : [];
     if (rows.length > MAX_ROWS) rows = rows.slice(0, MAX_ROWS);
     var newRows = rows.map(function (r) {
       if (!r || typeof r !== "object") r = {};
-      return { "Small Times": sanitizeCell(r["Item"], MAX_CELL_LEN) };
+      var v = hasOwn(r, "Small Times") ? r["Small Times"] : (hasOwn(r, "Item") ? r["Item"] : "");
+      return { "Small Times": sanitizeCell(v, MAX_CELL_LEN) };
     });
     return { name: "Quick list", columns: ["Small Times"], rows: newRows };
   }
@@ -268,6 +304,8 @@
   function normalizeWorkbook(raw) {
     if (!Array.isArray(raw)) throw new Error("workbook root must be an array of sheets");
     var sheets = [];
+    var seenNames = newMap();
+    var extraSheets = 0;
     for (var i = 0; i < raw.length; i++) {
       var s = raw[i];
       if (!s || typeof s !== "object") throw new Error("each sheet must be an object");
@@ -275,6 +313,14 @@
       if (!name) throw new Error("each sheet must have a name");
       if (REMOVED_PAGE_NAMES.indexOf(name) !== -1) continue;
       if (name === "Summary") continue; // always recomputed fresh below
+      if (seenNames[name]) continue;    // duplicate page name: first copy wins
+      if (KNOWN_SHEET_NAMES.indexOf(name) === -1) {
+        // Unknown pages are tolerated for old backups but capped, so a
+        // crafted file can't flood the page bar.
+        if (extraSheets >= MAX_EXTRA_SHEETS) continue;
+        extraSheets++;
+      }
+      seenNames[name] = true;
       if (name === "Week planning") {
         if (isCurrentWeekPlanningSchema(s)) sheets.push(normalizeGenericSheet(s));
         else if (isLegacyWeekPlanningSchema(s)) sheets.push(migrateLegacyWeekPlanningSheet(s));
@@ -283,7 +329,7 @@
       }
       if (TASK_SHEET_NAMES.indexOf(name) !== -1) {
         sheets.push(normalizeTaskSheet(name, s));
-      } else if (name === "Quick list" && isLegacyQuickListSchema(s)) {
+      } else if (name === "Quick list") {
         sheets.push(migrateLegacyQuickListSheet(s));
       } else {
         if (!Array.isArray(s.columns) || s.columns.length === 0) throw new Error("sheet '" + name + "' must have a nonempty columns array");
@@ -325,9 +371,11 @@
      --------------------------------------------------------- */
   var workbook = [];
   var selectedSheetIndex = 0;
-  var filters = {}; // { sheetName: { colName: { text, select } } }
-  var manualWidths = {}; // { "sheet|col": px }
-  var sortState = {}; // { sheetName: { col, dir } }
+  // All four are keyed by page/column names that may come from an imported
+  // file, so they are prototype-less maps (see newMap).
+  var filters = newMap(); // { sheetName: { colName: { text, select } } }
+  var manualWidths = newMap(); // { "sheet|col": px }
+  var sortState = newMap(); // { sheetName: { col, dir } }
 
   function todayLocalMMDDYYYY() {
     return formatLocalMMDDYYYY(new Date());
@@ -446,7 +494,7 @@
   };
 
   function isCalendarDateColumn(sheet, col) {
-    var cols = CALENDAR_DATE_COLUMNS[sheet.name];
+    var cols = hasOwn(CALENDAR_DATE_COLUMNS, sheet.name) ? CALENDAR_DATE_COLUMNS[sheet.name] : undefined;
     return Array.isArray(cols) ? cols.indexOf(col) !== -1 : cols === col;
   }
 
@@ -470,7 +518,7 @@
   function hasActionsColumn(sheet) {
     // Quick list deletes a row via tapping its radio button instead of a
     // Copy/Move/Delete actions column (see buildQuickListRow).
-    return !isComputedSheet(sheet) && sheet.name !== "Quick list";
+    return !isComputedSheet(sheet) && sheet.name !== "Quick list" && sheet.name !== "Week planning";
   }
 
   // Pages that have a "Move" row action, and where that action sends the
@@ -495,7 +543,7 @@
   };
 
   function shortSheetName(sheet) {
-    return NAV_SHORT_NAMES[sheet.name] || sheet.name;
+    return hasOwn(NAV_SHORT_NAMES, sheet.name) ? NAV_SHORT_NAMES[sheet.name] : sheet.name;
   }
 
   /* ---------------------------------------------------------
@@ -552,26 +600,52 @@
     }
   }
 
+  // Everything read back from localStorage is treated as untrusted: it can
+  // be corrupted, or written by another page on the same origin (all
+  // *.github.io project pages of one account share an origin). Only values
+  // of the expected type survive; anything else is dropped.
   function loadFilters() {
+    var out = newMap();
     try {
       var stored = localStorage.getItem(STORAGE_FILTERS_KEY);
-      if (stored) {
-        var parsed = JSON.parse(stored);
-        if (parsed && typeof parsed === "object") return parsed;
-      }
+      if (!stored) return out;
+      var parsed = JSON.parse(stored);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return out;
+      Object.keys(parsed).slice(0, 100).forEach(function (sheetName) {
+        var perSheet = parsed[sheetName];
+        if (!perSheet || typeof perSheet !== "object" || Array.isArray(perSheet)) return;
+        var clean = newMap();
+        Object.keys(perSheet).slice(0, MAX_COLUMNS).forEach(function (col) {
+          var cf = perSheet[col];
+          if (!cf || typeof cf !== "object") return;
+          clean[col] = {
+            text: typeof cf.text === "string" ? sanitizeCell(cf.text, 200) : "",
+            select: typeof cf.select === "string"
+              ? (cf.select === "\u0000__BLANK__" ? cf.select : sanitizeCell(cf.select, MAX_CELL_LEN))
+              : ""
+          };
+        });
+        out[sheetName] = clean;
+      });
     } catch (e) { /* ignore */ }
-    return {};
+    return out;
   }
 
   function loadWidths() {
+    var out = newMap();
     try {
       var stored = localStorage.getItem(STORAGE_WIDTHS_KEY);
-      if (stored) {
-        var parsed = JSON.parse(stored);
-        if (parsed && typeof parsed === "object") return parsed;
-      }
+      if (!stored) return out;
+      var parsed = JSON.parse(stored);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return out;
+      Object.keys(parsed).slice(0, 500).forEach(function (k) {
+        var n = parsed[k];
+        if (typeof n === "number" && isFinite(n)) {
+          out[k] = Math.max(MIN_COL_WIDTH, Math.min(MAX_COL_WIDTH, Math.round(n)));
+        }
+      });
     } catch (e) { /* ignore */ }
-    return {};
+    return out;
   }
 
   function persistSelectedSheet() {
@@ -604,10 +678,30 @@
     try { localStorage.setItem(STORAGE_LAST_PROMPT_DISMISS_KEY, dateStr); } catch (e) { /* ignore */ }
   }
 
-  function saveWorkbook() {
+  // If the browser refuses the write (storage full, private mode, storage
+  // cleared by the OS) the user must know: otherwise they keep typing,
+  // believing their data is saved, and lose it on the next launch.
+  var storageWarned = false;
+  function warnStorageFailure() {
+    if (storageWarned) return;
+    storageWarned = true;
+    try {
+      window.alert("Warning: your device storage is full or unavailable, so your latest changes could NOT be saved. Tap Export now to keep a backup copy, then free up space.");
+    } catch (e) { /* ignore */ }
+  }
+  function writeWorkbookToStorage() {
     try {
       localStorage.setItem(STORAGE_DATA_KEY, JSON.stringify(workbook));
-    } catch (e) { /* ignore - storage may be full */ }
+      storageWarned = false;
+      return true;
+    } catch (e) {
+      warnStorageFailure();
+      return false;
+    }
+  }
+
+  function saveWorkbook() {
+    writeWorkbookToStorage();
     queueAutoBackupWrite();
   }
 
@@ -615,18 +709,21 @@
      Filters helpers
      --------------------------------------------------------- */
   function getSheetFilters(sheetName) {
-    if (!filters[sheetName]) filters[sheetName] = {};
+    if (!filters[sheetName]) filters[sheetName] = newMap();
     return filters[sheetName];
   }
 
   function getColFilter(sheetName, col) {
     var sf = getSheetFilters(sheetName);
-    if (!sf[col]) sf[col] = { text: "", select: "" };
-    return sf[col];
+    var cf = sf[col];
+    if (!cf || typeof cf.text !== "string" || typeof cf.select !== "string") {
+      cf = sf[col] = { text: "", select: "" };
+    }
+    return cf;
   }
 
   function clearSheetFilters(sheetName) {
-    filters[sheetName] = {};
+    filters[sheetName] = newMap();
     persistFilters();
   }
 
@@ -675,7 +772,7 @@
     if (col === "Timeframe/Meeting" || col === "Key milestones" || col === "Timeframes" || col === "Time") return 230;
     if (col === "Next Timeframes") return 190;
     if (col === "Date" || col === "Space" || col === "Demand") return 64;
-    if (col === "Date/Day") return 120;
+    if (col === "Date/Day") return 110;
     if (col === "Timing") return 126;
     if (col === "Time Zero on" || col === "Life began" || col === "Life Ends") return 110;
     if (col === "Life span") return 80;
@@ -740,6 +837,15 @@
     backupPromptEl = document.getElementById("backupPrompt");
     backupPromptExportBtn = document.getElementById("backupPromptExportBtn");
     backupPromptDismissBtn = document.getElementById("backupPromptDismissBtn");
+
+    // Ask the browser not to evict our data under storage pressure
+    // (best effort; harmless if unsupported or declined).
+    try {
+      if (navigator.storage && typeof navigator.storage.persist === "function") {
+        var persisted = navigator.storage.persist();
+        if (persisted && typeof persisted.catch === "function") persisted.catch(function () { /* ignore */ });
+      }
+    } catch (e) { /* ignore */ }
 
     workbook = loadWorkbook();
     selectedSheetIndex = loadSelectedSheetIndex(workbook.length);
@@ -809,7 +915,7 @@
   }
 
   function saveWorkbookSilently() {
-    try { localStorage.setItem(STORAGE_DATA_KEY, JSON.stringify(workbook)); } catch (e) { /* ignore */ }
+    writeWorkbookToStorage();
   }
 
   /* ---------------------------------------------------------
@@ -854,12 +960,13 @@
     var added = 0, changedKeys = false;
     var liveKeys = Object.create(null); // keys the source rows currently produce
 
-    function consider(tag, dateStr, text) {
+    function consider(tag, dateStr, text, legacyText) {
       var ms = dateToUtcMs(dateStr);
       if (ms === null) return;
       var diff = Math.round((ms - todayMs) / 86400000);
       if (diff > 7 || (diff < 0 && !includeOverdue)) return;
       text = sanitizeCell(text, MAX_CELL_LEN).trim();
+      legacyText = legacyText ? sanitizeCell(legacyText, MAX_CELL_LEN).trim() : "";
       if (!text) return;
       var key = tag + "|" + dateStr + "|" + text;
       liveKeys[key] = true;
@@ -869,6 +976,15 @@
       var exists = week.rows.some(function (r) {
         return r && r["Date/Day"] === dateDay && String(r["Timeframes"] || "").trim() === text;
       });
+      if (!exists && legacyText && legacyText !== text) {
+        // A row added earlier by this same sync, before it started
+        // showing "Space || Time": upgrade it in place instead of adding
+        // a duplicate beside it.
+        var legacyRow = week.rows.find(function (r) {
+          return r && r["Date/Day"] === dateDay && String(r["Timeframes"] || "").trim() === legacyText;
+        });
+        if (legacyRow) { legacyRow["Timeframes"] = text; added++; exists = true; }
+      }
       if (!exists) {
         if (week.rows.length >= MAX_ROWS) return;
         week.rows.push({ "Date/Day": dateDay, "Timeframes": text });
@@ -886,8 +1002,12 @@
     if (daily && Array.isArray(daily.rows)) {
       daily.rows.forEach(function (r) {
         if (!r) return;
-        var text = String(r["Timeframe/Meeting"] || "").trim() || String(r.Space || "").trim();
-        consider("T", r["Time Zero on"], text);
+        // TimesX7 shows where each time came from: "Space || Time".
+        // With only one of the two filled in, that one is used alone.
+        var timeText = String(r["Timeframe/Meeting"] || "").trim();
+        var spaceText = String(r.Space || "").trim();
+        var text = (spaceText && timeText) ? (spaceText + " || " + timeText) : (timeText || spaceText);
+        consider("T", r["Time Zero on"], text, timeText);
       });
     }
     // Forget keys whose source row no longer has that date/text (date
@@ -1024,6 +1144,10 @@
       var savedW = manualWidths[widthKey(sheet.name, col)];
       if (savedW) {
         c.style.width = savedW + "px";
+      } else if (sheet.name === "Week planning") {
+        // Date column is only as wide as a date needs; the Times column
+        // gets no width so the fixed-layout table gives it all the rest.
+        if (col === "Date/Day") c.style.width = "130px";
       } else {
         c.style.width = pct + "%";
       }
@@ -1136,7 +1260,7 @@
       uniqueVals.forEach(function (v) {
         var opt = document.createElement("option");
         opt.value = v;
-        opt.textContent = v;
+        opt.textContent = (sheet.name === "Week planning" && col === "Date/Day") ? weekDateOnly(v) : v;
         select.appendChild(opt);
       });
       select.value = cf.select || "";
@@ -1173,7 +1297,7 @@
   }
 
   function getUniqueValues(sheet, col) {
-    var set = {};
+    var set = newMap();
     sheet.rows.forEach(function (row) {
       var v = (row[col] || "").toString().trim();
       if (v.length > 0) set[v] = true;
@@ -1241,7 +1365,7 @@
   // flipping through individual rows one by one without needing to
   // scroll past a dozen stacked cards. Desktop/tablet widths always
   // show the full list/table regardless of page.
-  var currentTaskIndexBySheet = {};
+  var currentTaskIndexBySheet = newMap();
 
   function isMobileWidth() {
     return window.matchMedia && window.matchMedia("(max-width:680px)").matches;
@@ -1454,7 +1578,7 @@
 
     if (sheet.name === "Week planning") {
       groupWeekItemsByDay(items).forEach(function (group) {
-        tableBodyEl.appendChild(buildWeekDayHeaderRow(sheet, group.label));
+        tableBodyEl.appendChild(buildWeekDayHeaderRow(sheet, group.label, group.isToday));
         group.items.forEach(function (item) {
           tableBodyEl.appendChild(buildRowElement(sheet, item.row, item.idx, false));
         });
@@ -1497,6 +1621,8 @@
     var userSorted = !!sortState["Week planning"];
     var groups = WEEK_GROUP_ORDER.map(function (g) { return { label: g.label, day: g.day, items: [] }; });
     var other = { label: "No date", day: null, items: [] };
+    var todayDay = new Date().getDay();
+    groups.forEach(function (g) { g.isToday = (g.day === todayDay); });
     items.forEach(function (item) {
       var di = weekRowDayIndex(item.row);
       var g = groups.find(function (x) { return x.day === di; });
@@ -1512,13 +1638,13 @@
     return groups.filter(function (g) { return g.items.length > 0; });
   }
 
-  function buildWeekDayHeaderRow(sheet, label) {
+  function buildWeekDayHeaderRow(sheet, label, isToday) {
     var tr = document.createElement("tr");
-    tr.className = "week-day-header-row";
+    tr.className = "week-day-header-row" + (isToday ? " week-day-today" : "");
     var td = document.createElement("td");
     td.colSpan = sheet.columns.length + (hasActionsColumn(sheet) ? 1 : 0);
     td.className = "week-day-header";
-    td.textContent = label;
+    td.textContent = isToday ? (label + " - Today") : label;
     tr.appendChild(td);
     return tr;
   }
@@ -1650,7 +1776,7 @@
     if (sheet.name === "Road Map - Pending") tr.classList.add("roadmap-row");
     if (sheet.name === "Summary" && row._isGroupStart) tr.classList.add("row-highlight");
 
-    var soloCols = {};
+    var soloCols = newMap();
     if (compact) {
       computeSoloShortFieldCols(sheet, sheet.columns.concat(["Transforms"])).forEach(function (c) {
         soloCols[c] = true;
@@ -1764,6 +1890,17 @@
       if (e.key === "Enter") {
         e.preventDefault();
         insertTextAtCursor("\n");
+      }
+    });
+
+    // Only plain typed/pasted text is ever accepted. Dropped content
+    // (which can carry rich HTML) and rich-text formatting commands are
+    // blocked, so nothing but text can enter a cell.
+    div.addEventListener("drop", function (e) { e.preventDefault(); });
+    div.addEventListener("beforeinput", function (e) {
+      var t = e.inputType || "";
+      if (t === "insertFromDrop" || t === "insertFromPasteAsQuotation" || t.indexOf("format") === 0) {
+        e.preventDefault();
       }
     });
 
@@ -1909,6 +2046,13 @@
     return input;
   }
 
+  // The stored value keeps the weekday ("Thu, 09/24/2026") so existing
+  // backups and grouping keep working, but only the date is displayed.
+  function weekDateOnly(v) {
+    var m = /\d{1,2}\/\d{1,2}\/\d{4}/.exec(String(v || ""));
+    return m ? m[0] : String(v || "");
+  }
+
   // Week planning's Date/Day is stored as "Thu, 09/24/2026" (weekday +
   // date) rather than a plain date, so it needs its own calendar-picker
   // cell: the picker itself only understands the MM/DD/YYYY part, and
@@ -1919,7 +2063,7 @@
     input.type = "text";
     input.className = "due-date-input";
     input.readOnly = true;
-    input.value = row[col] || "";
+    input.value = weekDateOnly(row[col]);
     input.placeholder = "";
 
     function mmddyyyyToIso(v) {
@@ -1962,7 +2106,7 @@
     input.addEventListener("blur", function () {
       input.type = "text";
       input.readOnly = true;
-      input.value = row[col] || "";
+      input.value = weekDateOnly(row[col]);
     });
 
     return input;
@@ -2067,7 +2211,7 @@
     });
     wrap.appendChild(copyBtn);
 
-    var moveTarget = MOVE_TARGETS[sheet.name];
+    var moveTarget = hasOwn(MOVE_TARGETS, sheet.name) ? MOVE_TARGETS[sheet.name] : null;
     if (moveTarget) {
       var moveBtn = document.createElement("button");
       moveBtn.type = "button";
@@ -2221,7 +2365,7 @@
     kbHelper.type = "text";
     kbHelper.setAttribute("aria-hidden", "true");
     kbHelper.tabIndex = -1;
-    kbHelper.style.cssText = "position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;border:0;padding:0;font-size:16px;pointer-events:none;";
+    kbHelper.className = "kb-helper";
     document.body.appendChild(kbHelper);
     kbHelper.focus({ preventScroll: true });
 
@@ -2290,14 +2434,14 @@
   function csvFieldEscape(value) {
     var v = value === null || value === undefined ? "" : String(value);
     if (/^[=+\-@\t\r]/.test(v)) v = "'" + v;
-    var needsQuote = /[",\n]/.test(v);
+    var needsQuote = /[",\r\n]/.test(v);
     v = v.replace(/"/g, '""');
     if (needsQuote) v = '"' + v + '"';
     return v;
   }
 
   function sanitizeFilename(name) {
-    var f = (name || "").toLowerCase().replace(/[^a-z0-9\-_]+/g, "-").replace(/^-+|-+$/g, "");
+    var f = String(name || "").toLowerCase().replace(/[^a-z0-9\-_]+/g, "-").replace(/^-+|-+$/g, "");
     if (!f) f = "sheet";
     return f;
   }
@@ -2407,8 +2551,9 @@
       workbook = normalized;
       clearWeekAutoAdded();
       selectedSheetIndex = 0;
-      filters = {};
-      sortState = {};
+      filters = newMap();
+      sortState = newMap();
+      currentTaskIndexBySheet = newMap();
       persistSelectedSheet();
       persistFilters();
       saveWorkbook();
@@ -2430,7 +2575,7 @@
         if (headCells[i]) headCells[i].style.width = saved + "px";
       }
     });
-    var savedActions = manualWidths[widthKey(sheet.name, ACTIONS_KEY_TOKEN)];
+    var savedActions = hasActionsColumn(sheet) ? manualWidths[widthKey(sheet.name, ACTIONS_KEY_TOKEN)] : 0;
     if (savedActions) {
       var lastCol = cols[cols.length - 1];
       var lastHead = headCells[headCells.length - 1];
@@ -2456,7 +2601,7 @@
 
         function onMove(ev) {
           var delta = ev.pageX - startX;
-          var newWidth = Math.max(60, Math.round(startWidth + delta));
+          var newWidth = Math.max(MIN_COL_WIDTH, Math.min(MAX_COL_WIDTH, Math.round(startWidth + delta)));
           th.style.width = newWidth + "px";
           if (colEl) colEl.style.width = newWidth + "px";
         }
@@ -2465,7 +2610,7 @@
           document.removeEventListener("mouseup", onUp);
           handle.classList.remove("resizing");
           var delta = ev.pageX - startX;
-          var finalWidth = Math.max(60, Math.round(startWidth + delta));
+          var finalWidth = Math.max(MIN_COL_WIDTH, Math.min(MAX_COL_WIDTH, Math.round(startWidth + delta)));
           manualWidths[widthKey(sheet.name, col)] = finalWidth;
           persistWidths();
         }

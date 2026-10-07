@@ -282,7 +282,9 @@ reapplied automatically every time you return to that page.
   replaceChildren, appendChild, classList, and addEventListener, so
   pasted or imported text can never be interpreted as HTML or script.
 - A strict Content Security Policy in index.html blocks all network
-  connections, external scripts/styles, plugins, and framing.
+  connections, external scripts/styles, plugins, and nested frames. (Protection against
+  this page being embedded inside someone else's page is done in
+  script.js instead, because a <meta> policy cannot do it.)
 
 ------------------------------------------------------------
 14. TROUBLESHOOTING
@@ -500,3 +502,43 @@ you need to scroll:
   little by phone model (screen height, notch size), since this is
   sized relative to your actual screen rather than to a fixed number
   of rows.
+
+
+------------------------------------------------------------
+19. SECURITY NOTES FOR GITHUB PAGES HOSTING (read once)
+------------------------------------------------------------
+- SHARED ORIGIN: every GitHub Pages site under one account lives on
+  the same address (yourname.github.io) and therefore SHARES
+  localStorage. Any other project page under the same account could
+  read or change this app's data. Do not host other people's code or
+  experiments under the same account; use a dedicated account (or a
+  custom domain) for this app.
+- PUBLIC REPOSITORY: everything you upload is visible to the world.
+  Upload only the 7 app files (index.html, style.css, script.js,
+  manifest.json, and the three PNG icons). NEVER upload an exported
+  backup .json - it contains your real data in plain text. The README,
+  SECURITY_* files and security-tests.js do not need to be uploaded.
+  Note the built-in sample rows (e.g. "Analyze the responses from esd -
+  123 etc") are part of script.js and therefore public.
+- DATA IS NOT ENCRYPTED: it is stored as plain text in the app's
+  browser storage on your phone (protected by your iPhone passcode).
+  Exported backups are plain text too - keep them somewhere private.
+- INSTALL IT TO THE HOME SCREEN: if you only use it as a Safari tab,
+  iOS may erase its stored data after about 7 days of not using it.
+  The Home Screen app is exempt. Export a backup regularly.
+- If the phone says storage is full / data could not be saved, tap
+  Export immediately and keep the file.
+
+
+------------------------------------------------------------
+20. TIMESX7 CHANGES
+------------------------------------------------------------
+- Rows pulled from the Times page show as "Space || Time" so you can
+  see which space each one belongs to. Rows from the Spaces page show
+  the Space only.
+- The group for today's weekday is titled e.g. "Wednesday - Today"
+  and is tinted blue/gray. (A group only appears if it has rows.)
+- No Transforms column on this page. To remove rows, use Reset or
+  Refresh (which rebuilds the page from Spaces and Times).
+- "Defined time on" shows the date only; Times fills the rest of the
+  line.

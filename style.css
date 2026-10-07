@@ -807,8 +807,10 @@ div.summary-task-link{
     margin-bottom:0;
   }
   .data-table tr.week-row > td[data-col="Date/Day"]{flex:0 0 auto;width:auto !important;min-width:0;order:1;}
-  .data-table tr.week-row > td[data-col="Transforms"]{flex:0 0 auto;width:auto !important;min-width:0;order:2;margin-left:auto;}
-  .data-table tr.week-row > td[data-col="Timeframes"]{flex:1 1 100%;order:3;}
+  /* Date and Times share one line: the date takes only the room it needs
+     and Times (basis 0, can shrink) takes everything that is left. */
+  .data-table tr.week-row{flex-wrap:nowrap;align-items:flex-start;}
+  .data-table tr.week-row > td[data-col="Timeframes"]{flex:1 1 0;min-width:0;order:2;}
 
   /* Road Map - Pending: Start date, End date and Duration are short
      fields that would otherwise each take a full stacked row (Duration
@@ -1039,4 +1041,35 @@ div.summary-task-link{
     border:none;
     padding:9px 12px;
   }
+}
+
+/* TimesX7: the group for today's weekday - blue/gray mix of the theme's
+   slate and the blue used for "In-Progress" - so today stands out. */
+.data-table tr.week-day-header-row.week-day-today > td.week-day-header{
+  background:linear-gradient(100deg,rgba(59,130,246,.24),rgba(100,116,139,.24));
+  color:#1e3a8a;
+  border-left:4px solid #3b82f6;
+}
+@media (max-width:680px){
+  .data-table tr.week-day-header-row.week-day-today{
+    background:linear-gradient(100deg,rgba(59,130,246,.24),rgba(100,116,139,.24));
+    box-shadow:inset 4px 0 0 #3b82f6;
+  }
+  .data-table tr.week-day-header-row.week-day-today > td.week-day-header{border-left:none;}
+}
+
+/* Invisible helper input used to raise the iOS keyboard synchronously on
+   "+ Add" (see handleAddRow). A class instead of inline styles keeps the
+   strict style-src 'self' CSP honest. */
+.kb-helper{
+  position:fixed;
+  top:0;
+  left:0;
+  width:1px;
+  height:1px;
+  opacity:0;
+  border:0;
+  padding:0;
+  font-size:16px;
+  pointer-events:none;
 }
