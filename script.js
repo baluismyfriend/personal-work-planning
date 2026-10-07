@@ -2260,6 +2260,10 @@
     delBtn.className = "row-btn delete";
     delBtn.textContent = "Delete";
     delBtn.addEventListener("click", function () {
+      if (sheet.name === "Road Map - Pending") {
+        deleteSpaceWithTasks(sheet, sourceIdx);
+        return;
+      }
       if (window.confirm("Delete this row from the local portal?")) {
         sheet.rows.splice(sourceIdx, 1);
         saveWorkbook();
@@ -2269,6 +2273,53 @@
     wrap.appendChild(delBtn);
 
     return wrap;
+  }
+
+  /* ---------------------------------------------------------
+     Deleting a Space also deletes its tasks
+     --------------------------------------------------------- */
+  // Deleting a row on the Spaces page removes the Space and every task
+  // that belongs to it: rows on Times, NextIn and NoSpace whose Space
+  // matches (same trimmed, exact-case match that Spacetime groups by).
+  // Spacetime is rebuilt from Times, so it follows automatically.
+  // Safeguards: a Space with no name deletes only its own row (otherwise
+  // every task without a Space would be wiped), and if another Spaces row
+  // has the same name the Space still exists, so its tasks are kept.
+  function deleteSpaceWithTasks(sheet, sourceIdx) {
+    var name = String((sheet.rows[sourceIdx] && sheet.rows[sourceIdx].Space) || "").trim();
+    var duplicate = name !== "" && sheet.rows.some(function (r, i) {
+      return i !== sourceIdx && String((r && r.Space) || "").trim() === name;
+    });
+    var cascade = name !== "" && !duplicate;
+    var targets = [];
+    if (cascade) {
+      TASK_SHEET_NAMES.forEach(function (n) {
+        var t = workbook.find(function (x) { return x.name === n; });
+        if (!t) return;
+        var count = t.rows.filter(function (r) { return String((r && r.Space) || "").trim() === name; }).length;
+        targets.push({ sheet: t, count: count });
+      });
+    }
+    var msg;
+    if (cascade) {
+      var label = { "Daily planning - All tasks": "Times", "All future Tasks": "NextIn", "Completed tasks": "NoSpace" };
+      msg = 'Delete space "' + name + '"?\n\nThis permanently deletes:\n- this row on Spaces';
+      targets.forEach(function (t) { msg += "\n- " + t.count + " row(s) on " + label[t.sheet.name]; });
+      msg += "\n\nSpacetime updates automatically. This cannot be undone - Export a backup first if unsure.";
+    } else if (duplicate) {
+      msg = 'Delete this row from Spaces?\n\nAnother Spaces row is also named "' + name + '", so its tasks are kept.';
+    } else {
+      msg = "Delete this row from the local portal?";
+    }
+    if (!window.confirm(msg)) return;
+    sheet.rows.splice(sourceIdx, 1);
+    targets.forEach(function (t) {
+      t.sheet.rows = t.sheet.rows.filter(function (r) { return String((r && r.Space) || "").trim() !== name; });
+    });
+    currentTaskIndexBySheet = newMap();
+    refreshSummarySheet(workbook);
+    saveWorkbook();
+    renderAll();
   }
 
   /* ---------------------------------------------------------

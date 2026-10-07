@@ -1,6 +1,6 @@
 # Security report - Participant: Spaces & Time
 
-**Result after fixes: 101 passed, 0 failed.**
+**Result after fixes: 106 passed, 0 failed.**
 Run: `npm i jsdom && node security-tests.js` (from the app folder). Raw output: `SECURITY_TESTS.txt`.
 
 The previous suite (45 checks) was re-run first and reproduced as passing, but several of its checks were weak (details below), so the audit was redone adversarially. The same new suite run against your **original** files gives **61 passed / 27 failed**, so the new tests really do detect the problems.
@@ -49,3 +49,6 @@ These changes touch no security-sensitive code; the full suite (including the fu
 ## Update: Times page (7 new tests, 101 total)
 - "time on" now opens the calendar picker (same control as "Time Zero on"); "+ Add" focuses the first text cell so it doesn't pop the calendar.
 - Demand = 99 repeats a Times row on every day (all 7 days) between "time on" and "Time Zero on" in TimesX7. No security-relevant code changed; the full suite (including the fuzzer) was re-run.
+
+## Update: Spaces delete (5 new tests, 106 total)
+Delete on the Spaces page now also deletes that Space's tasks on Times, NextIn and NoSpace (Spacetime follows). A blank-named Space deletes only itself; a duplicate-named Space keeps the tasks. Shows a confirmation with row counts. No security-relevant code changed.

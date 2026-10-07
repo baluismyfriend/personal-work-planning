@@ -557,3 +557,17 @@ you need to scroll:
   * Weekends are included - it is every day of the week.
   * "Time Zero on" must be filled in. If "time on" is blank, only the
     "Time Zero on" day is used.
+
+
+------------------------------------------------------------
+22. DELETING A SPACE (SPACES PAGE)
+------------------------------------------------------------
+- Delete on a Spaces row removes the Space AND every task with that
+  Space name on Times, NextIn and NoSpace; Spacetime updates by itself.
+  The confirmation shows how many rows will go. It cannot be undone,
+  so Export a backup first if unsure.
+- Names must match exactly (extra spaces at the ends are ignored, but
+  "AA", "aa" and "AAB" are three different spaces).
+- A Space with no name deletes only its own row. If two Spaces rows
+  have the same name, deleting one keeps the tasks.
+- TimesX7 is not touched; tap Refresh there to rebuild it.

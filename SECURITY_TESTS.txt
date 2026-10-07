@@ -98,7 +98,12 @@ PASS  Demand 99: stops at the Time Zero on date (inclusive) and starts at time-o
 PASS  Demand 99: no past days (even on Refresh), no Time Zero on -> nothing, " 99 " is accepted
 PASS  Demand 99: blank/invalid time-on falls back to the end date only (any day, weekend too); other Demand values are not repeated
 PASS  Demand 99: repeat rows are not duplicated by a second Refresh or the automatic sync
-      (fuzz: 55 imports accepted, 95 rejected)
+PASS  Spaces Delete: removes the Space and its tasks on Times, NextIn and NoSpace (exact trimmed name only)
+PASS  Spaces Delete: Cancel deletes nothing
+PASS  Spaces Delete: a Space with no name deletes only its own row (never every task without a Space)
+PASS  Spaces Delete: if another Spaces row has the same name, only the row goes and tasks are kept
+PASS  Delete on other pages still deletes just that row
+      (fuzz: 49 imports accepted, 101 rejected)
 PASS  Fuzz: 150 randomly type-confused/poisoned imports -> no crash, no pollution, storage always reloadable
 
-101 passed, 0 failed
+106 passed, 0 failed

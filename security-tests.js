@@ -477,6 +477,50 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     if (weekDates(w).length !== n) throw new Error(n + ' -> ' + weekDates(w).length);
   });
 
+  /* ---- Spaces page: Delete removes the Space and all its tasks ---- */
+  const roadRow = sp => ({ Space: sp, 'Key milestones': 'k', 'Life began': '', 'Life Ends': '', 'Life span': '' });
+  async function spaceBoot(road) {
+    const w = await boot(); const g = wbOf(w);
+    sheetOf(g, 'Road Map - Pending').rows = road;
+    sheetOf(g, 'Daily planning - All tasks').rows = [blankTask({ Space: 'AA', 'Timeframe/Meeting': 'a1' }), blankTask({ Space: ' AA ', 'Timeframe/Meeting': 'a2' }), blankTask({ Space: 'AAB', 'Timeframe/Meeting': 'keep-AAB' }), blankTask({ Space: 'aa', 'Timeframe/Meeting': 'keep-lower' }), blankTask({ 'Timeframe/Meeting': 'keep-nospace' })];
+    sheetOf(g, 'All future Tasks').rows = [blankTask({ Space: 'AA', 'Timeframe/Meeting': 'f1' }), blankTask({ Space: 'BB', 'Timeframe/Meeting': 'keep-f' })];
+    sheetOf(g, 'Completed tasks').rows = [blankTask({ Space: 'AA', 'Timeframe/Meeting': 'c1', Timing: 'Complete' }), blankTask({ Space: 'BB', 'Timeframe/Meeting': 'keep-c', Timing: 'Complete' })];
+    await doImport(w, JSON.stringify(g)); clickNav(w, /^Spaces$/); return w;
+  }
+  const spaceDeleteBtn = (w, i) => w.document.querySelectorAll('tr[data-source-idx] .row-btn.delete')[i];
+  const texts = (w, n) => sheetOf(wbOf(w), n).rows.map(r => r['Timeframe/Meeting']).sort();
+  await ta('Spaces Delete: removes the Space and its tasks on Times, NextIn and NoSpace (exact trimmed name only)', async () => {
+    const w = await spaceBoot([roadRow('AA'), roadRow('BB')]); let msg = ''; w.confirm = m => { msg = m; return true; };
+    spaceDeleteBtn(w, 0).click();
+    const g = wbOf(w);
+    if (JSON.stringify(sheetOf(g, 'Road Map - Pending').rows.map(r => r.Space)) !== '["BB"]') throw new Error('space rows: ' + JSON.stringify(sheetOf(g, 'Road Map - Pending').rows));
+    if (JSON.stringify(texts(w, 'Daily planning - All tasks')) !== JSON.stringify(['keep-AAB', 'keep-lower', 'keep-nospace'])) throw new Error('Times: ' + texts(w, 'Daily planning - All tasks'));
+    if (JSON.stringify(texts(w, 'All future Tasks')) !== '["keep-f"]') throw new Error('NextIn: ' + texts(w, 'All future Tasks'));
+    if (JSON.stringify(texts(w, 'Completed tasks')) !== '["keep-c"]') throw new Error('NoSpace: ' + texts(w, 'Completed tasks'));
+    const sum = sheetOf(g, 'Summary').rows.map(r => r.Space + ':' + r.Time); if (sum.some(x => /^AA:/.test(x))) throw new Error('Spacetime still has AA: ' + sum);
+    if (!/"AA"/.test(msg) || !/2 row\(s\) on Times/.test(msg) || !/1 row\(s\) on NextIn/.test(msg) || !/1 row\(s\) on NoSpace/.test(msg)) throw new Error('confirm text: ' + msg);
+    for (const b of navBtns(w)) b.click(); if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
+  await ta('Spaces Delete: Cancel deletes nothing', async () => {
+    const w = await spaceBoot([roadRow('AA')]); const before = w.localStorage.getItem(DK); w.confirm = () => false; spaceDeleteBtn(w, 0).click();
+    if (w.localStorage.getItem(DK) !== before) throw new Error('data changed on cancel');
+  });
+  await ta('Spaces Delete: a Space with no name deletes only its own row (never every task without a Space)', async () => {
+    const w = await spaceBoot([roadRow(''), roadRow('AA')]); spaceDeleteBtn(w, 0).click();
+    if (sheetOf(wbOf(w), 'Road Map - Pending').rows.length !== 1) throw new Error('row not deleted');
+    if (!texts(w, 'Daily planning - All tasks').includes('keep-nospace') || texts(w, 'Daily planning - All tasks').length !== 5) throw new Error('tasks deleted: ' + texts(w, 'Daily planning - All tasks'));
+  });
+  await ta('Spaces Delete: if another Spaces row has the same name, only the row goes and tasks are kept', async () => {
+    const w = await spaceBoot([roadRow('AA'), roadRow('AA')]); let msg = ''; w.confirm = m => { msg = m; return true; }; spaceDeleteBtn(w, 0).click();
+    if (sheetOf(wbOf(w), 'Road Map - Pending').rows.length !== 1) throw new Error('row not deleted');
+    if (texts(w, 'Daily planning - All tasks').length !== 5 || texts(w, 'All future Tasks').length !== 2) throw new Error('tasks deleted');
+    if (!/tasks are kept/.test(msg)) throw new Error('message: ' + msg);
+  });
+  await ta('Delete on other pages still deletes just that row', async () => {
+    const w = await spaceBoot([roadRow('AA')]); clickNav(w, /^NextIn$/); w.document.querySelector('tr[data-source-idx] .row-btn.delete').click();
+    if (sheetOf(wbOf(w), 'All future Tasks').rows.length !== 1 || sheetOf(wbOf(w), 'Road Map - Pending').rows.length !== 1 || texts(w, 'Daily planning - All tasks').length !== 5) throw new Error('cascade leaked to another page');
+  });
+
   /* ---- mutation fuzz of the import path ---- */
   await ta('Fuzz: 150 randomly type-confused/poisoned imports -> no crash, no pollution, storage always reloadable', async () => {
     let seed = 1337; const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
