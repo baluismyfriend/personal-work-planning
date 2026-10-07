@@ -424,6 +424,59 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
   t('TimesX7 phone layout keeps Date and Times on one line (no-wrap, Times flex-basis 0)', () =>
     /tr\.week-row\{flex-wrap:nowrap/.test(css.replace(/\s+/g, '')) && /td\[data-col="Timeframes"\]\{flex:1 1 0;/.test(css.replace(/\s+/g, ' ')) && !/week-row > td\[data-col="Transforms"\]/.test(css));
 
+  /* ---- Times page: calendar for "time on"; Demand 99 weekday repeat ---- */
+  const addDays = n => new Date(now.getFullYear(), now.getMonth(), now.getDate() + n);
+  const dayStrOf = n => mmddyyyy(addDays(n));
+  const expectedWeekdays = (fromOff, toOff) => { const out = []; for (let o = Math.max(fromOff, 0); o <= Math.min(toOff, 7); o++) out.push(dayStrOf(o)); return out.sort(); }; // every day, all 7 weekdays
+  const weekDates = w => sheetOf(wbOf(w), 'Week planning').rows.map(r => /\d{2}\/\d{2}\/\d{4}/.exec(r['Date/Day'])[0]).sort();
+  await ta('Times page: "time on" (Date) is a calendar input; picking a date saves MM/DD/YYYY', async () => {
+    const w = await weekBoot([blankTask({ Date: '01/02/2026', Space: 'A', 'Timeframe/Meeting': 'x' })]);
+    clickNav(w, /^Times$/);
+    const inp = w.document.querySelector('td[data-col="Date"] input.due-date-input'); if (!inp) throw new Error('Date is not a calendar input');
+    if (inp.value !== '01/02/2026') throw new Error('shows ' + inp.value);
+    inp.dispatchEvent(new w.Event('focus')); if (inp.type !== 'date') throw new Error('did not switch to a date control: ' + inp.type);
+    if (inp.value !== '2026-01-02') throw new Error('picker not pre-set: ' + inp.value);
+    inp.value = '2026-10-12'; inp.dispatchEvent(new w.Event('change'));
+    if (sheetOf(wbOf(w), 'Daily planning - All tasks').rows[0].Date !== '10/12/2026') throw new Error('saved ' + sheetOf(wbOf(w), 'Daily planning - All tasks').rows[0].Date);
+    inp.dispatchEvent(new w.Event('blur')); if (inp.type !== 'text' || inp.value !== '10/12/2026') throw new Error('after blur ' + inp.type + ' ' + inp.value);
+  });
+  await ta('Times page: "+ Add" fills today\'s date and does not pop the calendar (focus goes to a text cell)', async () => {
+    const w = await boot(); clickNav(w, /^Times$/); const focused = []; const of = w.HTMLElement.prototype.focus; w.HTMLElement.prototype.focus = function () { focused.push(this.className + '|' + this.type); return of.apply(this, arguments); };
+    w.document.getElementById('btnAddRowFloating').click(); await sleep(200);
+    const rows = sheetOf(wbOf(w), 'Daily planning - All tasks').rows; if (rows[rows.length - 1].Date !== todayStr) throw new Error('date ' + rows[rows.length - 1].Date);
+    const dateInp = w.document.querySelector('tr[data-source-idx="' + (rows.length - 1) + '"] td[data-col="Date"] input'); if (!dateInp || dateInp.type !== 'text') throw new Error('calendar opened on add');
+    const last = focused[focused.length - 1]; if (!last || !/cell-editable/.test(last)) throw new Error('focus not on a text cell: ' + JSON.stringify(focused));
+  });
+  async function repeatCase(demand, startOff, endOff, extra) {
+    const w = await weekBoot([blankTask(Object.assign({ Demand: demand, Space: 'AA', 'Timeframe/Meeting': 'Standup', Date: startOff === null ? '' : dayStrOf(startOff), 'Time Zero on': endOff === null ? '' : dayStrOf(endOff) }, extra || {}))]);
+    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click(); return w;
+  }
+  await ta('Demand 99: one TimesX7 row per day (all 7 days of the week, weekends included) from time-on to Time Zero on, within the next 7 days', async () => {
+    const w = await repeatCase('99', -3, 20); const got = weekDates(w), want = expectedWeekdays(0, 7);
+    if (JSON.stringify(got) !== JSON.stringify(want)) throw new Error('got ' + got + ' want ' + want);
+    if (sheetOf(wbOf(w), 'Week planning').rows.some(r => r.Timeframes !== 'AA || Standup')) throw new Error('text not "Space || Time"');
+    if (got.length !== 8) throw new Error('expected 8 consecutive days (today..+7), got ' + got.length);
+    const wds = new Set(got.map(d => { const [m, dd, y] = d.split('/').map(Number); return new Date(y, m - 1, dd).getDay(); })); if (wds.size !== 7) throw new Error('not every weekday covered: ' + [...wds]);
+  });
+  await ta('Demand 99: stops at the Time Zero on date (inclusive) and starts at time-on when it is in the future', async () => {
+    let w = await repeatCase('99', 0, 3); if (JSON.stringify(weekDates(w)) !== JSON.stringify(expectedWeekdays(0, 3))) throw new Error('end: ' + weekDates(w));
+    w = await repeatCase('99', 2, 6); if (JSON.stringify(weekDates(w)) !== JSON.stringify(expectedWeekdays(2, 6))) throw new Error('start: ' + weekDates(w));
+  });
+  await ta('Demand 99: no past days (even on Refresh), no Time Zero on -> nothing, " 99 " is accepted', async () => {
+    let w = await repeatCase('99', -10, -2); if (weekDates(w).length) throw new Error('past days added: ' + weekDates(w));
+    w = await repeatCase('99', 0, null); if (weekDates(w).length) throw new Error('added without end date');
+    w = await repeatCase(' 99 ', 0, 7); if (JSON.stringify(weekDates(w)) !== JSON.stringify(expectedWeekdays(0, 7))) throw new Error('trim: ' + weekDates(w));
+  });
+  await ta('Demand 99: blank/invalid time-on falls back to the end date only (any day, weekend too); other Demand values are not repeated', async () => {
+    let w = await repeatCase('99', null, 4); const want = expectedWeekdays(4, 4); if (JSON.stringify(weekDates(w)) !== JSON.stringify(want)) throw new Error('blank start: ' + weekDates(w) + ' want ' + want);
+    w = await repeatCase('5', -3, 4); if (JSON.stringify(weekDates(w)) !== JSON.stringify([dayStrOf(4)])) throw new Error('normal row changed: ' + weekDates(w));
+    w = await repeatCase('990', 0, 5); if (JSON.stringify(weekDates(w)) !== JSON.stringify([dayStrOf(5)])) throw new Error('"990" treated as 99: ' + weekDates(w));
+  });
+  await ta('Demand 99: repeat rows are not duplicated by a second Refresh or the automatic sync', async () => {
+    const w = await repeatCase('99', 0, 7); const n = weekDates(w).length; w.document.getElementById('btnRefreshWeek').click(); clickNav(w, /^Times$/); clickNav(w, /^TimesX7$/); await sleep(30);
+    if (weekDates(w).length !== n) throw new Error(n + ' -> ' + weekDates(w).length);
+  });
+
   /* ---- mutation fuzz of the import path ---- */
   await ta('Fuzz: 150 randomly type-confused/poisoned imports -> no crash, no pollution, storage always reloadable', async () => {
     let seed = 1337; const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;

@@ -1,6 +1,6 @@
 # Security report - Participant: Spaces & Time
 
-**Result after fixes: 94 passed, 0 failed.**
+**Result after fixes: 101 passed, 0 failed.**
 Run: `npm i jsdom && node security-tests.js` (from the app folder). Raw output: `SECURITY_TESTS.txt`.
 
 The previous suite (45 checks) was re-run first and reproduced as passing, but several of its checks were weak (details below), so the audit was redone adversarially. The same new suite run against your **original** files gives **61 passed / 27 failed**, so the new tests really do detect the problems.
@@ -45,3 +45,7 @@ No `innerHTML`/`eval`/network APIs; CSP has no `unsafe-*`; all text rendered via
 - Today's weekday group reads "<Day> - Today" in a blue/gray highlight; other groups unchanged.
 - Transforms column removed; Defined time on shows the date only (the weekday is still stored, so old backups and grouping are unaffected); date and Times share one line, Times takes the remaining width.
 These changes touch no security-sensitive code; the full suite (including the fuzzer) was re-run.
+
+## Update: Times page (7 new tests, 101 total)
+- "time on" now opens the calendar picker (same control as "Time Zero on"); "+ Add" focuses the first text cell so it doesn't pop the calendar.
+- Demand = 99 repeats a Times row on every day (all 7 days) between "time on" and "Time Zero on" in TimesX7. No security-relevant code changed; the full suite (including the fuzzer) was re-run.

@@ -91,7 +91,14 @@ PASS  TimesX7: today's group reads "<Day> - Today" with the highlight class; oth
 PASS  TimesX7: no Transforms/actions column, no row buttons
 PASS  TimesX7: Defined time on shows only the date (stored value keeps weekday); date col fixed, Times col takes the rest
 PASS  TimesX7 phone layout keeps Date and Times on one line (no-wrap, Times flex-basis 0)
-      (fuzz: 59 imports accepted, 91 rejected)
+PASS  Times page: "time on" (Date) is a calendar input; picking a date saves MM/DD/YYYY
+PASS  Times page: "+ Add" fills today's date and does not pop the calendar (focus goes to a text cell)
+PASS  Demand 99: one TimesX7 row per day (all 7 days of the week, weekends included) from time-on to Time Zero on, within the next 7 days
+PASS  Demand 99: stops at the Time Zero on date (inclusive) and starts at time-on when it is in the future
+PASS  Demand 99: no past days (even on Refresh), no Time Zero on -> nothing, " 99 " is accepted
+PASS  Demand 99: blank/invalid time-on falls back to the end date only (any day, weekend too); other Demand values are not repeated
+PASS  Demand 99: repeat rows are not duplicated by a second Refresh or the automatic sync
+      (fuzz: 55 imports accepted, 95 rejected)
 PASS  Fuzz: 150 randomly type-confused/poisoned imports -> no crash, no pollution, storage always reloadable
 
-94 passed, 0 failed
+101 passed, 0 failed

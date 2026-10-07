@@ -488,7 +488,7 @@
   // MM/DD/YYYY). Keyed by sheet name -> column name, or an array of
   // column names when a sheet has more than one date column.
   var CALENDAR_DATE_COLUMNS = {
-    "Daily planning - All tasks": "Time Zero on",
+    "Daily planning - All tasks": ["Date", "Time Zero on"],
     "Road Map - Pending": ["Life began", "Life Ends"],
     "Week planning": "Date/Day"
   };
@@ -927,6 +927,8 @@
      - Times page: a row whose "Time Zero on" date falls today..+7
        days gets a TimesX7 row: Defined time on = that date, Times =
        the row's Time text (falls back to the Space if Time is blank).
+     - Times page, Demand = 99: the row repeats on every day of the
+       week (Mon-Sun) from its "time on" date to its "Time Zero on" date.
      Each (source, date, text) is added only once - remembered in
      localStorage - so a row you delete from TimesX7 stays deleted. */
   function loadWeekAutoAdded() {
@@ -1007,6 +1009,25 @@
         var timeText = String(r["Timeframe/Meeting"] || "").trim();
         var spaceText = String(r.Space || "").trim();
         var text = (spaceText && timeText) ? (spaceText + " || " + timeText) : (timeText || spaceText);
+        if (String(r.Demand || "").trim() === "99") {
+          // Demand 99 = repeats every day (all 7 days) from "time on"
+          // (Date) to "Time Zero on", inclusive. Only today and the
+          // coming days inside the sync window are added - past days of
+          // a daily task are not "overdue" items worth listing.
+          var endMs = dateToUtcMs(r["Time Zero on"]);
+          if (endMs === null) return;                 // no end date: nothing to repeat to
+          var startMs = dateToUtcMs(r["Date"]);
+          if (startMs === null || startMs > endMs) startMs = endMs;
+          var from = Math.max(startMs, todayMs);
+          var to = Math.min(endMs, todayMs + 7 * 86400000);
+          for (var ms = from; ms <= to; ms += 86400000) {
+            var d = new Date(ms);                      // UTC midnight; read back in UTC
+            var dayStr = String(d.getUTCMonth() + 1).padStart(2, "0") + "/" +
+              String(d.getUTCDate()).padStart(2, "0") + "/" + d.getUTCFullYear();
+            consider("T", dayStr, text, timeText);
+          }
+          return;
+        }
         consider("T", r["Time Zero on"], text, timeText);
       });
     }
@@ -2402,7 +2423,8 @@
         tr.scrollIntoView({ behavior: "smooth", block: "center" });
         tr.classList.add("row-highlight");
         setTimeout(function () { tr.classList.remove("row-highlight"); }, 1800);
-        var focusable = tr.querySelector('[contenteditable="true"], input, select, button');
+        // Prefer a text cell: focusing a calendar input would pop its picker open.
+        var focusable = tr.querySelector(".cell-editable") || tr.querySelector("input, select, button");
         if (focusable) focusable.focus({ preventScroll: true });
       }
       if (kbHelper.parentNode) kbHelper.parentNode.removeChild(kbHelper);

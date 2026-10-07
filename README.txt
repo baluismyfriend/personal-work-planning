@@ -542,3 +542,18 @@ you need to scroll:
   Refresh (which rebuilds the page from Spaces and Times).
 - "Defined time on" shows the date only; Times fills the rest of the
   line.
+
+
+------------------------------------------------------------
+21. TIMES PAGE: CALENDAR + DAILY REPEAT (DEMAND 99)
+------------------------------------------------------------
+- "time on" opens the calendar picker (tap it), like "Time Zero on".
+- Put 99 in Demand to make a Times row repeat every day
+  (all 7 days, Mon-Sun) from "time on" to "Time Zero on", inclusive. Tap Refresh
+  on TimesX7 (or just leave the Times page) and one TimesX7 line per
+  day appears as "Space || Time".
+  * Only today and the next 7 days are listed, so old days do not
+    pile up; each Refresh adds the days that have come into range.
+  * Weekends are included - it is every day of the week.
+  * "Time Zero on" must be filled in. If "time on" is blank, only the
+    "Time Zero on" day is used.
