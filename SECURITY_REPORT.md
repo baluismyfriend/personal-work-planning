@@ -1,6 +1,6 @@
 # Security report - Participant: Spaces & Time
 
-**Result after fixes: 113 passed, 0 failed.**
+**Result after fixes: 125 passed, 0 failed.**
 Run: `npm i jsdom && node security-tests.js` (from the app folder). Raw output: `SECURITY_TESTS.txt`.
 
 The previous suite (45 checks) was re-run first and reproduced as passing, but several of its checks were weak (details below), so the audit was redone adversarially. The same new suite run against your **original** files gives **61 passed / 27 failed**, so the new tests really do detect the problems.
@@ -55,3 +55,13 @@ Delete on the Spaces page now also deletes that Space's tasks on Times, NextIn a
 
 ## Update: BackIn / NextIn wrap around (7 new tests, 113 total)
 On Spacetime, Times, NextIn and NoSpace the BackIn/NextIn buttons now loop (1 of 10 -> BackIn -> 10 of 10; 10 of 10 -> NextIn -> 1 of 10). Finger swipes still stop at the ends. No security-relevant code changed.
+
+## Update: TimesX7 / Times sync (10 new tests, 123 total)
+- TimesX7 now shows only rows from the Times page (Spaces "Life Ends" rows are no longer added). Press Refresh once to clear old Spaces-based rows.
+- Times "Time Zero on" and TimesX7 "Defined time on" cannot be later than that Space's "Life Ends" on Spaces (calendar `max` plus a check on save; no limit if the Space is blank, unknown or has no Life Ends).
+- TimesX7 has a small radio button before the date: it deletes the TimesX7 row and its source row on Times (with a confirmation); for Demand = 99 it deletes only that day on TimesX7.
+- Changing the date on TimesX7 updates "Time Zero on" on Times; Demand = 99 dates are locked on TimesX7.
+No security-sensitive code changed (still no innerHTML / network APIs); the full suite, including the fuzzer, was re-run.
+
+## Update: TimesX7 Times column read-only (2 new tests, 125 total)
+- The Times column on TimesX7 is display-only ("Space || Time"). Tapping it opens that task on the Times page (highlighted). No security-relevant code changed.

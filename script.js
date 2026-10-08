@@ -1909,6 +1909,8 @@
         td.appendChild(buildStatusCell(sheet, row, sourceIdx));
       } else if (isCalendarDateColumn(sheet, col)) {
         td.appendChild(sheet.name === "Week planning" ? buildWeekDateDayCell(sheet, row, sourceIdx, col) : buildDueDateCell(sheet, row, sourceIdx, col));
+      } else if (sheet.name === "Week planning" && col === "Timeframes") {
+        td.appendChild(buildWeekTimesLinkCell(row));
       } else if (isComputedColumn(sheet, col)) {
         td.appendChild(buildComputedCell(sheet, row, col));
       } else {
@@ -2265,6 +2267,34 @@
     });
 
     return wrap;
+  }
+
+  // TimesX7's Times column is display-only ("Space || Time"). Tapping it
+  // opens the Times page at that task (found by its Space || Time text and
+  // date; if there is no matching task it just opens the Times page).
+  function buildWeekTimesLinkCell(row) {
+    var div = document.createElement("div");
+    div.className = "cell-readonly summary-task-link week-times-link";
+    div.textContent = row["Timeframes"] || "";
+    div.title = "Tap to open this task on the Times page";
+    div.tabIndex = 0;
+    div.setAttribute("role", "button");
+    function open() {
+      var src = findWeekSource(row);
+      var daily = dailySheet();
+      var idx = (src && daily) ? daily.rows.indexOf(src.row) : -1;
+      if (idx !== -1) {
+        goToDailyTaskFromSummary(idx);
+      } else {
+        var di = workbook.findIndex(function (s) { return s.name === "Daily planning - All tasks"; });
+        if (di !== -1) goToSheetIndex(di);
+      }
+    }
+    div.addEventListener("click", open);
+    div.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
+    });
+    return div;
   }
 
   // TimesX7 radio: removes the TimesX7 row; for a normal task also removes

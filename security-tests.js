@@ -376,12 +376,12 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     sheetOf(g, 'Week planning').rows = [];
     await doImport(w, JSON.stringify(g)); return w;
   }
-  await ta('TimesX7 Refresh: Times rows appear as "Space || Time"; Spaces rows stay Space only', async () => {
+  await ta('TimesX7 Refresh: Times rows appear as "Space || Time"; Spaces (Life Ends) rows are NOT shown', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'Call Bob', 'Time Zero on': todayStr }), blankTask({ 'Timeframe/Meeting': 'Only time', 'Time Zero on': todayStr }), blankTask({ Space: 'OnlySpace', 'Time Zero on': todayStr })],
       [{ Space: 'RR', 'Key milestones': 'k', 'Life began': '', 'Life Ends': todayStr, 'Life span': '' }]);
     clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
     const texts = sheetOf(wbOf(w), 'Week planning').rows.map(r => r.Timeframes).sort();
-    const want = ['AA || Call Bob', 'OnlySpace', 'Only time', 'RR'].sort();
+    const want = ['AA || Call Bob', 'OnlySpace', 'Only time'].sort(); // Spaces row RR must not appear
     if (JSON.stringify(texts) !== JSON.stringify(want)) throw new Error(JSON.stringify(texts));
   });
   await ta('TimesX7 sync: an older row showing only the Time text is upgraded in place (no duplicate)', async () => {
@@ -417,7 +417,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
     const inp = w.document.querySelector('td[data-col="Date/Day"] input'); if (inp.value !== todayStr) throw new Error('shown "' + inp.value + '"');
     if (!/^[A-Z][a-z]{2}, /.test(sheetOf(wbOf(w), 'Week planning').rows[0]['Date/Day'])) throw new Error('stored format changed');
-    const cols = [...w.document.querySelectorAll('#colgroup col')]; if (cols[0].style.width !== '130px' || cols[1].style.width !== '') throw new Error(cols.map(c => c.style.width).join('|'));
+    const cols = [...w.document.querySelectorAll('#colgroup col')]; if (cols[0].style.width !== '160px' || cols[1].style.width !== '') throw new Error(cols.map(c => c.style.width).join('|'));
     const opt = [...w.document.querySelectorAll('.filter-select')][0].options; if ([...opt].some(o => /^[A-Z][a-z]{2},/.test(o.textContent))) throw new Error('filter dropdown shows day names');
     inp.dispatchEvent(new w.Event('blur')); if (inp.value !== todayStr) throw new Error('after blur: ' + inp.value);
   });
@@ -519,6 +519,118 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
   await ta('Delete on other pages still deletes just that row', async () => {
     const w = await spaceBoot([roadRow('AA')]); clickNav(w, /^NextIn$/); w.document.querySelector('tr[data-source-idx] .row-btn.delete').click();
     if (sheetOf(wbOf(w), 'All future Tasks').rows.length !== 1 || sheetOf(wbOf(w), 'Road Map - Pending').rows.length !== 1 || texts(w, 'Daily planning - All tasks').length !== 5) throw new Error('cascade leaked to another page');
+  });
+
+
+  /* ---- TimesX7: Times-only rows, Life Ends limit, radio delete, date sync ---- */
+  const dayStr = n => mmddyyyy(new Date(now.getFullYear(), now.getMonth(), now.getDate() + n));
+  const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m[3] + '-' + m[1] + '-' + m[2]; };
+  const dateOnly = v => { const m = /\d{2}\/\d{2}\/\d{4}/.exec(v); return m ? m[0] : ''; };
+  const formatDD = n => { const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + n); return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()] + ', ' + mmddyyyy(d); };
+  const lifeRow = (space, ends) => ({ Space: space, 'Key milestones': 'k', 'Life began': '', 'Life Ends': ends, 'Life span': '' });
+  function pickDate(w, input, str) { input.dispatchEvent(new w.Event('focus')); input.value = isoOf(str); input.dispatchEvent(new w.Event('change')); }
+  await ta('TimesX7: Spaces rows are not shown, also through the automatic sync', async () => {
+    const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': todayStr })], [lifeRow('RR', todayStr)]);
+    clickNav(w, /^TimesX7$/); await sleep(30); const texts1 = sheetOf(wbOf(w), 'Week planning').rows.map(r => r.Timeframes);
+    if (JSON.stringify(texts1) !== '["AA || T1"]') throw new Error(JSON.stringify(texts1));
+  });
+  await ta("Times: Time Zero on cannot go past the Space's Life Ends (rejected, old value kept, picker max set)", async () => {
+    const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': dayStr(1) })], [lifeRow('AA', dayStr(5))]);
+    let msg = ''; w.alert = m => { msg = m; };
+    clickNav(w, /^Times$/); const inp = w.document.querySelector('td[data-col="Time Zero on"] input');
+    pickDate(w, inp, dayStr(9));
+    if (sheetOf(wbOf(w), 'Daily planning - All tasks').rows[0]['Time Zero on'] !== dayStr(1)) throw new Error('beyond date was saved');
+    if (!/Life Ends/.test(msg)) throw new Error('no warning: ' + msg);
+    if (inp.max !== isoOf(dayStr(5))) throw new Error('max attr ' + inp.max);
+    pickDate(w, inp, dayStr(5));
+    if (sheetOf(wbOf(w), 'Daily planning - All tasks').rows[0]['Time Zero on'] !== dayStr(5)) throw new Error('date on the limit rejected');
+  });
+  await ta('Times: no limit when the Space is blank, unknown, or has no Life Ends', async () => {
+    const w = await weekBoot([blankTask({ 'Timeframe/Meeting': 'a' }), blankTask({ Space: 'Zed', 'Timeframe/Meeting': 'b' }), blankTask({ Space: 'AA', 'Timeframe/Meeting': 'c' })], [lifeRow('AA', '')]);
+    clickNav(w, /^Times$/); const inps = [...w.document.querySelectorAll('td[data-col="Time Zero on"] input')];
+    inps.forEach(i => pickDate(w, i, dayStr(40)));
+    if (sheetOf(wbOf(w), 'Daily planning - All tasks').rows.some(r => r['Time Zero on'] !== dayStr(40))) throw new Error('a limit was wrongly applied');
+  });
+  await ta("TimesX7: Defined time on cannot go past the Space's Life Ends; a valid date also updates Time Zero on on Times", async () => {
+    const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': dayStr(1) })], [lifeRow('AA', dayStr(5))]);
+    let msg = ''; w.alert = m => { msg = m; };
+    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    let inp = w.document.querySelector('td[data-col="Date/Day"] input');
+    pickDate(w, inp, dayStr(9));
+    if (!/Life Ends/.test(msg)) throw new Error('no warning');
+    if (dateOnly(sheetOf(wbOf(w), 'Week planning').rows[0]['Date/Day']) !== dayStr(1) || sheetOf(wbOf(w), 'Daily planning - All tasks').rows[0]['Time Zero on'] !== dayStr(1)) throw new Error('beyond date was saved');
+    inp = w.document.querySelector('td[data-col="Date/Day"] input'); pickDate(w, inp, dayStr(3));
+    const wr = sheetOf(wbOf(w), 'Week planning').rows; if (wr.length !== 1 || dateOnly(wr[0]['Date/Day']) !== dayStr(3)) throw new Error('week row: ' + JSON.stringify(wr));
+    if (sheetOf(wbOf(w), 'Daily planning - All tasks').rows[0]['Time Zero on'] !== dayStr(3)) throw new Error('Times not synced');
+    await sleep(30); w.document.dispatchEvent(new w.Event('visibilitychange'));
+    if (sheetOf(wbOf(w), 'Week planning').rows.length !== 1) throw new Error('sync duplicated the row');
+  });
+  await ta('TimesX7: radio sits before the date; clicking it deletes the row here AND its source on Times (Demand not 99)', async () => {
+    const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': todayStr }), blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T2', 'Time Zero on': todayStr })]);
+    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    const cell = w.document.querySelector('td[data-col="Date/Day"]'); if (!cell.firstElementChild.classList.contains('week-date-wrap') || !cell.firstElementChild.firstElementChild.classList.contains('week-radio')) throw new Error('radio not before date');
+    const rowEl = [...w.document.querySelectorAll('tr.week-row')].find(r => /T1/.test(r.textContent)); rowEl.querySelector('.week-radio').click();
+    const g = wbOf(w);
+    if (JSON.stringify(sheetOf(g, 'Week planning').rows.map(r => r.Timeframes)) !== '["AA || T2"]') throw new Error('week: ' + JSON.stringify(sheetOf(g, 'Week planning').rows));
+    if (JSON.stringify(sheetOf(g, 'Daily planning - All tasks').rows.map(r => r['Timeframe/Meeting'])) !== '["T2"]') throw new Error('times: ' + JSON.stringify(sheetOf(g, 'Daily planning - All tasks').rows));
+    await sleep(30); if (sheetOf(wbOf(w), 'Week planning').rows.length !== 1) throw new Error('deleted row came back');
+    for (const b of navBtns(w)) b.click(); if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
+  await ta('TimesX7: radio on a Demand 99 task deletes only that day here; the Times row stays and the day does not come back', async () => {
+    const w = await weekBoot([blankTask({ Space: 'AA', Demand: '99', 'Timeframe/Meeting': 'Daily', Date: todayStr, 'Time Zero on': dayStr(3) })]);
+    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    if (sheetOf(wbOf(w), 'Week planning').rows.length !== 4) throw new Error('expected 4 days, got ' + sheetOf(wbOf(w), 'Week planning').rows.length);
+    let asked = false; w.confirm = () => { asked = true; return true; };
+    w.document.querySelector('tr.week-row .week-radio').click();
+    const g = wbOf(w); if (sheetOf(g, 'Week planning').rows.length !== 3) throw new Error('day not removed');
+    if (sheetOf(g, 'Daily planning - All tasks').rows.length !== 1) throw new Error('Times row was deleted');
+    if (asked) throw new Error('should not ask: nothing on Times is deleted');
+    await sleep(30); w.document.dispatchEvent(new w.Event('visibilitychange')); if (sheetOf(wbOf(w), 'Week planning').rows.length !== 3) throw new Error('removed day returned');
+  });
+  await ta('TimesX7: radio -> Cancel deletes nothing', async () => {
+    const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': todayStr })]);
+    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click(); const before = w.localStorage.getItem(DK);
+    w.confirm = () => false; w.document.querySelector('.week-radio').click(); if (w.localStorage.getItem(DK) !== before) throw new Error('data changed');
+  });
+  await ta('TimesX7: a hand-made row with no source on Times is deleted on its own (nothing else touched)', async () => {
+    const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1' })]);
+    const g = wbOf(w); sheetOf(g, 'Week planning').rows = [{ 'Date/Day': formatDD(0), Timeframes: 'manual' }]; await doImport(w, JSON.stringify(g));
+    clickNav(w, /^TimesX7$/); w.document.querySelector('.week-radio').click();
+    if (sheetOf(wbOf(w), 'Week planning').rows.length !== 0 || sheetOf(wbOf(w), 'Daily planning - All tasks').rows.length !== 1) throw new Error('wrong rows deleted');
+  });
+  await ta('TimesX7: dates of Demand 99 (recurring) tasks cannot be edited; others stay editable', async () => {
+    const w = await weekBoot([blankTask({ Space: 'AA', Demand: '99', 'Timeframe/Meeting': 'Daily', Date: todayStr, 'Time Zero on': dayStr(2) }), blankTask({ Space: 'BB', 'Timeframe/Meeting': 'One', 'Time Zero on': todayStr })]);
+    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    const rowsEl = [...w.document.querySelectorAll('tr.week-row')]; const rec = rowsEl.find(r => /Daily/.test(r.textContent)), one = rowsEl.find(r => /One/.test(r.textContent));
+    const ri = rec.querySelector('td[data-col="Date/Day"] input'); const before = w.localStorage.getItem(DK);
+    ri.dispatchEvent(new w.Event('focus')); if (ri.type === 'date') throw new Error('recurring date opened a picker');
+    ri.value = isoOf(dayStr(1)); ri.dispatchEvent(new w.Event('change')); if (w.localStorage.getItem(DK) !== before) throw new Error('recurring date changed');
+    const oi = one.querySelector('td[data-col="Date/Day"] input'); oi.dispatchEvent(new w.Event('focus')); if (oi.type !== 'date') throw new Error('normal date should open picker');
+  });
+  await ta('Date sync: changing Time Zero on on Times moves the TimesX7 row on Refresh (one row, new date)', async () => {
+    const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': todayStr })]);
+    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    clickNav(w, /^Times$/); pickDate(w, w.document.querySelector('td[data-col="Time Zero on"] input'), dayStr(2)); await sleep(200);
+    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    const rr = sheetOf(wbOf(w), 'Week planning').rows; if (rr.length !== 1 || dateOnly(rr[0]['Date/Day']) !== dayStr(2)) throw new Error(JSON.stringify(rr));
+  });
+
+
+  await ta('TimesX7: Times column is display-only (not editable) and tapping it opens that task on Times', async () => {
+    const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': todayStr }), blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T2', 'Time Zero on': todayStr })]);
+    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    if (w.document.querySelector('tr.week-row td[data-col="Timeframes"] [contenteditable]')) throw new Error('Times column still editable');
+    const before = w.localStorage.getItem(DK);
+    const link = [...w.document.querySelectorAll('tr.week-row td[data-col="Timeframes"] .week-times-link')].find(e => /T2/.test(e.textContent)); link.click();
+    if (!/Times$/.test(w.document.getElementById('pageTitle').textContent.trim())) throw new Error('did not open Times: ' + w.document.getElementById('pageTitle').textContent);
+    await sleep(150); const hl = w.document.querySelector('#tableBody tr.row-highlight'); if (!hl || !/T2/.test(hl.textContent)) throw new Error('T2 row not highlighted');
+    if (w.localStorage.getItem(DK) !== before) throw new Error('data changed by navigation');
+  });
+  await ta('TimesX7: Times link on a row with no source just opens the Times page', async () => {
+    const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1' })]);
+    const g = wbOf(w); sheetOf(g, 'Week planning').rows = [{ 'Date/Day': formatDD(0), Timeframes: 'manual' }]; await doImport(w, JSON.stringify(g));
+    clickNav(w, /^TimesX7$/); w.document.querySelector('.week-times-link').click();
+    if (!/Times$/.test(w.document.getElementById('pageTitle').textContent.trim())) throw new Error('not on Times');
   });
 
   /* ---- BackIn / NextIn wrap around (Spacetime, Times, NextIn, NoSpace) ---- */

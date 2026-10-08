@@ -85,7 +85,7 @@ PASS  Functional: add row -> exactly one row added; typed text persists
 PASS  Functional: Times -> status "Complete" moves row to Completed tasks
 PASS  Functional: Export JSON -> Import round-trip reproduces identical data
 PASS  Functional: legacy-format backup (old column names) migrates without data loss
-PASS  TimesX7 Refresh: Times rows appear as "Space || Time"; Spaces rows stay Space only
+PASS  TimesX7 Refresh: Times rows appear as "Space || Time"; Spaces (Life Ends) rows are NOT shown
 PASS  TimesX7 sync: an older row showing only the Time text is upgraded in place (no duplicate)
 PASS  TimesX7: today's group reads "<Day> - Today" with the highlight class; other groups unchanged
 PASS  TimesX7: no Transforms/actions column, no row buttons
@@ -103,6 +103,18 @@ PASS  Spaces Delete: Cancel deletes nothing
 PASS  Spaces Delete: a Space with no name deletes only its own row (never every task without a Space)
 PASS  Spaces Delete: if another Spaces row has the same name, only the row goes and tasks are kept
 PASS  Delete on other pages still deletes just that row
+PASS  TimesX7: Spaces rows are not shown, also through the automatic sync
+PASS  Times: Time Zero on cannot go past the Space's Life Ends (rejected, old value kept, picker max set)
+PASS  Times: no limit when the Space is blank, unknown, or has no Life Ends
+PASS  TimesX7: Defined time on cannot go past the Space's Life Ends; a valid date also updates Time Zero on on Times
+PASS  TimesX7: radio sits before the date; clicking it deletes the row here AND its source on Times (Demand not 99)
+PASS  TimesX7: radio on a Demand 99 task deletes only that day here; the Times row stays and the day does not come back
+PASS  TimesX7: radio -> Cancel deletes nothing
+PASS  TimesX7: a hand-made row with no source on Times is deleted on its own (nothing else touched)
+PASS  TimesX7: dates of Demand 99 (recurring) tasks cannot be edited; others stay editable
+PASS  Date sync: changing Time Zero on on Times moves the TimesX7 row on Refresh (one row, new date)
+PASS  TimesX7: Times column is display-only (not editable) and tapping it opens that task on Times
+PASS  TimesX7: Times link on a row with no source just opens the Times page
 PASS  BackIn/NextIn wrap on Times: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10
 PASS  BackIn/NextIn wrap on NextIn: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10
 PASS  BackIn/NextIn wrap on NoSpace: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10
@@ -110,7 +122,7 @@ PASS  BackIn/NextIn wrap on Spacetime: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -
 PASS  BackIn/NextIn wrap: the item shown actually changes (last item shown after BackIn from first)
 PASS  BackIn/NextIn disabled only when there is nothing to move to (0 or 1 items)
 PASS  Finger swipes still stop at the ends (no wraparound); only the buttons wrap
-      (fuzz: 47 imports accepted, 103 rejected)
+      (fuzz: 55 imports accepted, 95 rejected)
 PASS  Fuzz: 150 randomly type-confused/poisoned imports -> no crash, no pollution, storage always reloadable
 
-113 passed, 0 failed
+125 passed, 0 failed
