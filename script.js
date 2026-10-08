@@ -897,8 +897,8 @@
     document.getElementById("btnExportCsv").addEventListener("click", handleExportCsv);
     document.getElementById("btnResetSheet").addEventListener("click", handleResetSheet);
     document.getElementById("btnAutoBackup").addEventListener("click", handleAutoBackupButton);
-    document.getElementById("taskPrevBtn").addEventListener("click", function () { stepTask(-1); });
-    document.getElementById("taskNextBtn").addEventListener("click", function () { stepTask(1); });
+    document.getElementById("taskPrevBtn").addEventListener("click", function () { stepTask(-1, true); });
+    document.getElementById("taskNextBtn").addEventListener("click", function () { stepTask(1, true); });
     if (backupPromptExportBtn) backupPromptExportBtn.addEventListener("click", handleBackupPromptExport);
     if (backupPromptDismissBtn) backupPromptDismissBtn.addEventListener("click", handleBackupPromptDismiss);
 
@@ -1431,14 +1431,22 @@
     return idx;
   }
 
-  function stepTask(delta) {
+  // wrap = true for the BackIn / NextIn buttons: BackIn on the first item
+  // goes to the last ("10 of 10"), NextIn on the last goes to the first.
+  // Finger swipes call this without wrap, so they still stop at the ends.
+  function stepTask(delta, wrap) {
     var sheet = currentSheet();
     if (!isSingleTaskSwipeMode(sheet)) return;
     var items = getFilteredSortedRows(sheet);
     var pages = getSwipePages(sheet, items);
     var idx = clampTaskIndex(sheet, pages.length);
+    if (pages.length === 0) return;
     var newIdx = idx + delta;
-    if (newIdx < 0 || newIdx > pages.length - 1) return; // stop at the ends, no wraparound
+    if (wrap) {
+      newIdx = (newIdx + pages.length) % pages.length;
+    } else if (newIdx < 0 || newIdx > pages.length - 1) {
+      return; // swipes stop at the ends
+    }
     currentTaskIndexBySheet[sheet.name] = newIdx;
     renderTableBody(sheet);
   }
@@ -1467,8 +1475,10 @@
       var prevBtn = document.getElementById("taskPrevBtn");
       var nextBtn = document.getElementById("taskNextBtn");
       var curIdx = clampTaskIndex(sheet, pages.length);
-      if (prevBtn) prevBtn.disabled = (pages.length === 0 || curIdx <= 0);
-      if (nextBtn) nextBtn.disabled = (pages.length === 0 || curIdx >= pages.length - 1);
+      // The buttons wrap around, so they only need disabling when there is
+      // nothing to move to (0 or 1 items).
+      if (prevBtn) prevBtn.disabled = (pages.length <= 1);
+      if (nextBtn) nextBtn.disabled = (pages.length <= 1);
     } else {
       swipeNavEl.hidden = true;
       countEl.hidden = false;

@@ -521,6 +521,45 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     if (sheetOf(wbOf(w), 'All future Tasks').rows.length !== 1 || sheetOf(wbOf(w), 'Road Map - Pending').rows.length !== 1 || texts(w, 'Daily planning - All tasks').length !== 5) throw new Error('cascade leaked to another page');
   });
 
+  /* ---- BackIn / NextIn wrap around (Spacetime, Times, NextIn, NoSpace) ---- */
+  async function wrapBoot(n) {
+    const w = await boot(); w.matchMedia = () => ({ matches: true, addListener() {}, removeListener() {}, addEventListener() {} });
+    const g = wbOf(w); const mk = (i, extra) => blankTask(Object.assign({ Space: 'S' + i, 'Timeframe/Meeting': 't' + i }, extra || {}));
+    const list = Array.from({ length: n }, (_, i) => mk(i));
+    sheetOf(g, 'Daily planning - All tasks').rows = list.map(r => Object.assign({}, r));
+    sheetOf(g, 'All future Tasks').rows = list.map(r => Object.assign({}, r));
+    sheetOf(g, 'Completed tasks').rows = list.map(r => Object.assign({}, r, { Timing: 'Complete' }));
+    await doImport(w, JSON.stringify(g)); return w;
+  }
+  const lbl = w => w.document.getElementById('taskPositionLabel').textContent;
+  const prev = w => w.document.getElementById('taskPrevBtn'), next = w => w.document.getElementById('taskNextBtn');
+  for (const [page, re, fmt] of [['Times', /^Times$/, (i, n) => 'Time ' + i + ' of ' + n], ['NextIn', /^NextIn$/, (i, n) => 'Time ' + i + ' of ' + n], ['NoSpace', /^NoSpace$/, (i, n) => i + ' of ' + n], ['Spacetime', /^Spacetime$/, (i, n) => 'Space ' + i + ' of ' + n]]) {
+    await ta('BackIn/NextIn wrap on ' + page + ': 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10', async () => {
+      const w = await wrapBoot(10); clickNav(w, re);
+      const seq = [[null, 1], [prev, 10], [prev, 9], [next, 10], [next, 1], [next, 2], [prev, 1]];
+      for (const [btn, want] of seq) {
+        if (btn) { if (btn(w).disabled) throw new Error('button disabled before reaching ' + want); btn(w).click(); }
+        if (lbl(w) !== fmt(want, 10)) throw new Error('expected "' + fmt(want, 10) + '" got "' + lbl(w) + '"');
+      }
+      if (w.__errs.length) throw new Error(w.__errs[0]);
+    });
+  }
+  await ta('BackIn/NextIn wrap: the item shown actually changes (last item shown after BackIn from first)', async () => {
+    const w = await wrapBoot(10); clickNav(w, /^Times$/); const shown = () => [...w.document.querySelectorAll('#tableBody .cell-editable')].map(e => e.textContent).join('|');
+    const first = shown(); prev(w).click(); const last = shown(); if (!/t9/.test(last) || /t0/.test(last)) throw new Error('last page content: ' + last);
+    next(w).click(); if (shown() !== first) throw new Error('did not return to first');
+  });
+  await ta('BackIn/NextIn disabled only when there is nothing to move to (0 or 1 items)', async () => {
+    for (const n of [0, 1]) { const w = await wrapBoot(n); clickNav(w, /^Times$/); if (!prev(w).disabled || !next(w).disabled) throw new Error(n + ' items: buttons enabled'); }
+    const w = await wrapBoot(2); clickNav(w, /^Times$/); if (prev(w).disabled || next(w).disabled) throw new Error('2 items: buttons disabled');
+  });
+  await ta('Finger swipes still stop at the ends (no wraparound); only the buttons wrap', async () => {
+    const w = await wrapBoot(10); clickNav(w, /^Times$/); const swipe = (dx) => { const target = w.document.querySelector('#tableBody td') || w.document.querySelector('.content'); const a = new w.Event('touchstart', { bubbles: true }); a.touches = [{ clientX: 200, clientY: 100 }]; target.dispatchEvent(a); const b = new w.Event('touchend', { bubbles: true }); b.changedTouches = [{ clientX: 200 + dx, clientY: 100 }]; target.dispatchEvent(b); };
+    swipe(120); if (lbl(w) !== 'Time 1 of 10') throw new Error('swipe back from first wrapped: ' + lbl(w));
+    swipe(-120); if (lbl(w) !== 'Time 2 of 10') throw new Error('swipe forward failed: ' + lbl(w));
+    for (let i = 0; i < 12; i++) swipe(-120); if (lbl(w) !== 'Time 10 of 10') throw new Error('swipe forward past last wrapped: ' + lbl(w));
+  });
+
   /* ---- mutation fuzz of the import path ---- */
   await ta('Fuzz: 150 randomly type-confused/poisoned imports -> no crash, no pollution, storage always reloadable', async () => {
     let seed = 1337; const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;

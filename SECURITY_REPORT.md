@@ -1,6 +1,6 @@
 # Security report - Participant: Spaces & Time
 
-**Result after fixes: 106 passed, 0 failed.**
+**Result after fixes: 113 passed, 0 failed.**
 Run: `npm i jsdom && node security-tests.js` (from the app folder). Raw output: `SECURITY_TESTS.txt`.
 
 The previous suite (45 checks) was re-run first and reproduced as passing, but several of its checks were weak (details below), so the audit was redone adversarially. The same new suite run against your **original** files gives **61 passed / 27 failed**, so the new tests really do detect the problems.
@@ -52,3 +52,6 @@ These changes touch no security-sensitive code; the full suite (including the fu
 
 ## Update: Spaces delete (5 new tests, 106 total)
 Delete on the Spaces page now also deletes that Space's tasks on Times, NextIn and NoSpace (Spacetime follows). A blank-named Space deletes only itself; a duplicate-named Space keeps the tasks. Shows a confirmation with row counts. No security-relevant code changed.
+
+## Update: BackIn / NextIn wrap around (7 new tests, 113 total)
+On Spacetime, Times, NextIn and NoSpace the BackIn/NextIn buttons now loop (1 of 10 -> BackIn -> 10 of 10; 10 of 10 -> NextIn -> 1 of 10). Finger swipes still stop at the ends. No security-relevant code changed.

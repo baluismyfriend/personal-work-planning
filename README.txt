@@ -571,3 +571,13 @@ you need to scroll:
 - A Space with no name deletes only its own row. If two Spaces rows
   have the same name, deleting one keeps the tasks.
 - TimesX7 is not touched; tap Refresh there to rebuild it.
+
+
+------------------------------------------------------------
+23. BACKIN / NEXTIN LOOP (PHONE VIEW)
+------------------------------------------------------------
+- On Spacetime, Times, NextIn and NoSpace the BackIn and NextIn
+  buttons loop around: on "1 of 10", BackIn shows "10 of 10";
+  on "10 of 10", NextIn shows "1 of 10".
+- The buttons are only greyed out when the page has 0 or 1 items.
+- Swiping with a finger still stops at the first/last item.
