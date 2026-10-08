@@ -921,9 +921,7 @@
   /* ---------------------------------------------------------
      Auto-add upcoming dates to TimesX7 (Week planning)
      ---------------------------------------------------------
-     - Spaces page: a row whose "Life Ends" date falls today..+7 days
-       gets a TimesX7 row: Defined time on = that date, Times = the
-       row's Space.
+     - Spaces page rows are NOT shown on TimesX7 (only Times rows are).
      - Times page: a row whose "Time Zero on" date falls today..+7
        days gets a TimesX7 row: Defined time on = that date, Times =
        the row's Time text (falls back to the Space if Time is blank).
@@ -946,6 +944,87 @@
   }
   function clearWeekAutoAdded() {
     try { localStorage.removeItem(STORAGE_WEEK_AUTOADD_KEY); } catch (e) { /* ignore */ }
+  }
+
+
+  /* ---------------------------------------------------------
+     Times <-> TimesX7 link and Life Ends limit
+     --------------------------------------------------------- */
+  function dailySheet() { return workbook.find(function (s) { return s.name === "Daily planning - All tasks"; }); }
+
+  // The text TimesX7 shows for a Times row: "Space || Time".
+  function timesRowWeekText(r) {
+    var timeText = String(r["Timeframe/Meeting"] || "").trim();
+    var spaceText = String(r.Space || "").trim();
+    return (spaceText && timeText) ? (spaceText + " || " + timeText) : (timeText || spaceText);
+  }
+
+  function dateOnlyOf(v) {
+    var m = /\d{2}\/\d{2}\/\d{4}/.exec(String(v || ""));
+    return m ? m[0] : "";
+  }
+
+  // Finds the Times row a TimesX7 row came from (matched by its text and
+  // date, since rows carry no id). Returns { row, recurring } or null.
+  // recurring = Demand 99 (repeats daily; one Times row, many TimesX7 rows).
+  function findWeekSource(weekRow) {
+    var daily = dailySheet();
+    if (!daily || !Array.isArray(daily.rows) || !weekRow) return null;
+    var text = String(weekRow["Timeframes"] || "").trim();
+    var date = dateOnlyOf(weekRow["Date/Day"]);
+    if (!text || !date) return null;
+    var ms = dateToUtcMs(date);
+    var recurringHit = null;
+    for (var i = 0; i < daily.rows.length; i++) {
+      var r = daily.rows[i];
+      if (!r) continue;
+      var matches = timesRowWeekText(r) === text || String(r["Timeframe/Meeting"] || "").trim() === text;
+      if (!matches) continue;
+      if (String(r.Demand || "").trim() === "99") {
+        var end = dateToUtcMs(r["Time Zero on"]);
+        var start = dateToUtcMs(r["Date"]);
+        if (end !== null && ms !== null && ms <= end && (start === null || ms >= start || start > end) && !recurringHit) recurringHit = { row: r, recurring: true };
+      } else if (r["Time Zero on"] === date) {
+        return { row: r, recurring: false };
+      }
+    }
+    return recurringHit;
+  }
+
+  // The "Life Ends" of a Space on the Spaces page, or null (no Space,
+  // no matching Spaces row, or no valid date = no limit).
+  function lifeEndFor(spaceName) {
+    var name = String(spaceName || "").trim();
+    if (!name) return null;
+    var road = workbook.find(function (s) { return s.name === "Road Map - Pending"; });
+    if (!road || !Array.isArray(road.rows)) return null;
+    for (var i = 0; i < road.rows.length; i++) {
+      var r = road.rows[i];
+      if (r && String(r.Space || "").trim() === name) {
+        var ms = dateToUtcMs(r["Life Ends"]);
+        if (ms !== null) return { ms: ms, str: r["Life Ends"] };
+      }
+    }
+    return null;
+  }
+
+  function mmddyyyyToIsoStr(v) {
+    var m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(v || "");
+    return m ? (m[3] + "-" + m[1] + "-" + m[2]) : "";
+  }
+
+  // The Space a TimesX7 row belongs to: from its Times source row, else
+  // the text before " || ".
+  function weekRowSpace(weekRow) {
+    var src = findWeekSource(weekRow);
+    if (src) return String(src.row.Space || "").trim();
+    var t = String(weekRow["Timeframes"] || "");
+    var i = t.indexOf(" || ");
+    return i === -1 ? "" : t.slice(0, i).trim();
+  }
+
+  function warnPastLifeEnd(spaceName, lim) {
+    window.alert("The date can't be later than the Life Ends date of \"" + String(spaceName).trim() + "\" on Spaces (" + lim.str + ").");
   }
 
   function autoAddToWeekPlanning(includeOverdue) {
@@ -996,11 +1075,8 @@
       changedKeys = true;
     }
 
-    if (road && Array.isArray(road.rows)) {
-      road.rows.forEach(function (r) {
-        if (r) consider("R", r["Life Ends"], r.Space);
-      });
-    }
+    // TimesX7 is built from the Times page only (Spaces rows are no
+    // longer copied here).
     if (daily && Array.isArray(daily.rows)) {
       daily.rows.forEach(function (r) {
         if (!r) return;
@@ -1168,7 +1244,7 @@
       } else if (sheet.name === "Week planning") {
         // Date column is only as wide as a date needs; the Times column
         // gets no width so the fixed-layout table gives it all the rest.
-        if (col === "Date/Day") c.style.width = "130px";
+        if (col === "Date/Day") c.style.width = "160px";
       } else {
         c.style.width = pct + "%";
       }
@@ -2043,6 +2119,9 @@
       input.type = "date";
       var iso = mmddyyyyToIso(row[col] || "");
       input.value = iso;
+      // Time Zero on cannot be later than the project's Life Ends.
+      var limit = (sheet.name === "Daily planning - All tasks" && col === "Time Zero on") ? lifeEndFor(row.Space) : null;
+      if (limit) input.max = mmddyyyyToIsoStr(limit.str);
       if (typeof input.showPicker === "function") {
         try { input.showPicker(); } catch (e) { /* ignore */ }
       }
@@ -2053,6 +2132,15 @@
 
     input.addEventListener("change", function () {
       var mmddyyyy = isoToMmddyyyy(input.value);
+      if (mmddyyyy && sheet.name === "Daily planning - All tasks" && col === "Time Zero on") {
+        var lim = lifeEndFor(row.Space);
+        var pickedMs = dateToUtcMs(mmddyyyy);
+        if (lim && pickedMs !== null && pickedMs > lim.ms) {
+          input.value = mmddyyyyToIso(row[col] || "");
+          warnPastLifeEnd(row.Space, lim);
+          return;
+        }
+      }
       row[col] = mmddyyyy;
       if (sheet.name === "Road Map - Pending") row["Life span"] = roadMapDuration(row["Life began"], row["Life Ends"]);
       saveWorkbook();
@@ -2090,18 +2178,33 @@
   // the weekday abbreviation is recomputed from whatever date is picked
   // rather than trusted as stored text.
   function buildWeekDateDayCell(sheet, row, sourceIdx, col) {
+    var wrap = document.createElement("div");
+    wrap.className = "week-date-wrap";
+
+    // Small radio button before the date: deletes this TimesX7 row and,
+    // unless it is a recurring (Demand 99) task, its source row on Times.
+    var radio = document.createElement("button");
+    radio.type = "button";
+    radio.className = "week-radio";
+    radio.setAttribute("aria-label", "Delete this task");
+    radio.title = "Tap to delete this task";
+    radio.addEventListener("click", function () { deleteWeekRowAndSource(sheet, row); });
+    wrap.appendChild(radio);
+
+    // Recurring (Demand 99) tasks keep their dates: no editing here.
+    var source = findWeekSource(row);
+    var locked = !!(source && source.recurring);
+
     var input = document.createElement("input");
     input.type = "text";
     input.className = "due-date-input";
     input.readOnly = true;
     input.value = weekDateOnly(row[col]);
     input.placeholder = "";
+    if (locked) input.title = "Recurring task (Demand 99): its dates stay the same";
+    wrap.appendChild(input);
 
-    function mmddyyyyToIso(v) {
-      var m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(v || "");
-      if (!m) return "";
-      return m[3] + "-" + m[1] + "-" + m[2];
-    }
+    function mmddyyyyToIso(v) { return mmddyyyyToIsoStr(v); }
     function isoToDateDay(v) {
       var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
       if (!m) return "";
@@ -2113,6 +2216,7 @@
     }
 
     function activate() {
+      if (locked) { input.blur(); return; }
       // focus and click both call this; re-running it while the picker
       // is already open resets the control and closes the calendar.
       if (input.type === "date") return;
@@ -2120,6 +2224,9 @@
       input.type = "date";
       var iso = mmddyyyyToIso(row[col] || "");
       input.value = iso;
+      // Cannot go past the project's Life Ends on Spaces.
+      var limit = lifeEndFor(weekRowSpace(row));
+      if (limit) input.max = mmddyyyyToIsoStr(limit.str);
       if (typeof input.showPicker === "function") {
         try { input.showPicker(); } catch (e) { /* ignore */ }
       }
@@ -2129,8 +2236,25 @@
     input.addEventListener("click", activate);
 
     input.addEventListener("change", function () {
+      if (locked) return;
       var formatted = isoToDateDay(input.value);
-      if (formatted) row[col] = formatted;
+      if (!formatted) return;
+      var space = weekRowSpace(row);
+      var limit = lifeEndFor(space);
+      var newDate = dateOnlyOf(formatted);
+      if (limit) {
+        var ms = dateToUtcMs(newDate);
+        if (ms !== null && ms > limit.ms) {
+          input.value = mmddyyyyToIso(row[col] || "");
+          warnPastLifeEnd(space, limit);
+          return;
+        }
+      }
+      // Find the Times row BEFORE changing the date (it is matched by it),
+      // then keep its "Time Zero on" in sync with the new date.
+      var src = findWeekSource(row);
+      row[col] = formatted;
+      if (src && !src.recurring) src.row["Time Zero on"] = newDate;
       saveWorkbook();
     });
 
@@ -2140,7 +2264,27 @@
       input.value = weekDateOnly(row[col]);
     });
 
-    return input;
+    return wrap;
+  }
+
+  // TimesX7 radio: removes the TimesX7 row; for a normal task also removes
+  // its source row on Times (and so on NextIn-style copies are untouched).
+  // A recurring Demand 99 task stays on Times - only this day is removed.
+  function deleteWeekRowAndSource(sheet, row) {
+    var idx = sheet.rows.indexOf(row);
+    if (idx === -1) return;
+    var src = findWeekSource(row);
+    if (src && !src.recurring) {
+      if (!window.confirm("Delete this task from TimesX7 and from the Times page?")) return;
+      var daily = dailySheet();
+      var di = daily.rows.indexOf(src.row);
+      if (di !== -1) daily.rows.splice(di, 1);
+      currentTaskIndexBySheet = newMap();
+      refreshSummarySheet(workbook);
+    }
+    sheet.rows.splice(idx, 1);
+    saveWorkbook();
+    renderAll();
   }
 
   // Read-only cell for the Road Map's Life span column: always

@@ -1073,3 +1073,24 @@ div.summary-task-link{
   font-size:16px;
   pointer-events:none;
 }
+
+
+/* TimesX7: small delete radio before the "Defined time on" date */
+.week-date-wrap{display:flex;align-items:center;gap:6px;}
+.week-date-wrap .due-date-input{flex:1 1 auto;min-width:0;}
+.week-radio{
+  flex:0 0 auto;
+  position:relative;
+  width:16px;
+  height:16px;
+  padding:0;
+  border:2px solid #dc2626;
+  border-radius:50%;
+  background:#ffffff;
+  cursor:pointer;
+}
+.week-radio:hover{background:#fecaca;}
+.week-radio:active{background:#dc2626;}
+@media (max-width:680px){
+  .data-table tr.week-row > td[data-col="Date/Day"] .due-date-input{width:96px !important;}
+}
