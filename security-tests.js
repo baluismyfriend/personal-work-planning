@@ -642,10 +642,11 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
       blankTask({ Space: 'AA', 'Timeframe/Meeting': 'h2', Timing: 'Hold' }),
       blankTask({ Space: 'AA', 'Timeframe/Meeting': 'p2', Timing: 'In-Progress', 'Time Zero on': dayStr(2) })]);
     clickNav(w, /^Spacetime$/);
-    const trs = [...w.document.querySelectorAll('#tableBody tr')].map(tr => tr.classList.contains('summary-status-row') ? '#' + tr.textContent.trim() : (tr.querySelector('.summary-date-input').value || '_') + '|' + tr.querySelector('.summary-task-link').textContent.trim());
-    const want = ['#In-Progress', '_|p1', dayStr(2) + '|p2', '#Hold', dayStr(1) + '|h1', '_|h2'];
+    const trs = [...w.document.querySelectorAll('#tableBody tr')].map(tr => tr.classList.contains('week-day-header-row') ? '@' + tr.textContent.trim() : tr.classList.contains('summary-status-row') ? '#' + tr.textContent.trim() : (tr.querySelector('.summary-date-input').value || '_') + '|' + tr.querySelector('.summary-task-link').textContent.trim());
+    const want = ['@AA', '#In-Progress', '_|p1', dayStr(2) + '|p2', '#Hold', dayStr(1) + '|h1', '_|h2'];
     if (JSON.stringify(trs) !== JSON.stringify(want)) throw new Error(JSON.stringify(trs));
     if (/Time \d+:/.test(w.document.getElementById('tableBody').textContent)) throw new Error('"Time N:" label still shown');
+    const heads = [...w.document.querySelectorAll('#tableHead tr:first-child th')].map(th => th.textContent.trim().replace(/[\u25B2\u25BC]/g, '')); if (JSON.stringify(heads) !== '["Defined time on","Times"]') throw new Error('headers: ' + JSON.stringify(heads));
   });
   await ta("Spacetime: date picker saves to the Times row; cannot go past the Space's Life Ends; blank date can be set", async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', Timing: 'Hold' })], [lifeRow('AA', dayStr(5))]);
@@ -666,6 +667,18 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     if (!/Spacetime$/.test(w.document.getElementById('pageTitle').textContent.trim())) throw new Error('left Spacetime');
     w.document.querySelector('.summary-task-link').click();
     if (!/Times$/.test(w.document.getElementById('pageTitle').textContent.trim())) throw new Error('did not open Times');
+  });
+
+
+  await ta('Spaces: Key milestones text box is hidden behind a down arrow; tapping expands/collapses it (data untouched)', async () => {
+    const w = await weekBoot([], [Object.assign(lifeRow('AA', ''), { 'Key milestones': 'm1\nm2' })]);
+    clickNav(w, /^Projects$|^Spaces$/);
+    const wrap = w.document.querySelector('td[data-col="Key milestones"] .milestones-wrap'); if (!wrap) throw new Error('no wrapper');
+    const btn = wrap.querySelector('.milestones-toggle'); if (!wrap.classList.contains('collapsed') || btn.textContent !== '\u25BC') throw new Error('should start collapsed with a down arrow');
+    const before = w.localStorage.getItem(DK);
+    btn.click(); if (wrap.classList.contains('collapsed') || btn.textContent !== '\u25B2' || btn.getAttribute('aria-expanded') !== 'true') throw new Error('did not expand');
+    btn.click(); if (!wrap.classList.contains('collapsed')) throw new Error('did not collapse');
+    if (w.localStorage.getItem(DK) !== before) throw new Error('data changed');
   });
 
   /* ---- BackIn / NextIn wrap around (Spacetime, Times, NextIn, NoSpace) ---- */

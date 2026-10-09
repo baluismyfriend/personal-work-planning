@@ -118,6 +118,7 @@ PASS  TimesX7: Times link on a row with no source just opens the Times page
 PASS  Spacetime: shows each task's Time Zero on date (blank when empty); tasks grouped per Space by status
 PASS  Spacetime: date picker saves to the Times row; cannot go past the Space's Life Ends; blank date can be set
 PASS  Spacetime: tapping the date does not navigate away; tapping the task text still opens it on Times
+PASS  Spaces: Key milestones text box is hidden behind a down arrow; tapping expands/collapses it (data untouched)
 PASS  BackIn/NextIn wrap on Times: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10
 PASS  BackIn/NextIn wrap on NextIn: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10
 PASS  BackIn/NextIn wrap on NoSpace: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10
@@ -125,7 +126,7 @@ PASS  BackIn/NextIn wrap on Spacetime: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -
 PASS  BackIn/NextIn wrap: the item shown actually changes (last item shown after BackIn from first)
 PASS  BackIn/NextIn disabled only when there is nothing to move to (0 or 1 items)
 PASS  Finger swipes still stop at the ends (no wraparound); only the buttons wrap
-      (fuzz: 67 imports accepted, 83 rejected)
+      (fuzz: 45 imports accepted, 105 rejected)
 PASS  Fuzz: 150 randomly type-confused/poisoned imports -> no crash, no pollution, storage always reloadable
 
-128 passed, 0 failed
+129 passed, 0 failed

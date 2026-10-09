@@ -1,6 +1,6 @@
 # Security report - Participant: Spaces & Time
 
-**Result after fixes: 128 passed, 0 failed.**
+**Result after fixes: 129 passed, 0 failed.**
 Run: `npm i jsdom && node security-tests.js` (from the app folder). Raw output: `SECURITY_TESTS.txt`.
 
 The previous suite (45 checks) was re-run first and reproduced as passing, but several of its checks were weak (details below), so the audit was redone adversarially. The same new suite run against your **original** files gives **61 passed / 27 failed**, so the new tests really do detect the problems.
@@ -69,3 +69,9 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 ## Update: Spacetime page (3 new tests, 128 total)
 - "Time 1 / Time 2 ..." labels replaced by the task's "Time Zero on" date (blank if empty); tapping it opens the calendar, limited to the Space's Life Ends, and saves to the same row on Times.
 - Within each Space, tasks are grouped under status headings (In-Progress, Not started, Hold, Complete, No status). No security-relevant code changed.
+
+## Update: Spaces page collapsible text box (1 new test, 129 total)
+- The Key milestones text box on Spaces is hidden behind a down arrow (up arrow when open); tapping toggles it. Display only, no data or security-relevant code changed.
+
+## Update: Spacetime matches TimesX7 look (129 tests)
+- Spacetime columns are now "Defined time on" and "Times"; each Space is a group title in the same style as the TimesX7 weekday titles, with the status headings beneath. Task rows use the TimesX7 font, size, colour and borders. Display only; no security-relevant code changed.

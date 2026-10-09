@@ -66,7 +66,7 @@
   var ROAD_MAP_COLUMNS = ["Space", "Key milestones", "Life began", "Life Ends", "Life span"];
   var WEEK_PLANNING_COLUMNS = ["Date/Day", "Timeframes"];
   var DAY_ABBREV = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  var SUMMARY_COLUMNS = ["Space", "Time"];
+  var SUMMARY_COLUMNS = ["Date", "Time"]; // shown as "Defined time on" and "Times"; Space is the group heading
 
   /* ---------------------------------------------------------
      Default workbook
@@ -462,7 +462,7 @@
       entries.forEach(function (entry, i) {
         rows.push({
           Space: project, Time: entry.task,
-          Timing: entry.timing, _date: entry.date,
+          Date: entry.date, Timing: entry.timing, _date: entry.date,
           _isGroupStart: i === 0, _dailyIdx: entry.dailyIdx
         });
       });
@@ -796,6 +796,7 @@
   function minWidthForColumn(sheet, col) {
     if (col === "Timeframe/Meeting" || col === "Key milestones" || col === "Timeframes" || col === "Time") return 230;
     if (col === "Next Timeframes") return 190;
+    if (sheet.name === "Summary" && col === "Date") return 110;
     if (col === "Date" || col === "Space" || col === "Demand") return 64;
     if (col === "Date/Day") return 110;
     if (col === "Timing") return 126;
@@ -825,8 +826,8 @@
       return 22; // Date/Day
     }
     if (sheet.name === "Summary") {
-      if (col === "Time") return 65;
-      return 20; // Space
+      if (col === "Time") return 78;
+      return 22; // Date
     }
     if (col === "Timeframe/Meeting" || col === "Notes" || col === "Next Timeframes") return 27;
     if (col === "Space") return 13;
@@ -1304,6 +1305,8 @@
     if (sheet.name === "Road Map - Pending" && col === "Key milestones") return "Time";
     if (sheet.name === "Week planning" && col === "Timeframes") return "Times";
     if (sheet.name === "Week planning" && col === "Date/Day") return "Defined time on";
+    if (sheet.name === "Summary" && col === "Date") return "Defined time on";
+    if (sheet.name === "Summary" && col === "Time") return "Times";
     if (sheet.name === "Quick list" && col === "Small Times") return "Small Stars";
     return col;
   }
@@ -1688,7 +1691,7 @@
       var page = pages[idx];
       if (sheet.name === "Summary" && page.length) {
         var projectName = ((page[0].row && page[0].row.Space) || "").toString().trim() || "(No space)";
-        tableBodyEl.appendChild(buildSummaryProjectHeaderRow(sheet, projectName));
+        tableBodyEl.appendChild(buildWeekDayHeaderRow(sheet, projectName, false));
         var prevTiming = null;
         page.forEach(function (only, taskPos) {
           var t = (only.row && only.row.Timing) || "";
@@ -1725,6 +1728,7 @@
     items.forEach(function (item) {
       if (sheet.name === "Summary") {
         var sp = (item.row && item.row.Space) || "", tm = (item.row && item.row.Timing) || "";
+        if (sp !== prevSpace) tableBodyEl.appendChild(buildWeekDayHeaderRow(sheet, sp, false));
         if (sp !== prevSpace || tm !== prevTiming) { tableBodyEl.appendChild(buildSummaryStatusRow(sheet, tm)); prevSpace = sp; prevTiming = tm; }
       }
       var tr = buildRowElement(sheet, item.row, item.idx, false);
@@ -1990,7 +1994,6 @@
     if (compact) tr.classList.add("single-task-row");
     if (sheet.name === "Week planning") tr.classList.add("week-row");
     if (sheet.name === "Road Map - Pending") tr.classList.add("roadmap-row");
-    if (sheet.name === "Summary" && row._isGroupStart) tr.classList.add("row-highlight");
 
     var soloCols = newMap();
     if (compact) {
@@ -2020,6 +2023,8 @@
         td.appendChild(sheet.name === "Week planning" ? buildWeekDateDayCell(sheet, row, sourceIdx, col) : buildDueDateCell(sheet, row, sourceIdx, col));
       } else if (sheet.name === "Week planning" && col === "Timeframes") {
         td.appendChild(buildWeekTimesLinkCell(row));
+      } else if (sheet.name === "Road Map - Pending" && col === "Key milestones") {
+        td.appendChild(buildCollapsibleMilestonesCell(sheet, row, sourceIdx, col));
       } else if (isComputedColumn(sheet, col)) {
         td.appendChild(buildComputedCell(sheet, row, col));
       } else {
@@ -2088,6 +2093,43 @@
     var topChildren = el.childNodes;
     for (var j = 0; j < topChildren.length; j++) walk(topChildren[j]);
     return parts.join("");
+  }
+
+  // Spaces page: the big Key milestones ("Time") text box is hidden behind
+  // a down arrow so more Spaces fit on screen; tap the arrow to expand it
+  // (up arrow collapses it again). Expanded state is remembered while the
+  // app is open, per row.
+  var expandedMilestoneRows = new WeakSet();
+
+  function buildCollapsibleMilestonesCell(sheet, row, sourceIdx, col) {
+    var wrap = document.createElement("div");
+    wrap.className = "milestones-wrap";
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "milestones-toggle";
+    var box = buildEditableCell(sheet, row, sourceIdx, col);
+
+    function paint() {
+      var open = expandedMilestoneRows.has(row);
+      wrap.classList.toggle("collapsed", !open);
+      btn.textContent = open ? "\u25B2" : "\u25BC";
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+      btn.setAttribute("aria-label", open ? "Hide the text box" : "Show the text box");
+      btn.title = open ? "Tap to hide" : "Tap to show";
+      btn.classList.toggle("has-content", !!String(row[col] || "").trim());
+    }
+    btn.addEventListener("click", function () {
+      if (expandedMilestoneRows.has(row)) expandedMilestoneRows.delete(row);
+      else expandedMilestoneRows.add(row);
+      paint();
+    });
+    box.addEventListener("input", function () { btn.classList.toggle("has-content", !!box.textContent.trim()); });
+    box.addEventListener("blur", function () { btn.classList.toggle("has-content", !!String(row[col] || "").trim()); });
+
+    wrap.appendChild(btn);
+    wrap.appendChild(box);
+    paint();
+    return wrap;
   }
 
   function buildEditableCell(sheet, row, sourceIdx, col) {
@@ -2443,6 +2485,7 @@
   function buildComputedCell(sheet, row, col) {
     if (sheet.name === "Road Map - Pending" && col === "Life span") return buildDurationCell(row);
     if (sheet.name === "Summary" && col === "Time") return buildSummaryTaskLinkCell(row);
+    if (sheet.name === "Summary" && col === "Date") return buildSummaryDateInput(row);
     var div = document.createElement("div");
     div.className = "cell-readonly";
     div.textContent = row[col] || "";
@@ -2454,11 +2497,8 @@
   // it jumps straight to that same time's row on Daily planning - All
   // tasks, since Summary itself has no editable fields of its own.
   function buildSummaryTaskLinkCell(row) {
-    var wrap = document.createElement("div");
-    wrap.className = "summary-time-wrap";
-    wrap.appendChild(buildSummaryDateInput(row));
     var div = document.createElement("div");
-    div.className = "cell-readonly summary-task-link";
+    div.className = "cell-readonly summary-task-link week-times-link";
     div.textContent = row["Time"] || "";
     div.title = "Tap to open this time on Daily planning";
     div.tabIndex = 0;
@@ -2472,8 +2512,7 @@
         if (typeof row._dailyIdx === "number") goToDailyTaskFromSummary(row._dailyIdx);
       }
     });
-    wrap.appendChild(div);
-    return wrap;
+    return div;
   }
 
   // Jumps from a Summary row to the matching row on Daily planning - All
