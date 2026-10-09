@@ -633,6 +633,41 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     if (!/Times$/.test(w.document.getElementById('pageTitle').textContent.trim())) throw new Error('not on Times');
   });
 
+
+  /* ---- Spacetime: date instead of "Time N", Life Ends limit, sync, status groups ---- */
+  await ta('Spacetime: shows each task\'s Time Zero on date (blank when empty); tasks grouped per Space by status', async () => {
+    const w = await weekBoot([
+      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'h1', Timing: 'Hold', 'Time Zero on': dayStr(1) }),
+      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'p1', Timing: 'In-Progress' }),
+      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'h2', Timing: 'Hold' }),
+      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'p2', Timing: 'In-Progress', 'Time Zero on': dayStr(2) })]);
+    clickNav(w, /^Spacetime$/);
+    const trs = [...w.document.querySelectorAll('#tableBody tr')].map(tr => tr.classList.contains('summary-status-row') ? '#' + tr.textContent.trim() : (tr.querySelector('.summary-date-input').value || '_') + '|' + tr.querySelector('.summary-task-link').textContent.trim());
+    const want = ['#In-Progress', '_|p1', dayStr(2) + '|p2', '#Hold', dayStr(1) + '|h1', '_|h2'];
+    if (JSON.stringify(trs) !== JSON.stringify(want)) throw new Error(JSON.stringify(trs));
+    if (/Time \d+:/.test(w.document.getElementById('tableBody').textContent)) throw new Error('"Time N:" label still shown');
+  });
+  await ta("Spacetime: date picker saves to the Times row; cannot go past the Space's Life Ends; blank date can be set", async () => {
+    const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', Timing: 'Hold' })], [lifeRow('AA', dayStr(5))]);
+    let msg = ''; w.alert = m => { msg = m; };
+    clickNav(w, /^Spacetime$/); let inp = w.document.querySelector('.summary-date-input');
+    pickDate(w, inp, dayStr(9));
+    if (!/Life Ends/.test(msg) || sheetOf(wbOf(w), 'Daily planning - All tasks').rows[0]['Time Zero on'] !== '') throw new Error('beyond date accepted');
+    if (inp.max !== isoOf(dayStr(5))) throw new Error('max ' + inp.max);
+    pickDate(w, inp, dayStr(4));
+    if (sheetOf(wbOf(w), 'Daily planning - All tasks').rows[0]['Time Zero on'] !== dayStr(4)) throw new Error('not synced to Times');
+    clickNav(w, /^Times$/); if (w.document.querySelector('td[data-col="Time Zero on"] input').value !== dayStr(4)) throw new Error('Times page not showing the date');
+    clickNav(w, /^Spacetime$/); inp = w.document.querySelector('.summary-date-input'); inp.dispatchEvent(new w.Event('focus')); inp.value = ''; inp.dispatchEvent(new w.Event('change'));
+    if (sheetOf(wbOf(w), 'Daily planning - All tasks').rows[0]['Time Zero on'] !== '') throw new Error('clear not saved');
+  });
+  await ta('Spacetime: tapping the date does not navigate away; tapping the task text still opens it on Times', async () => {
+    const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1' })]);
+    clickNav(w, /^Spacetime$/); w.document.querySelector('.summary-date-input').click();
+    if (!/Spacetime$/.test(w.document.getElementById('pageTitle').textContent.trim())) throw new Error('left Spacetime');
+    w.document.querySelector('.summary-task-link').click();
+    if (!/Times$/.test(w.document.getElementById('pageTitle').textContent.trim())) throw new Error('did not open Times');
+  });
+
   /* ---- BackIn / NextIn wrap around (Spacetime, Times, NextIn, NoSpace) ---- */
   async function wrapBoot(n) {
     const w = await boot(); w.matchMedia = () => ({ matches: true, addListener() {}, removeListener() {}, addEventListener() {} });

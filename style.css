@@ -1107,3 +1107,34 @@ div.week-times-link,
   color:#000000;
   text-decoration:none;
 }
+
+/* Spacetime: status group headings, date field in place of "Time N:" */
+.summary-status-row td.summary-status-cell{
+  padding:6px 8px;
+  font-size:11px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  color:#be123c;
+  background:rgba(251,113,133,.08);
+}
+.summary-time-wrap{display:flex;align-items:center;gap:8px;}
+.summary-time-wrap .summary-task-link{flex:1 1 auto;min-width:0;}
+.summary-date-input{flex:0 0 auto;width:112px !important;min-width:112px;}
+@media (max-width:680px){
+  .data-table tr.summary-status-row{
+    margin:6px 0 0 !important;
+    padding:0 !important;
+    background:transparent !important;
+    box-shadow:none !important;
+  }
+  .summary-status-cell{
+    display:block !important;
+    width:auto !important;
+    border:none !important;
+    padding:4px 2px !important;
+    background:transparent !important;
+  }
+  .summary-status-cell::before{content:none !important;}
+  .summary-task-cell .summary-date-input{font-size:12.5px;padding:3px 6px;}
+}

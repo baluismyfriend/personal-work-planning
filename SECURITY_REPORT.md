@@ -1,6 +1,6 @@
 # Security report - Participant: Spaces & Time
 
-**Result after fixes: 125 passed, 0 failed.**
+**Result after fixes: 128 passed, 0 failed.**
 Run: `npm i jsdom && node security-tests.js` (from the app folder). Raw output: `SECURITY_TESTS.txt`.
 
 The previous suite (45 checks) was re-run first and reproduced as passing, but several of its checks were weak (details below), so the audit was redone adversarially. The same new suite run against your **original** files gives **61 passed / 27 failed**, so the new tests really do detect the problems.
@@ -65,3 +65,7 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: TimesX7 Times column read-only (2 new tests, 125 total)
 - The Times column on TimesX7 is display-only ("Space || Time"). Tapping it opens that task on the Times page (highlighted). No security-relevant code changed.
+
+## Update: Spacetime page (3 new tests, 128 total)
+- "Time 1 / Time 2 ..." labels replaced by the task's "Time Zero on" date (blank if empty); tapping it opens the calendar, limited to the Space's Life Ends, and saves to the same row on Times.
+- Within each Space, tasks are grouped under status headings (In-Progress, Not started, Hold, Complete, No status). No security-relevant code changed.

@@ -412,6 +412,12 @@
   // and tasks first appear on the Daily planning page. Rows with no
   // Project or no Task/Meeting text are skipped, since they have
   // nothing to summarize.
+  var SUMMARY_STATUS_ORDER = ["In-Progress", "Not started", "Hold", "Complete", ""];
+  function summaryStatusRank(v) {
+    var i = SUMMARY_STATUS_ORDER.indexOf(v);
+    return i === -1 ? SUMMARY_STATUS_ORDER.length : i;
+  }
+
   function computeSummaryRows(wb) {
     var daily = (wb || []).find ? (wb || []).find(function (s) { return s.name === "Daily planning - All tasks"; }) : null;
     if (!daily || !Array.isArray(daily.rows)) return [];
@@ -429,7 +435,12 @@
       // Keep the row's original index on Daily planning alongside its
       // text, so a Summary row can later be tapped to jump straight to
       // that same row on Daily planning (see goToDailyTaskFromSummary).
-      byProject[project].push({ task: task, dailyIdx: dailyIdx });
+      byProject[project].push({
+        task: task,
+        dailyIdx: dailyIdx,
+        timing: ((r && r.Timing) || "").toString().trim(),
+        date: ((r && r["Time Zero on"]) || "").toString().trim()
+      });
     });
     // One row per task - the project name is shown on every one of its
     // task rows (not a separate header row), so a project with a single
@@ -438,8 +449,22 @@
     // group, without needing an extra blank row to do it.
     var rows = [];
     order.forEach(function (project) {
-      byProject[project].forEach(function (entry, i) {
-        rows.push({ Space: project, Time: entry.task, _isGroupStart: i === 0, _dailyIdx: entry.dailyIdx });
+      // Within a Space, tasks are grouped by their status/timing value
+      // (In-Progress, Not started, Hold, Complete, then no status); the
+      // original order is kept inside each group.
+      var entries = byProject[project].map(function (e, n) { e.n = n; return e; });
+      entries.sort(function (a, b) {
+        var d = summaryStatusRank(a.timing) - summaryStatusRank(b.timing);
+        if (d !== 0) return d;
+        if (a.timing !== b.timing) return a.timing < b.timing ? -1 : 1;
+        return a.n - b.n;
+      });
+      entries.forEach(function (entry, i) {
+        rows.push({
+          Space: project, Time: entry.task,
+          Timing: entry.timing, _date: entry.date,
+          _isGroupStart: i === 0, _dailyIdx: entry.dailyIdx
+        });
       });
     });
     return rows;
@@ -1664,7 +1689,10 @@
       if (sheet.name === "Summary" && page.length) {
         var projectName = ((page[0].row && page[0].row.Space) || "").toString().trim() || "(No space)";
         tableBodyEl.appendChild(buildSummaryProjectHeaderRow(sheet, projectName));
+        var prevTiming = null;
         page.forEach(function (only, taskPos) {
+          var t = (only.row && only.row.Timing) || "";
+          if (t !== prevTiming) { tableBodyEl.appendChild(buildSummaryStatusRow(sheet, t)); prevTiming = t; }
           tableBodyEl.appendChild(buildSummaryTaskRow(only.row, only.idx, taskPos + 1));
         });
         return;
@@ -1693,7 +1721,12 @@
       return;
     }
 
+    var prevSpace = null, prevTiming = null;
     items.forEach(function (item) {
+      if (sheet.name === "Summary") {
+        var sp = (item.row && item.row.Space) || "", tm = (item.row && item.row.Timing) || "";
+        if (sp !== prevSpace || tm !== prevTiming) { tableBodyEl.appendChild(buildSummaryStatusRow(sheet, tm)); prevSpace = sp; prevTiming = tm; }
+      }
       var tr = buildRowElement(sheet, item.row, item.idx, false);
       tableBodyEl.appendChild(tr);
     });
@@ -1845,6 +1878,84 @@
     return tr;
   }
 
+  // Sub-heading above each status/timing group of a Space's tasks.
+  function buildSummaryStatusRow(sheet, timing) {
+    var tr = document.createElement("tr");
+    tr.className = "summary-status-row";
+    var td = document.createElement("td");
+    td.colSpan = sheet.columns.length;
+    td.className = "summary-status-cell";
+    td.textContent = timing ? timing : "No status";
+    tr.appendChild(td);
+    return tr;
+  }
+
+  // Date shown in place of "Time 1:", "Time 2:" ... : the task's
+  // "Time Zero on" (blank when empty). Opens the calendar on tap, cannot
+  // go past the Space's Life Ends, and writes the date back to the same
+  // row on the Times page so the dates stay in sync.
+  function buildSummaryDateInput(row) {
+    var input = document.createElement("input");
+    input.type = "text";
+    input.className = "due-date-input summary-date-input";
+    input.readOnly = true;
+    input.value = dateOnlyOf(row._date);
+    input.placeholder = "";
+    input.title = "Time Zero on (tap to pick a date)";
+    input.setAttribute("aria-label", "Time Zero on date");
+
+    function dailyRow() {
+      var d = dailySheet();
+      return (d && typeof row._dailyIdx === "number") ? d.rows[row._dailyIdx] : null;
+    }
+    // Picking a date must not also open the task on Times.
+    input.addEventListener("click", function (e) { e.stopPropagation(); });
+    input.addEventListener("keydown", function (e) { e.stopPropagation(); });
+
+    function activate() {
+      if (input.type === "date") return;
+      var dr = dailyRow();
+      if (!dr) { input.blur(); return; }
+      input.readOnly = false;
+      input.type = "date";
+      input.value = mmddyyyyToIsoStr(dr["Time Zero on"] || "");
+      var limit = lifeEndFor(dr.Space);
+      if (limit) input.max = mmddyyyyToIsoStr(limit.str);
+      if (typeof input.showPicker === "function") {
+        try { input.showPicker(); } catch (e) { /* ignore */ }
+      }
+    }
+    input.addEventListener("focus", activate);
+    input.addEventListener("click", activate);
+
+    input.addEventListener("change", function () {
+      var dr = dailyRow();
+      if (!dr) return;
+      var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(input.value);
+      var mmddyyyy = m ? (m[2] + "/" + m[3] + "/" + m[1]) : "";
+      if (input.value && !m) return;
+      var limit = lifeEndFor(dr.Space);
+      if (mmddyyyy && limit) {
+        var ms = dateToUtcMs(mmddyyyy);
+        if (ms !== null && ms > limit.ms) {
+          input.value = mmddyyyyToIsoStr(dr["Time Zero on"] || "");
+          warnPastLifeEnd(dr.Space, limit);
+          return;
+        }
+      }
+      dr["Time Zero on"] = mmddyyyy;
+      row._date = mmddyyyy;
+      saveWorkbook();
+    });
+
+    input.addEventListener("blur", function () {
+      input.type = "text";
+      input.readOnly = true;
+      input.value = dateOnlyOf(row._date);
+    });
+    return input;
+  }
+
   function buildSummaryTaskRow(row, sourceIdx, taskNumber) {
     var tr = document.createElement("tr");
     tr.className = "summary-task-row summary-task-link";
@@ -1854,9 +1965,7 @@
     tr.title = "Tap to open this time on Daily planning";
     var td = document.createElement("td");
     td.className = "summary-task-cell";
-    var num = document.createElement("span");
-    num.className = "summary-task-num";
-    num.textContent = "Time " + taskNumber + ":";
+    var num = buildSummaryDateInput(row);
     var text = document.createElement("span");
     text.className = "summary-task-text";
     text.textContent = (row["Time"] || "").toString();
@@ -2345,6 +2454,9 @@
   // it jumps straight to that same time's row on Daily planning - All
   // tasks, since Summary itself has no editable fields of its own.
   function buildSummaryTaskLinkCell(row) {
+    var wrap = document.createElement("div");
+    wrap.className = "summary-time-wrap";
+    wrap.appendChild(buildSummaryDateInput(row));
     var div = document.createElement("div");
     div.className = "cell-readonly summary-task-link";
     div.textContent = row["Time"] || "";
@@ -2360,7 +2472,8 @@
         if (typeof row._dailyIdx === "number") goToDailyTaskFromSummary(row._dailyIdx);
       }
     });
-    return div;
+    wrap.appendChild(div);
+    return wrap;
   }
 
   // Jumps from a Summary row to the matching row on Daily planning - All
