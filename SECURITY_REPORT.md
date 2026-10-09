@@ -92,3 +92,5 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 - Security: the stored value is validated on every load/import (digits 0-11 only, anything else replaced) and applied only as a fixed CSS class name from a code-owned list, so imported data cannot inject classes, styles or markup. No innerHTML / inline styles added. The full suite, including the fuzzer, was re-run.
 
 - Space names use the original 11px badge size again (as the old pills did).
+
+- Space colour is now shown as a 4px strip on the left edge (Space cells, the whole TimesX7 box, the Spacetime group title) instead of a background fill. CSS only.

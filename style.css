@@ -1299,33 +1299,31 @@ div.week-times-link,
   .summary-status-cell{color:#2563eb !important;}
 }
 
-/* Space colours: one background colour per Space, used everywhere its name shows */
-.space-color{display:inline-block;max-width:100%;padding:3px 9px;border-radius:999px;color:#0f172a;font-size:11px;font-weight:700;word-break:break-word;}
-.space-color-0{background:#fecaca;}
-.data-table tr.week-day-header-row > td.week-day-header.space-color-0{background:#fecaca;color:#0f172a;}
-.space-color-1{background:#fed7aa;}
-.data-table tr.week-day-header-row > td.week-day-header.space-color-1{background:#fed7aa;color:#0f172a;}
-.space-color-2{background:#fde68a;}
-.data-table tr.week-day-header-row > td.week-day-header.space-color-2{background:#fde68a;color:#0f172a;}
-.space-color-3{background:#d9f99d;}
-.data-table tr.week-day-header-row > td.week-day-header.space-color-3{background:#d9f99d;color:#0f172a;}
-.space-color-4{background:#bbf7d0;}
-.data-table tr.week-day-header-row > td.week-day-header.space-color-4{background:#bbf7d0;color:#0f172a;}
-.space-color-5{background:#99f6e4;}
-.data-table tr.week-day-header-row > td.week-day-header.space-color-5{background:#99f6e4;color:#0f172a;}
-.space-color-6{background:#a5f3fc;}
-.data-table tr.week-day-header-row > td.week-day-header.space-color-6{background:#a5f3fc;color:#0f172a;}
-.space-color-7{background:#ddd6fe;}
-.data-table tr.week-day-header-row > td.week-day-header.space-color-7{background:#ddd6fe;color:#0f172a;}
-.space-color-8{background:#f5d0fe;}
-.data-table tr.week-day-header-row > td.week-day-header.space-color-8{background:#f5d0fe;color:#0f172a;}
-.space-color-9{background:#fbcfe8;}
-.data-table tr.week-day-header-row > td.week-day-header.space-color-9{background:#fbcfe8;color:#0f172a;}
-.space-color-10{background:#c7d2fe;}
-.data-table tr.week-day-header-row > td.week-day-header.space-color-10{background:#c7d2fe;color:#0f172a;}
-.space-color-11{background:#e5d3c0;}
-.data-table tr.week-day-header-row > td.week-day-header.space-color-11{background:#e5d3c0;color:#0f172a;}
-.data-table tr.week-day-header-row > td.week-day-header[class*="space-color-"]{border-radius:10px;}
-
-/* TimesX7: the Space colour fills the whole "Space || Time" box */
-div.week-times-link[class*="space-color-"]{color:#000000;}
+/* Space colours: one colour per Space, shown as a 4px strip on the left
+   (same colour everywhere the Space's name shows) */
+.space-color-0{--sc:#dc2626;}
+.space-color-1{--sc:#ea580c;}
+.space-color-2{--sc:#ca8a04;}
+.space-color-3{--sc:#65a30d;}
+.space-color-4{--sc:#16a34a;}
+.space-color-5{--sc:#0d9488;}
+.space-color-6{--sc:#0891b2;}
+.space-color-7{--sc:#7c3aed;}
+.space-color-8{--sc:#c026d3;}
+.space-color-9{--sc:#db2777;}
+.space-color-10{--sc:#4f46e5;}
+.space-color-11{--sc:#92400e;}
+.space-color{
+  display:inline-block;
+  max-width:100%;
+  padding:3px 0 3px 8px;
+  border-left:4px solid var(--sc);
+  color:var(--text);
+  font-size:11px;
+  font-weight:700;
+  word-break:break-word;
+}
+/* TimesX7: strip on the left of the whole "Space || Time" box */
+div.week-times-link[class*="space-color-"]{border-left:4px solid var(--sc);}
+/* Spacetime: strip on the left of the Space group title */
+.data-table tr.week-day-header-row > td.week-day-header[class*="space-color-"]{border-left:4px solid var(--sc);}
