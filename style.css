@@ -1189,3 +1189,38 @@ div.week-times-link,
   .data-table tr.summary-status-row{margin:0 !important;}
   .summary-status-cell{padding:2px 12px !important;font-size:11px;color:var(--muted);}
 }
+
+/* Spacetime: titles keep their own capitalisation; task text has an
+   outline like the date field; narrower date column */
+.data-table tr.summary-space-title > td.week-day-header{text-transform:none;letter-spacing:.02em;}
+.data-table tr.summary-status-row > td.summary-status-cell,
+.summary-status-cell{text-transform:none;letter-spacing:.02em;}
+.summary-date-input{width:100px !important;min-width:100px !important;}
+.data-table td[data-col="Time"] .week-times-link{
+  background:rgba(255,255,255,.65);
+  border:1px solid rgba(100,116,139,.20);
+  border-radius:8px;
+}
+@media (max-width:680px){
+  .summary-task-cell .summary-date-input{width:96px !important;min-width:0 !important;flex:0 0 auto;}
+  .summary-task-text{
+    flex:1 1 0;
+    background:rgba(255,255,255,.65);
+    border:1px solid rgba(100,116,139,.20);
+    border-radius:8px;
+  }
+  .summary-status-cell{text-transform:none !important;}
+
+  /* Spaces: the show/hide arrow sits on the same line as the "Time"
+     title, at the right-hand end of the row. */
+  .data-table tr.roadmap-row > td[data-col="Key milestones"]{position:relative;}
+  .data-table tr.roadmap-row > td[data-col="Key milestones"]::before{min-height:22px;}
+  .data-table tr.roadmap-row > td[data-col="Key milestones"] .milestones-toggle{
+    position:absolute;
+    top:9px;
+    right:0;
+    height:22px;
+    min-width:40px;
+    padding:0 10px;
+  }
+}

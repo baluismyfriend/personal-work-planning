@@ -75,3 +75,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: Spacetime matches TimesX7 look (129 tests)
 - Spacetime columns are now "Defined time on" and "Times"; each Space is a group title in the same style as the TimesX7 weekday titles, with the status headings beneath. Task rows use the TimesX7 font, size, colour and borders. Display only; no security-relevant code changed.
+
+## Update: layout tweaks (129 tests)
+- Spaces: show/hide arrow moved onto the "Time" title line, right-most. Spacetime: task text has an outline like the date field, narrower date column, and Space / status titles keep their own capitalisation. Display only; no security-relevant code changed.

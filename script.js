@@ -796,7 +796,7 @@
   function minWidthForColumn(sheet, col) {
     if (col === "Timeframe/Meeting" || col === "Key milestones" || col === "Timeframes" || col === "Time") return 230;
     if (col === "Next Timeframes") return 190;
-    if (sheet.name === "Summary" && col === "Date") return 110;
+    if (sheet.name === "Summary" && col === "Date") return 100;
     if (col === "Date" || col === "Space" || col === "Demand") return 64;
     if (col === "Date/Day") return 110;
     if (col === "Timing") return 126;
@@ -826,8 +826,8 @@
       return 22; // Date/Day
     }
     if (sheet.name === "Summary") {
-      if (col === "Time") return 78;
-      return 22; // Date
+      if (col === "Time") return 86;
+      return 14; // Date
     }
     if (col === "Timeframe/Meeting" || col === "Notes" || col === "Next Timeframes") return 27;
     if (col === "Space") return 13;
@@ -1691,7 +1691,7 @@
       var page = pages[idx];
       if (sheet.name === "Summary" && page.length) {
         var projectName = ((page[0].row && page[0].row.Space) || "").toString().trim() || "(No space)";
-        tableBodyEl.appendChild(buildWeekDayHeaderRow(sheet, projectName, false));
+        tableBodyEl.appendChild(buildSummarySpaceHeaderRow(sheet, projectName));
         var prevTiming = null;
         page.forEach(function (only, taskPos) {
           var t = (only.row && only.row.Timing) || "";
@@ -1728,7 +1728,7 @@
     items.forEach(function (item) {
       if (sheet.name === "Summary") {
         var sp = (item.row && item.row.Space) || "", tm = (item.row && item.row.Timing) || "";
-        if (sp !== prevSpace) tableBodyEl.appendChild(buildWeekDayHeaderRow(sheet, sp, false));
+        if (sp !== prevSpace) tableBodyEl.appendChild(buildSummarySpaceHeaderRow(sheet, sp));
         if (sp !== prevSpace || tm !== prevTiming) { tableBodyEl.appendChild(buildSummaryStatusRow(sheet, tm)); prevSpace = sp; prevTiming = tm; }
       }
       var tr = buildRowElement(sheet, item.row, item.idx, false);
@@ -1879,6 +1879,14 @@
     td.appendChild(label);
     td.appendChild(name);
     tr.appendChild(td);
+    return tr;
+  }
+
+  // Space group title: same look as TimesX7's weekday titles, but shown
+  // exactly as typed (not forced to capitals).
+  function buildSummarySpaceHeaderRow(sheet, name) {
+    var tr = buildWeekDayHeaderRow(sheet, name, false);
+    tr.classList.add("summary-space-title");
     return tr;
   }
 
