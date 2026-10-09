@@ -1303,8 +1303,8 @@ div.week-times-link,
    (same colour everywhere the Space's name shows) */
 .space-color-0{--sc:#dc2626;}
 .space-color-1{--sc:#ea580c;}
-.space-color-2{--sc:#ca8a04;}
-.space-color-3{--sc:#65a30d;}
+.space-color-2{--sc:#a16207;}
+.space-color-3{--sc:#4d7c0f;}
 .space-color-4{--sc:#16a34a;}
 .space-color-5{--sc:#0d9488;}
 .space-color-6{--sc:#0891b2;}
@@ -1313,17 +1313,24 @@ div.week-times-link,
 .space-color-9{--sc:#db2777;}
 .space-color-10{--sc:#4f46e5;}
 .space-color-11{--sc:#92400e;}
-.space-color{
-  display:inline-block;
-  max-width:100%;
-  padding:3px 0 3px 8px;
+/* Space cells (Spaces, Times, NextIn, NoSpace): same gray box and rounded
+   left strip as the Times column on TimesX7 */
+.cell-editable.space-box{
+  background:rgba(100,116,139,.06);
+  border:1px solid rgba(100,116,139,.16);
   border-left:4px solid var(--sc);
-  color:var(--text);
+  border-radius:8px;
+  padding:4px 6px;
   font-size:11px;
   font-weight:700;
-  word-break:break-word;
 }
+.cell-editable.space-box:focus{background:#fff;}
 /* TimesX7: strip on the left of the whole "Space || Time" box */
 div.week-times-link[class*="space-color-"]{border-left:4px solid var(--sc);}
-/* Spacetime: strip on the left of the Space group title */
-.data-table tr.week-day-header-row > td.week-day-header[class*="space-color-"]{border-left:4px solid var(--sc);}
+/* Spacetime: the Space's colour is the background of its group title */
+.data-table tr.week-day-header-row.summary-space-title[class*="space-color-"],
+.data-table tr.week-day-header-row.summary-space-title[class*="space-color-"] > td.week-day-header{
+  background:var(--sc);
+  color:#ffffff;
+  border-radius:10px;
+}

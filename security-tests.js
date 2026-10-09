@@ -691,19 +691,19 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     if (new Set([cols[0], cols[1], cols[2]]).size !== 3) throw new Error('not distinct ' + JSON.stringify(cols));
     if (cols[3] !== cols[0]) throw new Error('duplicate name should share colour');
     if (road.columns.includes('Color')) throw new Error('Color must not be a column');
-    const sp = [...w.document.querySelectorAll('td[data-col="Space"] .space-color')]; if (sp.length !== 2 || sp[0].className === sp[1].className) throw new Error('Times page colours: ' + sp.map(e => e.className));
+    const sp = [...w.document.querySelectorAll('td[data-col="Space"] .space-box')]; if (sp.length !== 2 || sp[0].className === sp[1].className) throw new Error('Times page colours: ' + sp.map(e => e.className));
   });
   await ta('Space colours: a new Space gets a different colour; existing colours never change; same colour on Times, TimesX7 and Spacetime', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': todayStr })], [lifeRow('AA', '')]);
-    clickNav(w, /^Times$/); const aaCls = w.document.querySelector('td[data-col="Space"] .space-color').className;
+    clickNav(w, /^Times$/); const aaCls = w.document.querySelector('td[data-col="Space"] .space-box').className;
     const g = wbOf(w); sheetOf(g, 'Road Map - Pending').rows.push(lifeRow('ZZ', '')); await doImport(w, JSON.stringify(g));
     const road = sheetOf(wbOf(w), 'Road Map - Pending').rows; if (road[0].Color === road[1].Color || !road[1].Color) throw new Error('new Space colour ' + JSON.stringify(road.map(r => r.Color)));
-    clickNav(w, /^Times$/); if (w.document.querySelector('td[data-col="Space"] .space-color').className !== aaCls) throw new Error('AA colour changed');
+    clickNav(w, /^Times$/); if (w.document.querySelector('td[data-col="Space"] .space-box').className !== aaCls) throw new Error('AA colour changed');
     const colourOf = el => (/space-color-\d+/.exec(el.className) || [''])[0];
     clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
     const x7 = w.document.querySelector('td[data-col="Timeframes"] .week-times-link'); if (!x7 || colourOf(x7) !== colourOf({ className: aaCls }) || x7.querySelector('.space-color') || x7.textContent !== 'AA || T1') throw new Error('TimesX7 colour (whole box): ' + (x7 && x7.className));
     clickNav(w, /^Spacetime$/); const title = w.document.querySelector('tr.summary-space-title td'); if (colourOf(title) !== colourOf({ className: aaCls })) throw new Error('Spacetime title colour');
-    clickNav(w, /^Spaces$|^Projects$/); const sc = w.document.querySelector('td[data-col="Space"] .space-color'); if (colourOf(sc) !== colourOf({ className: aaCls })) throw new Error('Spaces page colour');
+    clickNav(w, /^Spaces$|^Projects$/); const sc = w.document.querySelector('td[data-col="Space"] .space-box'); if (colourOf(sc) !== colourOf({ className: aaCls })) throw new Error('Spaces page colour');
   });
   await ta('Space colours: tampered/hostile Color values are ignored (no class injection), import keeps valid ones', async () => {
     const w = await weekBoot([], [lifeRow('AA', ''), lifeRow('BB', ''), lifeRow('CC', ''), lifeRow('DD', '')]);

@@ -1951,7 +1951,7 @@
     var tr = buildWeekDayHeaderRow(sheet, name, false);
     tr.classList.add("summary-space-title");
     var scc = spaceColorClass(name);
-    if (scc && tr.firstChild) tr.firstChild.classList.add(scc);
+    if (scc) { tr.classList.add(scc); if (tr.firstChild) tr.firstChild.classList.add(scc); }
     return tr;
   }
 
@@ -2257,6 +2257,16 @@
   }
 
   function setCellDisplay(div, col, value, editing) {
+    if (col === "Space") {
+      // Space cells: gray box with the Space's colour strip on the left.
+      Array.prototype.slice.call(div.classList).forEach(function (c) {
+        if (c === "space-box" || /^space-color-\d+$/.test(c)) div.classList.remove(c);
+      });
+      var scc = spaceColorClass(value);
+      if (scc) { div.classList.add("space-box"); div.classList.add(scc); }
+      div.textContent = value;
+      return;
+    }
     if (editing) {
       div.textContent = value;
       return;
@@ -2269,17 +2279,6 @@
         span.className = "pill " + pc;
         span.textContent = value;
         div.appendChild(span);
-        return;
-      }
-    }
-    if (col === "Space") {
-      var scc = spaceColorClass(value);
-      if (scc) {
-        div.replaceChildren();
-        var span2 = document.createElement("span");
-        span2.className = "space-color " + scc;
-        span2.textContent = value;
-        div.appendChild(span2);
         return;
       }
     }

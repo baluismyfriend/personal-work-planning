@@ -94,3 +94,7 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 - Space names use the original 11px badge size again (as the old pills did).
 
 - Space colour is now shown as a 4px strip on the left edge (Space cells, the whole TimesX7 box, the Spacetime group title) instead of a background fill. CSS only.
+
+- Space cells now use the same gray box with a rounded left colour strip as the Times column on TimesX7 (no more inner badge).
+
+- Spacetime: the Space group title now uses the Space colour as its background (white text); Space cells elsewhere keep the gray box with the left strip.
