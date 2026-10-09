@@ -1291,3 +1291,10 @@ div.week-times-link,
     font-weight:800;
   }
 }
+
+/* Spacetime status titles: a clearer blue */
+.data-table tr.summary-status-row > td.summary-status-cell,
+.summary-status-cell{color:#2563eb;}
+@media (max-width:680px){
+  .summary-status-cell{color:#2563eb !important;}
+}
