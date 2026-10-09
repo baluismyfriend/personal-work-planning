@@ -1449,3 +1449,13 @@ div.week-times-link[class*="space-color-"]{border-right:4px solid var(--sc);}
   .data-table tr.roadmap-row > td[data-col="Space"]::before{content:none !important;display:none !important;}
   .data-table tr.roadmap-row.roadmap-collapsed{padding-top:6px !important;padding-bottom:6px !important;margin-bottom:6px !important;}
 }
+
+/* Spaces: the + / - button has no background or outline */
+.space-toggle,
+.space-toggle:hover,
+.space-toggle:active{
+  background:transparent;
+  border:none;
+  box-shadow:none;
+}
+.space-toggle{color:var(--text);}
