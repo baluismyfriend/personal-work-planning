@@ -2501,16 +2501,10 @@
     div.className = "cell-readonly summary-task-link week-times-link";
     var wtext = String(row["Timeframes"] || "");
     var sepAt = wtext.indexOf(" || ");
+    // The Space's colour is the background of the whole "Space || Time" box.
     var wcls = spaceColorClass(sepAt === -1 ? wtext : wtext.slice(0, sepAt));
-    if (wcls) {
-      var wspan = document.createElement("span");
-      wspan.className = "space-color " + wcls;
-      wspan.textContent = sepAt === -1 ? wtext : wtext.slice(0, sepAt);
-      div.appendChild(wspan);
-      if (sepAt !== -1) div.appendChild(document.createTextNode(wtext.slice(sepAt)));
-    } else {
-      div.textContent = wtext;
-    }
+    if (wcls) div.classList.add(wcls);
+    div.textContent = wtext;
     div.title = "Tap to open this task on the Times page";
     div.tabIndex = 0;
     div.setAttribute("role", "button");

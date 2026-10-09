@@ -701,7 +701,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     clickNav(w, /^Times$/); if (w.document.querySelector('td[data-col="Space"] .space-color').className !== aaCls) throw new Error('AA colour changed');
     const colourOf = el => (/space-color-\d+/.exec(el.className) || [''])[0];
     clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
-    const x7 = w.document.querySelector('.week-times-link .space-color'); if (!x7 || colourOf(x7) !== colourOf({ className: aaCls }) || x7.textContent !== 'AA') throw new Error('TimesX7 colour');
+    const x7 = w.document.querySelector('td[data-col="Timeframes"] .week-times-link'); if (!x7 || colourOf(x7) !== colourOf({ className: aaCls }) || x7.querySelector('.space-color') || x7.textContent !== 'AA || T1') throw new Error('TimesX7 colour (whole box): ' + (x7 && x7.className));
     clickNav(w, /^Spacetime$/); const title = w.document.querySelector('tr.summary-space-title td'); if (colourOf(title) !== colourOf({ className: aaCls })) throw new Error('Spacetime title colour');
     clickNav(w, /^Spaces$|^Projects$/); const sc = w.document.querySelector('td[data-col="Space"] .space-color'); if (colourOf(sc) !== colourOf({ className: aaCls })) throw new Error('Spaces page colour');
   });

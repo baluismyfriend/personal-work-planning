@@ -1300,7 +1300,7 @@ div.week-times-link,
 }
 
 /* Space colours: one background colour per Space, used everywhere its name shows */
-.space-color{display:inline-block;max-width:100%;padding:2px 9px;border-radius:999px;color:#0f172a;font-weight:700;word-break:break-word;}
+.space-color{display:inline-block;max-width:100%;padding:3px 9px;border-radius:999px;color:#0f172a;font-size:11px;font-weight:700;word-break:break-word;}
 .space-color-0{background:#fecaca;}
 .data-table tr.week-day-header-row > td.week-day-header.space-color-0{background:#fecaca;color:#0f172a;}
 .space-color-1{background:#fed7aa;}
@@ -1326,3 +1326,6 @@ div.week-times-link,
 .space-color-11{background:#e5d3c0;}
 .data-table tr.week-day-header-row > td.week-day-header.space-color-11{background:#e5d3c0;color:#0f172a;}
 .data-table tr.week-day-header-row > td.week-day-header[class*="space-color-"]{border-radius:10px;}
+
+/* TimesX7: the Space colour fills the whole "Space || Time" box */
+div.week-times-link[class*="space-color-"]{color:#000000;}
