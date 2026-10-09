@@ -85,7 +85,8 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 ## Update: Spacetime status titles (129 tests)
 - Status titles are capitals again in a blue-gray; Space titles keep the capitalisation typed on Times. CSS only.
 
-## Update: Space colours (3 new tests, 132 total)
-- Each Space on the Spaces page owns one of 12 text colours, saved on its row as `Color` (a palette number 0-11, not a visible column). A new Space gets the least-used colour; existing colours never change; Spaces with the same name share one.
-- The colour is used for the Space name on Spaces, Times (and NextIn/NoSpace), the Space part of "Space || Time" on TimesX7, and the Space group title on Spacetime.
-- Security: the stored value is validated on every load/import (digits 0-11 only, anything else is replaced), and it is applied only as a fixed CSS class name from a code-owned list, so imported data cannot inject classes, styles or markup. No innerHTML / inline styles added. The full suite, including the fuzzer, was re-run.
+## Update: Space background colours (3 new tests, 132 total)
+- The text-colour version was fully reverted (suite back to 129 passed), then Space colours were re-applied as backgrounds.
+- Each Space on the Spaces page owns one of 12 pastel backgrounds, saved on its row as `Color` (a palette number 0-11, not a visible column). A new Space gets the least-used colour; existing colours never change; Spaces with the same name share one.
+- Shown as a coloured background behind the Space name on Spaces, Times (and NextIn/NoSpace), behind the Space part of "Space || Time" on TimesX7, and behind the Space group title on Spacetime.
+- Security: the stored value is validated on every load/import (digits 0-11 only, anything else replaced) and applied only as a fixed CSS class name from a code-owned list, so imported data cannot inject classes, styles or markup. No innerHTML / inline styles added. The full suite, including the fuzzer, was re-run.

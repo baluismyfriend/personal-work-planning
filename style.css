@@ -1299,17 +1299,30 @@ div.week-times-link,
   .summary-status-cell{color:#2563eb !important;}
 }
 
-/* Space colours: one colour per Space, used everywhere its name shows */
-.space-color{font-weight:700;}
-.space-color-0,.data-table tr.week-day-header-row > td.week-day-header.space-color-0{color:#dc2626 !important;}
-.space-color-1,.data-table tr.week-day-header-row > td.week-day-header.space-color-1{color:#ea580c !important;}
-.space-color-2,.data-table tr.week-day-header-row > td.week-day-header.space-color-2{color:#b45309 !important;}
-.space-color-3,.data-table tr.week-day-header-row > td.week-day-header.space-color-3{color:#4d7c0f !important;}
-.space-color-4,.data-table tr.week-day-header-row > td.week-day-header.space-color-4{color:#15803d !important;}
-.space-color-5,.data-table tr.week-day-header-row > td.week-day-header.space-color-5{color:#0f766e !important;}
-.space-color-6,.data-table tr.week-day-header-row > td.week-day-header.space-color-6{color:#0e7490 !important;}
-.space-color-7,.data-table tr.week-day-header-row > td.week-day-header.space-color-7{color:#7c3aed !important;}
-.space-color-8,.data-table tr.week-day-header-row > td.week-day-header.space-color-8{color:#a21caf !important;}
-.space-color-9,.data-table tr.week-day-header-row > td.week-day-header.space-color-9{color:#be185d !important;}
-.space-color-10,.data-table tr.week-day-header-row > td.week-day-header.space-color-10{color:#4f46e5 !important;}
-.space-color-11,.data-table tr.week-day-header-row > td.week-day-header.space-color-11{color:#92400e !important;}
+/* Space colours: one background colour per Space, used everywhere its name shows */
+.space-color{display:inline-block;max-width:100%;padding:2px 9px;border-radius:999px;color:#0f172a;font-weight:700;word-break:break-word;}
+.space-color-0{background:#fecaca;}
+.data-table tr.week-day-header-row > td.week-day-header.space-color-0{background:#fecaca;color:#0f172a;}
+.space-color-1{background:#fed7aa;}
+.data-table tr.week-day-header-row > td.week-day-header.space-color-1{background:#fed7aa;color:#0f172a;}
+.space-color-2{background:#fde68a;}
+.data-table tr.week-day-header-row > td.week-day-header.space-color-2{background:#fde68a;color:#0f172a;}
+.space-color-3{background:#d9f99d;}
+.data-table tr.week-day-header-row > td.week-day-header.space-color-3{background:#d9f99d;color:#0f172a;}
+.space-color-4{background:#bbf7d0;}
+.data-table tr.week-day-header-row > td.week-day-header.space-color-4{background:#bbf7d0;color:#0f172a;}
+.space-color-5{background:#99f6e4;}
+.data-table tr.week-day-header-row > td.week-day-header.space-color-5{background:#99f6e4;color:#0f172a;}
+.space-color-6{background:#a5f3fc;}
+.data-table tr.week-day-header-row > td.week-day-header.space-color-6{background:#a5f3fc;color:#0f172a;}
+.space-color-7{background:#ddd6fe;}
+.data-table tr.week-day-header-row > td.week-day-header.space-color-7{background:#ddd6fe;color:#0f172a;}
+.space-color-8{background:#f5d0fe;}
+.data-table tr.week-day-header-row > td.week-day-header.space-color-8{background:#f5d0fe;color:#0f172a;}
+.space-color-9{background:#fbcfe8;}
+.data-table tr.week-day-header-row > td.week-day-header.space-color-9{background:#fbcfe8;color:#0f172a;}
+.space-color-10{background:#c7d2fe;}
+.data-table tr.week-day-header-row > td.week-day-header.space-color-10{background:#c7d2fe;color:#0f172a;}
+.space-color-11{background:#e5d3c0;}
+.data-table tr.week-day-header-row > td.week-day-header.space-color-11{background:#e5d3c0;color:#0f172a;}
+.data-table tr.week-day-header-row > td.week-day-header[class*="space-color-"]{border-radius:10px;}
