@@ -1950,8 +1950,6 @@
   function buildSummarySpaceHeaderRow(sheet, name) {
     var tr = buildWeekDayHeaderRow(sheet, name, false);
     tr.classList.add("summary-space-title");
-    var scc = spaceColorClass(name);
-    if (scc) { tr.classList.add(scc); if (tr.firstChild) tr.firstChild.classList.add(scc); }
     return tr;
   }
 
@@ -2040,15 +2038,22 @@
     tr.tabIndex = 0;
     tr.setAttribute("role", "button");
     tr.title = "Tap to open this time on Daily planning";
-    var td = document.createElement("td");
-    td.className = "summary-task-cell";
-    var num = buildSummaryDateInput(row);
-    var text = document.createElement("span");
-    text.className = "summary-task-text";
+    // Same two labelled fields as TimesX7: "Defined time on" and "Times".
+    var tdDate = document.createElement("td");
+    tdDate.className = "summary-date-td";
+    tdDate.dataset.label = "Defined time on";
+    tdDate.appendChild(buildSummaryDateInput(row));
+    var tdText = document.createElement("td");
+    tdText.className = "summary-times-td";
+    tdText.dataset.label = "Times";
+    var text = document.createElement("div");
+    text.className = "cell-readonly summary-task-text week-times-link";
     text.textContent = (row["Time"] || "").toString();
-    td.appendChild(num);
-    td.appendChild(text);
-    tr.appendChild(td);
+    var sc2 = spaceColorClass(row.Space);
+    if (sc2) text.classList.add(sc2);
+    tdText.appendChild(text);
+    tr.appendChild(tdDate);
+    tr.appendChild(tdText);
     tr.addEventListener("click", function () {
       if (typeof row._dailyIdx === "number") goToDailyTaskFromSummary(row._dailyIdx);
     });
@@ -2576,6 +2581,8 @@
   function buildSummaryTaskLinkCell(row) {
     var div = document.createElement("div");
     div.className = "cell-readonly summary-task-link week-times-link";
+    var sc1 = spaceColorClass(row.Space);
+    if (sc1) div.classList.add(sc1);
     div.textContent = row["Time"] || "";
     div.title = "Tap to open this time on Daily planning";
     div.tabIndex = 0;

@@ -98,3 +98,7 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 - Space cells now use the same gray box with a rounded left colour strip as the Times column on TimesX7 (no more inner badge).
 
 - Spacetime: the Space group title now uses the Space colour as its background (white text); Space cells elsewhere keep the gray box with the left strip.
+
+## Update: colour tweaks (132 tests)
+- TimesX7 Times box: Space colour strip moved to the right. Spacetime task boxes use the same right strip; Spacetime group titles are back to the original pink with rounded corners; on the phone, Spacetime rows show the "Defined time on" / "Times" labels like TimesX7.
+- Spaces / Times / NextIn / NoSpace: the Space name is shown in its colour (gray box, no strip). Display only; no security-relevant code changed.

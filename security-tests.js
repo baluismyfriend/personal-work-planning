@@ -702,7 +702,8 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     const colourOf = el => (/space-color-\d+/.exec(el.className) || [''])[0];
     clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
     const x7 = w.document.querySelector('td[data-col="Timeframes"] .week-times-link'); if (!x7 || colourOf(x7) !== colourOf({ className: aaCls }) || x7.querySelector('.space-color') || x7.textContent !== 'AA || T1') throw new Error('TimesX7 colour (whole box): ' + (x7 && x7.className));
-    clickNav(w, /^Spacetime$/); const title = w.document.querySelector('tr.summary-space-title td'); if (colourOf(title) !== colourOf({ className: aaCls })) throw new Error('Spacetime title colour');
+    clickNav(w, /^Spacetime$/); const title = w.document.querySelector('tr.summary-space-title td'); if (!title || /space-color-/.test(title.className)) throw new Error('Spacetime title should stay pink (no Space colour class)');
+    const box = w.document.querySelector('td[data-col="Time"] .week-times-link'); if (!box || colourOf(box) !== colourOf({ className: aaCls })) throw new Error('Spacetime task box colour: ' + (box && box.className));
     clickNav(w, /^Spaces$|^Projects$/); const sc = w.document.querySelector('td[data-col="Space"] .space-box'); if (colourOf(sc) !== colourOf({ className: aaCls })) throw new Error('Spaces page colour');
   });
   await ta('Space colours: tampered/hostile Color values are ignored (no class injection), import keeps valid ones', async () => {

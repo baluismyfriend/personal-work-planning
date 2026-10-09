@@ -1313,24 +1313,55 @@ div.week-times-link,
 .space-color-9{--sc:#db2777;}
 .space-color-10{--sc:#4f46e5;}
 .space-color-11{--sc:#92400e;}
-/* Space cells (Spaces, Times, NextIn, NoSpace): same gray box and rounded
-   left strip as the Times column on TimesX7 */
+/* Space cells (Spaces, Times, NextIn, NoSpace): gray box, Space name in
+   that Space's colour */
 .cell-editable.space-box{
   background:rgba(100,116,139,.06);
   border:1px solid rgba(100,116,139,.16);
-  border-left:4px solid var(--sc);
   border-radius:8px;
   padding:4px 6px;
+  color:var(--sc);
   font-size:11px;
   font-weight:700;
 }
 .cell-editable.space-box:focus{background:#fff;}
 /* TimesX7: strip on the left of the whole "Space || Time" box */
-div.week-times-link[class*="space-color-"]{border-left:4px solid var(--sc);}
-/* Spacetime: the Space's colour is the background of its group title */
-.data-table tr.week-day-header-row.summary-space-title[class*="space-color-"],
-.data-table tr.week-day-header-row.summary-space-title[class*="space-color-"] > td.week-day-header{
-  background:var(--sc);
-  color:#ffffff;
-  border-radius:10px;
+div.week-times-link[class*="space-color-"]{border-right:4px solid var(--sc);}
+/* Spacetime: Space group title keeps the pink bar, with nicely rounded corners */
+.data-table tr.week-day-header-row.summary-space-title > td.week-day-header{border-radius:12px;}
+
+/* Spacetime on the phone: labelled "Defined time on" / "Times" cells like TimesX7 */
+@media (max-width:680px){
+  .data-table tr.summary-task-row{
+    display:flex !important;
+    flex-wrap:nowrap;
+    align-items:flex-start;
+    gap:0 8px;
+  }
+  .data-table tr.summary-task-row > td{
+    display:block !important;
+    border:none !important;
+    width:auto !important;
+    padding:2px 0 !important;
+  }
+  .data-table tr.summary-task-row > td::before{
+    content:attr(data-label) !important;
+    display:block;
+    font-size:8px;
+    margin-bottom:0;
+  }
+  .data-table tr.summary-task-row > td.summary-date-td{flex:0 0 auto;min-width:0;}
+  .data-table tr.summary-task-row > td.summary-times-td{flex:1 1 0;min-width:0;}
+  .data-table tr.summary-task-row .summary-task-text{
+    display:block;
+    min-height:24px;
+    padding:4px 6px;
+    font-size:12.5px;
+    line-height:1.25;
+    font-weight:500;
+    color:#000000;
+    text-decoration:none;
+    white-space:normal;
+    word-break:break-word;
+  }
 }
