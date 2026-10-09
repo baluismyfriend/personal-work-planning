@@ -1298,3 +1298,18 @@ div.week-times-link,
 @media (max-width:680px){
   .summary-status-cell{color:#2563eb !important;}
 }
+
+/* Space colours: one colour per Space, used everywhere its name shows */
+.space-color{font-weight:700;}
+.space-color-0,.data-table tr.week-day-header-row > td.week-day-header.space-color-0{color:#dc2626 !important;}
+.space-color-1,.data-table tr.week-day-header-row > td.week-day-header.space-color-1{color:#ea580c !important;}
+.space-color-2,.data-table tr.week-day-header-row > td.week-day-header.space-color-2{color:#b45309 !important;}
+.space-color-3,.data-table tr.week-day-header-row > td.week-day-header.space-color-3{color:#4d7c0f !important;}
+.space-color-4,.data-table tr.week-day-header-row > td.week-day-header.space-color-4{color:#15803d !important;}
+.space-color-5,.data-table tr.week-day-header-row > td.week-day-header.space-color-5{color:#0f766e !important;}
+.space-color-6,.data-table tr.week-day-header-row > td.week-day-header.space-color-6{color:#0e7490 !important;}
+.space-color-7,.data-table tr.week-day-header-row > td.week-day-header.space-color-7{color:#7c3aed !important;}
+.space-color-8,.data-table tr.week-day-header-row > td.week-day-header.space-color-8{color:#a21caf !important;}
+.space-color-9,.data-table tr.week-day-header-row > td.week-day-header.space-color-9{color:#be185d !important;}
+.space-color-10,.data-table tr.week-day-header-row > td.week-day-header.space-color-10{color:#4f46e5 !important;}
+.space-color-11,.data-table tr.week-day-header-row > td.week-day-header.space-color-11{color:#92400e !important;}

@@ -222,6 +222,58 @@
     return String(Math.round((end - start) / 86400000));
   }
 
+  /* ---------------------------------------------------------
+     Space colours
+     ---------------------------------------------------------
+     Every Space on the Spaces page owns one colour (stored on its row as
+     "Color" = a palette number, not shown as a column). A new Space gets
+     the least-used palette colour automatically; the same colour is used
+     wherever that Space's name is shown (matched by exact trimmed name). */
+  var SPACE_COLOR_COUNT = 12;
+  var spaceColorMap = newMap();
+
+  function validSpaceColor(v) {
+    var t = String(v === undefined || v === null ? "" : v).trim();
+    if (!/^\d{1,2}$/.test(t)) return "";
+    var n = Number(t);
+    return n < SPACE_COLOR_COUNT ? String(n) : "";
+  }
+
+  function ensureSpaceColors(wb) {
+    spaceColorMap = newMap();
+    var road = Array.isArray(wb) ? wb.find(function (sh) { return sh && sh.name === "Road Map - Pending"; }) : null;
+    if (!road || !Array.isArray(road.rows)) return;
+    var uses = [];
+    var i;
+    for (i = 0; i < SPACE_COLOR_COUNT; i++) uses.push(0);
+    // Pass 1: names that already have a colour (first row with a name wins).
+    road.rows.forEach(function (r) {
+      if (!r) return;
+      var name = String(r.Space || "").trim();
+      var c = validSpaceColor(r.Color);
+      if (name && c !== "" && !hasOwn(spaceColorMap, name)) { spaceColorMap[name] = c; uses[Number(c)]++; }
+    });
+    // Pass 2: names without one take the least-used colour.
+    road.rows.forEach(function (r) {
+      if (!r) return;
+      var name = String(r.Space || "").trim();
+      if (!name) return;
+      if (!hasOwn(spaceColorMap, name)) {
+        var best = 0;
+        for (var k = 1; k < SPACE_COLOR_COUNT; k++) if (uses[k] < uses[best]) best = k;
+        spaceColorMap[name] = String(best);
+        uses[best]++;
+      }
+      r.Color = spaceColorMap[name]; // duplicate names share the colour
+    });
+  }
+
+  // CSS class (space-color-N) for a Space name, or "" when it has none.
+  function spaceColorClass(name) {
+    var n = String(name === undefined || name === null ? "" : name).trim();
+    return (n && hasOwn(spaceColorMap, n)) ? "space-color-" + spaceColorMap[n] : "";
+  }
+
   // Older saved workbooks may still have the previous Road Map schema
   // (Project, Task/Meeting, Notes), the pre-rename "Project" column, or
   // the pre-rename "Start date"/"End date"/"Duration" columns. Carry
@@ -334,7 +386,15 @@
       } else {
         if (!Array.isArray(s.columns) || s.columns.length === 0) throw new Error("sheet '" + name + "' must have a nonempty columns array");
         var generic = normalizeGenericSheet(s);
-        if (generic.name === "Road Map - Pending") generic = migrateRoadMapSheet(generic);
+        if (generic.name === "Road Map - Pending") {
+          generic = migrateRoadMapSheet(generic);
+          // keep each Space's saved colour (validated; not a column)
+          var rawRoadRows = Array.isArray(s.rows) ? s.rows.slice(0, MAX_ROWS) : [];
+          generic.rows.forEach(function (gr, gi) {
+            var rr = rawRoadRows[gi];
+            gr.Color = (rr && typeof rr === "object" && hasOwn(rr, "Color")) ? validSpaceColor(rr.Color) : "";
+          });
+        }
         sheets.push(generic);
       }
     }
@@ -361,6 +421,7 @@
     }
     // Summary is derived from Daily planning; Projects (Road Map) and
     // Summary lead the nav row (see putProjectsAndSummaryFirst).
+    ensureSpaceColors(sheets);
     sheets.unshift(buildSummarySheet(sheets));
     putProjectsAndSummaryFirst(sheets);
     return sheets;
@@ -715,6 +776,7 @@
     } catch (e) { /* ignore */ }
   }
   function writeWorkbookToStorage() {
+    ensureSpaceColors(workbook);
     try {
       localStorage.setItem(STORAGE_DATA_KEY, JSON.stringify(workbook));
       storageWarned = false;
@@ -1249,6 +1311,7 @@
   }
 
   function renderTable() {
+    ensureSpaceColors(workbook);
     var sheet = currentSheet();
     pageTitleEl.textContent = shortSheetName(sheet);
 
@@ -1887,6 +1950,8 @@
   function buildSummarySpaceHeaderRow(sheet, name) {
     var tr = buildWeekDayHeaderRow(sheet, name, false);
     tr.classList.add("summary-space-title");
+    var scc = spaceColorClass(name);
+    if (scc && tr.firstChild) tr.firstChild.classList.add(scc);
     return tr;
   }
 
@@ -2208,11 +2273,11 @@
       }
     }
     if (col === "Space") {
-      var pjc = projectPillClass(value);
-      if (pjc && value.trim().length > 0) {
+      var scc = spaceColorClass(value);
+      if (scc) {
         div.replaceChildren();
         var span2 = document.createElement("span");
-        span2.className = "pill " + pjc;
+        span2.className = "space-color " + scc;
         span2.textContent = value;
         div.appendChild(span2);
         return;
@@ -2434,7 +2499,18 @@
   function buildWeekTimesLinkCell(row) {
     var div = document.createElement("div");
     div.className = "cell-readonly summary-task-link week-times-link";
-    div.textContent = row["Timeframes"] || "";
+    var wtext = String(row["Timeframes"] || "");
+    var sepAt = wtext.indexOf(" || ");
+    var wcls = spaceColorClass(sepAt === -1 ? wtext : wtext.slice(0, sepAt));
+    if (wcls) {
+      var wspan = document.createElement("span");
+      wspan.className = "space-color " + wcls;
+      wspan.textContent = sepAt === -1 ? wtext : wtext.slice(0, sepAt);
+      div.appendChild(wspan);
+      if (sepAt !== -1) div.appendChild(document.createTextNode(wtext.slice(sepAt)));
+    } else {
+      div.textContent = wtext;
+    }
     div.title = "Tap to open this task on the Times page";
     div.tabIndex = 0;
     div.setAttribute("role", "button");
