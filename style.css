@@ -1100,3 +1100,10 @@ div.summary-task-link{
 @media (max-width:680px){
   .data-table tr.week-row .week-times-link{font-size:12.5px;line-height:1.25;padding:4px 6px;min-height:24px;}
 }
+
+/* TimesX7 Times text: plain black, no underline (still tappable) */
+div.week-times-link,
+.data-table tr.week-row .week-times-link{
+  color:#000000;
+  text-decoration:none;
+}
