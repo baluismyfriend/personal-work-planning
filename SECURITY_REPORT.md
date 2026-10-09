@@ -107,3 +107,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 - Space cells (Spaces, Times, ...): 13px text, vertically centred in the gray box.
 - Spaces: Copy / Create Times / Delete share one gray button look. A single tap on a named Space opens it on Spacetime (double-tap renames; an empty name is editable straight away). Navigation only; no new data paths.
 - Spacetime date field uses the TimesX7 size. Stars page: the star button is now the same round radio as TimesX7. CSS/UI only; no security-relevant code changed.
+
+## Update: Spaces collapsed list (134 tests)
+- Each Space is one collapsed line: "+  Space  [name]". The + shows/hides that Space's other rows (Time, life dates, Transforms). A Space with no name yet starts open. UI only; nothing stored or imported changed.

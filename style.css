@@ -1415,3 +1415,37 @@ div.week-times-link[class*="space-color-"]{border-right:4px solid var(--sc);}
 @media (max-width:680px){
   .quick-list-radio{width:16px;height:16px;}
 }
+
+/* Spaces: collapsed list - "+  Space  [name]" on one line per Space */
+.space-line{display:flex;align-items:center;gap:8px;width:100%;}
+.space-line > .cell-editable{flex:1 1 0;min-width:0;}
+.space-line-label{display:none;}
+.space-toggle{
+  flex:0 0 auto;
+  width:26px;
+  height:26px;
+  padding:0;
+  border:1px solid rgba(100,116,139,.35);
+  border-radius:8px;
+  background:rgba(100,116,139,.12);
+  color:var(--text);
+  font-size:16px;
+  font-weight:800;
+  line-height:1;
+  cursor:pointer;
+}
+.space-toggle:hover{background:rgba(100,116,139,.22);}
+.data-table tr.roadmap-row.roadmap-collapsed > td:not([data-col="Space"]){display:none !important;}
+@media (max-width:680px){
+  .space-line-label{
+    display:block;
+    flex:0 0 auto;
+    font-size:10px;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.07em;
+    color:var(--muted);
+  }
+  .data-table tr.roadmap-row > td[data-col="Space"]::before{content:none !important;display:none !important;}
+  .data-table tr.roadmap-row.roadmap-collapsed{padding-top:6px !important;padding-bottom:6px !important;margin-bottom:6px !important;}
+}

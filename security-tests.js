@@ -730,6 +730,19 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     const t = [...w.document.querySelectorAll('tr.summary-space-title')].map(x => x.textContent.trim()); if (t[0] !== 'AA') throw new Error(JSON.stringify(t));
   });
 
+
+  await ta('Spaces: every Space starts collapsed (+ before the title); + shows/hides its other rows; a new blank Space starts open', async () => {
+    const w = await weekBoot([], [lifeRow('AA', ''), lifeRow('BB', ''), lifeRow('', '')]);
+    clickNav(w, /^Spaces$|^Projects$/);
+    let trs = [...w.document.querySelectorAll('tr.roadmap-row')];
+    if (!trs[0].classList.contains('roadmap-collapsed') || !trs[1].classList.contains('roadmap-collapsed') || trs[2].classList.contains('roadmap-collapsed')) throw new Error('initial state ' + trs.map(t => t.className));
+    const b = trs[0].querySelector('td[data-col="Space"] .space-line > .space-toggle'); if (!b || b.textContent !== '+' || b.nextElementSibling.className !== 'space-line-label') throw new Error('+ must come first, before the Space title');
+    const before = w.localStorage.getItem(DK);
+    b.click(); if (trs[0].classList.contains('roadmap-collapsed') || b.textContent !== '\u2212' || b.getAttribute('aria-expanded') !== 'true') throw new Error('did not expand');
+    b.click(); if (!trs[0].classList.contains('roadmap-collapsed')) throw new Error('did not collapse');
+    if (w.localStorage.getItem(DK) !== before) throw new Error('data changed');
+  });
+
   /* ---- BackIn / NextIn wrap around (Spacetime, Times, NextIn, NoSpace) ---- */
   async function wrapBoot(n) {
     const w = await boot(); w.matchMedia = () => ({ matches: true, addListener() {}, removeListener() {}, addEventListener() {} });

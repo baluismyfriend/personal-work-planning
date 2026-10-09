@@ -2102,7 +2102,7 @@
       } else if (sheet.name === "Week planning" && col === "Timeframes") {
         td.appendChild(buildWeekTimesLinkCell(row));
       } else if (sheet.name === "Road Map - Pending" && col === "Space") {
-        td.appendChild(buildSpaceNavCell(sheet, row, sourceIdx, col));
+        td.appendChild(buildSpaceLine(sheet, row, sourceIdx, col, tr));
       } else if (sheet.name === "Road Map - Pending" && col === "Key milestones") {
         td.appendChild(buildCollapsibleMilestonesCell(sheet, row, sourceIdx, col));
       } else if (isComputedColumn(sheet, col)) {
@@ -2209,6 +2209,46 @@
         }
       }
     }, 60);
+  }
+
+  // Spaces page: every Space is one collapsed line - "+  Space  [name]" -
+  // and the + opens that Space's other rows (Time, life dates, Transforms).
+  // Collapsed by default; a Space with no name yet starts open so a new
+  // row can be filled in. Open/closed is remembered while the app is open.
+  var expandedSpaceRows = new WeakSet();
+
+  function buildSpaceLine(sheet, row, sourceIdx, col, tr) {
+    var line = document.createElement("div");
+    line.className = "space-line";
+
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "space-toggle";
+    var label = document.createElement("span");
+    label.className = "space-line-label";
+    label.textContent = displayColumnLabel(sheet, col);
+
+    if (!String(row[col] || "").trim()) expandedSpaceRows.add(row);
+
+    function paint() {
+      var open = expandedSpaceRows.has(row);
+      tr.classList.toggle("roadmap-collapsed", !open);
+      btn.textContent = open ? "\u2212" : "+";
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+      btn.setAttribute("aria-label", open ? "Hide the details of this Space" : "Show the details of this Space");
+      btn.title = open ? "Tap to hide the details" : "Tap to show the details";
+    }
+    btn.addEventListener("click", function () {
+      if (expandedSpaceRows.has(row)) expandedSpaceRows.delete(row);
+      else expandedSpaceRows.add(row);
+      paint();
+    });
+    paint();
+
+    line.appendChild(btn);
+    line.appendChild(label);
+    line.appendChild(buildSpaceNavCell(sheet, row, sourceIdx, col));
+    return line;
   }
 
   // Spaces page "Space" cell: a single tap opens that Space on Spacetime;

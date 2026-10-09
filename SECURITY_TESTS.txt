@@ -123,6 +123,7 @@ PASS  Space colours: each Space gets its own colour automatically, saved with th
 PASS  Space colours: a new Space gets a different colour; existing colours never change; same colour on Times, TimesX7 and Spacetime
 PASS  Space colours: tampered/hostile Color values are ignored (no class injection), import keeps valid ones
 PASS  Spaces: tapping a named Space opens it on Spacetime; double-tap renames; an empty name is editable at once
+PASS  Spaces: every Space starts collapsed (+ before the title); + shows/hides its other rows; a new blank Space starts open
 PASS  BackIn/NextIn wrap on Times: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10
 PASS  BackIn/NextIn wrap on NextIn: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10
 PASS  BackIn/NextIn wrap on NoSpace: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10
@@ -133,4 +134,4 @@ PASS  Finger swipes still stop at the ends (no wraparound); only the buttons wra
       (fuzz: 62 imports accepted, 88 rejected)
 PASS  Fuzz: 150 randomly type-confused/poisoned imports -> no crash, no pollution, storage always reloadable
 
-133 passed, 0 failed
+134 passed, 0 failed
