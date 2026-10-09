@@ -2101,6 +2101,8 @@
         td.appendChild(sheet.name === "Week planning" ? buildWeekDateDayCell(sheet, row, sourceIdx, col) : buildDueDateCell(sheet, row, sourceIdx, col));
       } else if (sheet.name === "Week planning" && col === "Timeframes") {
         td.appendChild(buildWeekTimesLinkCell(row));
+      } else if (sheet.name === "Road Map - Pending" && col === "Space") {
+        td.appendChild(buildSpaceNavCell(sheet, row, sourceIdx, col));
       } else if (sheet.name === "Road Map - Pending" && col === "Key milestones") {
         td.appendChild(buildCollapsibleMilestonesCell(sheet, row, sourceIdx, col));
       } else if (isComputedColumn(sheet, col)) {
@@ -2171,6 +2173,72 @@
     var topChildren = el.childNodes;
     for (var j = 0; j < topChildren.length; j++) walk(topChildren[j]);
     return parts.join("");
+  }
+
+  // Opens the Spacetime page at one Space's group (phone: that Space's
+  // page; desktop: scrolls to its title and highlights it).
+  function goToSpacetimeForSpace(spaceName) {
+    var idx = workbook.findIndex(function (sh) { return sh.name === "Summary"; });
+    if (idx === -1) return;
+    var sheet = workbook[idx];
+    var target = String(spaceName || "").trim();
+    clearSheetFilters(sheet.name);
+    delete sortState[sheet.name];
+    selectedSheetIndex = idx;
+    persistSelectedSheet();
+    if (isSingleTaskSwipeMode(sheet)) {
+      var pages = getSwipePages(sheet, getFilteredSortedRows(sheet));
+      for (var p = 0; p < pages.length; p++) {
+        if (pages[p].some(function (item) { return String((item.row && item.row.Space) || "").trim() === target; })) {
+          currentTaskIndexBySheet[sheet.name] = p;
+          break;
+        }
+      }
+    }
+    renderAll();
+    var activeBtn = document.querySelector(".nav-btn.active");
+    if (activeBtn) activeBtn.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    setTimeout(function () {
+      var titles = tableBodyEl.querySelectorAll("tr.summary-space-title");
+      for (var i = 0; i < titles.length; i++) {
+        if (titles[i].textContent.trim() === target) {
+          titles[i].scrollIntoView({ behavior: "smooth", block: "center" });
+          titles[i].classList.add("row-highlight");
+          (function (el) { setTimeout(function () { el.classList.remove("row-highlight"); }, 2200); })(titles[i]);
+          break;
+        }
+      }
+    }, 60);
+  }
+
+  // Spaces page "Space" cell: a single tap opens that Space on Spacetime;
+  // a quick double-tap edits the name. An empty Space name is edited
+  // straight away (new rows).
+  function buildSpaceNavCell(sheet, row, sourceIdx, col) {
+    var div = buildEditableCell(sheet, row, sourceIdx, col);
+    var tapTimer = null;
+    function lockIfNamed() {
+      var named = String(row[col] || "").trim() !== "";
+      div.contentEditable = named ? "false" : "true";
+      div.classList.toggle("space-nav", named);
+      div.title = named ? "Tap: open on Spacetime. Double-tap: rename" : "";
+    }
+    lockIfNamed();
+    div.addEventListener("click", function () {
+      if (div.contentEditable === "true") return;
+      if (tapTimer) {
+        clearTimeout(tapTimer);
+        tapTimer = null;
+        div.contentEditable = "true";
+        div.classList.remove("space-nav");
+        div.focus();
+        return;
+      }
+      var name = row[col];
+      tapTimer = setTimeout(function () { tapTimer = null; goToSpacetimeForSpace(name); }, 260);
+    });
+    div.addEventListener("blur", lockIfNamed);
+    return div;
   }
 
   // Spaces page: the big Key milestones ("Time") text box is hidden behind

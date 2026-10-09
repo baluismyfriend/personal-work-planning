@@ -122,6 +122,7 @@ PASS  Spaces: Key milestones text box is hidden behind a down arrow; tapping exp
 PASS  Space colours: each Space gets its own colour automatically, saved with the Space (not a column), duplicates share one
 PASS  Space colours: a new Space gets a different colour; existing colours never change; same colour on Times, TimesX7 and Spacetime
 PASS  Space colours: tampered/hostile Color values are ignored (no class injection), import keeps valid ones
+PASS  Spaces: tapping a named Space opens it on Spacetime; double-tap renames; an empty name is editable at once
 PASS  BackIn/NextIn wrap on Times: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10
 PASS  BackIn/NextIn wrap on NextIn: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10
 PASS  BackIn/NextIn wrap on NoSpace: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10
@@ -129,7 +130,7 @@ PASS  BackIn/NextIn wrap on Spacetime: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -
 PASS  BackIn/NextIn wrap: the item shown actually changes (last item shown after BackIn from first)
 PASS  BackIn/NextIn disabled only when there is nothing to move to (0 or 1 items)
 PASS  Finger swipes still stop at the ends (no wraparound); only the buttons wrap
-      (fuzz: 55 imports accepted, 95 rejected)
+      (fuzz: 62 imports accepted, 88 rejected)
 PASS  Fuzz: 150 randomly type-confused/poisoned imports -> no crash, no pollution, storage always reloadable
 
-132 passed, 0 failed
+133 passed, 0 failed

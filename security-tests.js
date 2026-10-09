@@ -715,6 +715,21 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     clickNav(w, /^Times$/); if (w.document.querySelector('[onclick]')) throw new Error('injected attribute');
   });
 
+
+  await ta('Spaces: tapping a named Space opens it on Spacetime; double-tap renames; an empty name is editable at once', async () => {
+    const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1' })], [lifeRow('AA', ''), lifeRow('', '')]);
+    clickNav(w, /^Spaces$|^Projects$/);
+    const cells = [...w.document.querySelectorAll('td[data-col="Space"] .cell-editable')];
+    if (cells[0].contentEditable !== 'false' || cells[1].contentEditable !== 'true') throw new Error('lock state ' + cells.map(c => c.contentEditable));
+    cells[0].click(); cells[0].click(); await sleep(350);
+    if (/Spacetime$/.test(w.document.getElementById('pageTitle').textContent.trim())) throw new Error('double-tap should not navigate');
+    if (cells[0].contentEditable !== 'true') throw new Error('double-tap did not open editing');
+    cells[0].dispatchEvent(new w.Event('blur'));
+    const again = [...w.document.querySelectorAll('td[data-col="Space"] .cell-editable')][0]; again.click(); await sleep(350);
+    if (!/Spacetime$/.test(w.document.getElementById('pageTitle').textContent.trim())) throw new Error('single tap did not open Spacetime: ' + w.document.getElementById('pageTitle').textContent);
+    const t = [...w.document.querySelectorAll('tr.summary-space-title')].map(x => x.textContent.trim()); if (t[0] !== 'AA') throw new Error(JSON.stringify(t));
+  });
+
   /* ---- BackIn / NextIn wrap around (Spacetime, Times, NextIn, NoSpace) ---- */
   async function wrapBoot(n) {
     const w = await boot(); w.matchMedia = () => ({ matches: true, addListener() {}, removeListener() {}, addEventListener() {} });

@@ -102,3 +102,8 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 ## Update: colour tweaks (132 tests)
 - TimesX7 Times box: Space colour strip moved to the right. Spacetime task boxes use the same right strip; Spacetime group titles are back to the original pink with rounded corners; on the phone, Spacetime rows show the "Defined time on" / "Times" labels like TimesX7.
 - Spaces / Times / NextIn / NoSpace: the Space name is shown in its colour (gray box, no strip). Display only; no security-relevant code changed.
+
+## Update: Spaces / Spacetime / Stars tweaks (133 tests)
+- Space cells (Spaces, Times, ...): 13px text, vertically centred in the gray box.
+- Spaces: Copy / Create Times / Delete share one gray button look. A single tap on a named Space opens it on Spacetime (double-tap renames; an empty name is editable straight away). Navigation only; no new data paths.
+- Spacetime date field uses the TimesX7 size. Stars page: the star button is now the same round radio as TimesX7. CSS/UI only; no security-relevant code changed.
