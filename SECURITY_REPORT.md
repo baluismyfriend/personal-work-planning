@@ -81,3 +81,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: more layout tweaks (129 tests)
 - Spacetime task text uses the same gray as the TimesX7 Times column. Spaces (phone): "Space" title and box share a row; "Transforms" title left with the buttons at the far right. CSS only; no security-relevant code changed.
+
+## Update: Spacetime status titles (129 tests)
+- Status titles are capitals again in a blue-gray; Space titles keep the capitalisation typed on Times. CSS only.

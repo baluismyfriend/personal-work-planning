@@ -1275,3 +1275,19 @@ div.week-times-link,
     padding:6px 8px;
   }
 }
+
+/* Spacetime status titles (In-Progress, Hold, No status): capitals, blue-gray */
+.data-table tr.summary-status-row > td.summary-status-cell,
+.summary-status-cell{
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  font-weight:800;
+  color:#475569;
+}
+@media (max-width:680px){
+  .summary-status-cell{
+    text-transform:uppercase !important;
+    color:#475569 !important;
+    font-weight:800;
+  }
+}
