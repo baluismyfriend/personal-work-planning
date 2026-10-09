@@ -1224,3 +1224,54 @@ div.week-times-link,
     padding:0 10px;
   }
 }
+
+/* Spacetime task text: same gray as the Times column on TimesX7 */
+.data-table td[data-col="Time"] .week-times-link{
+  background:rgba(100,116,139,.06);
+  border:1px solid rgba(100,116,139,.16);
+}
+@media (max-width:680px){
+  .summary-task-text{
+    background:rgba(100,116,139,.06);
+    border:1px solid rgba(100,116,139,.16);
+  }
+
+  /* Spaces: "Space" title and its box share one row (title as narrow as
+     its text, the box takes the rest). */
+  .data-table tr.roadmap-row > td[data-col="Space"]{
+    display:flex !important;
+    align-items:center;
+    gap:8px;
+  }
+  .data-table tr.roadmap-row > td[data-col="Space"]::before{
+    flex:0 0 auto;
+    margin:0;
+  }
+  .data-table tr.roadmap-row > td[data-col="Space"] > .cell-editable{
+    flex:1 1 0;
+    min-width:0;
+  }
+
+  /* Spaces: "Transforms" title at the left, the buttons at the far right
+     of the same row. */
+  .data-table tr.roadmap-row > td[data-col="Transforms"]{
+    display:flex !important;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+  }
+  .data-table tr.roadmap-row > td[data-col="Transforms"]::before{
+    flex:0 0 auto;
+    margin:0;
+  }
+  .data-table tr.roadmap-row > td[data-col="Transforms"] > .actions-cell{
+    flex:1 1 auto;
+    justify-content:flex-end;
+    flex-wrap:nowrap;
+    gap:6px;
+  }
+  .data-table tr.roadmap-row > td[data-col="Transforms"] .row-btn{
+    min-width:0;
+    padding:6px 8px;
+  }
+}

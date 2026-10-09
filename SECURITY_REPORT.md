@@ -78,3 +78,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: layout tweaks (129 tests)
 - Spaces: show/hide arrow moved onto the "Time" title line, right-most. Spacetime: task text has an outline like the date field, narrower date column, and Space / status titles keep their own capitalisation. Display only; no security-relevant code changed.
+
+## Update: more layout tweaks (129 tests)
+- Spacetime task text uses the same gray as the TimesX7 Times column. Spaces (phone): "Space" title and box share a row; "Transforms" title left with the buttons at the far right. CSS only; no security-relevant code changed.
