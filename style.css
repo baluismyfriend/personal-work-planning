@@ -1459,3 +1459,29 @@ div.week-times-link[class*="space-color-"]{border-right:4px solid var(--sc);}
   box-shadow:none;
 }
 .space-toggle{color:var(--text);}
+
+/* Spaces: "+" sits right next to the Space title; the room saved goes to the name box */
+.space-toggle{
+  width:16px;
+  min-width:0;
+  height:26px;
+  margin-right:-5px;
+}
+.space-line > .cell-editable{flex:1 1 0;min-width:0;}
+
+/* Spaces: "+" at the far left, hugging the Space title; the name box takes the rest */
+.space-line{gap:0;}
+.space-toggle{
+  width:12px;
+  min-width:0;
+  padding:0;
+  text-align:left;
+  margin:0 6px 0 0;
+}
+.space-line > .cell-editable{flex:1 1 0;min-width:0;}
+@media (max-width:680px){
+  .space-toggle{margin-right:2px;}
+  .space-line-label{margin-right:8px;}
+  .data-table tr.roadmap-row{padding-left:6px !important;}
+  .data-table tr.roadmap-row > td[data-col="Space"]{padding-left:0 !important;}
+}
