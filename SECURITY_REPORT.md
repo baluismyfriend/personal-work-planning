@@ -126,3 +126,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 - The reorder only moves existing rows inside the stored lists (matched by identity); no new data, no innerHTML, no new storage fields besides one "done" flag. The full suite, including the fuzzer, was re-run.
 
 - Drag handle is now three small vertical dots overlaying the right edge of the row (12px reserved instead of ~38px). Display only; no logic changed.
+
+## Update: Order button replaces CSV (139 tests)
+- The CSV button and all CSV export code were removed (so the two CSV tests were removed too; the CSV-injection risk no longer exists). The new "Order" button switches the three-line drag handles on/off for every page at once (hidden by default). Display only; the drag logic is unchanged.

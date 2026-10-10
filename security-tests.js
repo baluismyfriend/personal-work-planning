@@ -176,7 +176,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     if (/function|native code/.test(JSON.stringify(c.rows))) throw new Error('inherited function leaked into cell');
   });
   for (const nm of ['__proto__', 'constructor', 'prototype', 'toString', 'hasOwnProperty', 'valueOf']) {
-    await ta('Page named "' + nm + '": no prototype pollution, no crash, label is the plain name, CSV export works', async () => {
+    await ta('Page named "' + nm + '": no prototype pollution, no crash, label is the plain name', async () => {
       const w = await boot(); const base = protoNames(w);
       const g = wbOf(w); g.push({ name: nm, columns: ['polluted_col', 'Space'], rows: [{ polluted_col: 'x', Space: 'q' }] });
       await doImport(w, JSON.stringify(g));
@@ -186,7 +186,6 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
       const th = w.document.querySelector('#tableHead th'); th.click(); th.click();
       const s = w.document.querySelector('.filter-search'); s.value = 'q'; s.dispatchEvent(new w.Event('input'));
       const sel = w.document.querySelector('.filter-select'); sel.dispatchEvent(new w.Event('change'));
-      captureBlobs(w); w.document.getElementById('btnExportCsv').click();
       for (const b of navBtns(w)) b.click();
       if (protoNames(w) !== base || w.eval('({}).polluted_col!==undefined')) throw new Error('Object.prototype polluted');
       if (w.__errs.length) throw new Error(w.__errs[0]);
@@ -298,18 +297,17 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
   });
   await ta('Control: same harness unframed renders normally', async () => { const w = await bootFramed(false); if (!w.document.getElementById('nav').children.length) throw new Error('nav empty'); });
 
-  /* ---- CSV ---- */
-  await ta('CSV export escapes formula injection (=,+,-,@,TAB,CR)', async () => {
-    const w = await boot(); const cap = captureBlobs(w);
-    const g = wbOf(w); sheetOf(g, 'Quick list').rows = [{ 'Small Times': '=HYPERLINK("http://evil","x")' }, { 'Small Times': '+1+1' }, { 'Small Times': '-2' }, { 'Small Times': '@SUM(A1)' }, { 'Small Times': '\t=1' }];
-    await doImport(w, JSON.stringify(g)); clickNav(w, /Stars/); w.document.getElementById('btnExportCsv').click();
-    const lines = cap[cap.length - 1].split('\r\n').slice(1);
-    if (lines.length < 5 || lines.some(l => /^"?[=+\-@\t]/.test(l))) throw new Error('unescaped formula cell: ' + JSON.stringify(lines));
-  });
-  await ta('CSV export quotes fields containing quotes, commas, newlines', async () => {
-    const w = await boot(); const cap = captureBlobs(w); const g = wbOf(w); sheetOf(g, 'Quick list').rows = [{ 'Small Times': 'a,"b"\nc' }];
-    await doImport(w, JSON.stringify(g)); clickNav(w, /Stars/); w.document.getElementById('btnExportCsv').click();
-    if (!cap[cap.length - 1].includes('"a,""b""\nc"')) throw new Error(JSON.stringify(cap[cap.length - 1]));
+  /* ---- Order button (replaced CSV) ---- */
+  await ta('Order button replaces CSV: no CSV button/code; Order toggles the drag handles on for every page and off again', async () => {
+    const w = await boot();
+    if (w.document.getElementById('btnExportCsv')) throw new Error('CSV button still there');
+    if (/text\/csv|handleExportCsv/.test(js)) throw new Error('CSV code still in script.js');
+    const b = w.document.getElementById('btnOrder'); if (!b || b.textContent.trim() !== 'Order') throw new Error('no Order button');
+    if (w.document.body.classList.contains('order-mode') || b.getAttribute('aria-pressed') !== 'false') throw new Error('should start OFF');
+    b.click(); if (!w.document.body.classList.contains('order-mode') || b.getAttribute('aria-pressed') !== 'true') throw new Error('did not turn ON');
+    for (const nb of navBtns(w)) nb.click(); if (!w.document.body.classList.contains('order-mode')) throw new Error('mode lost when changing page');
+    b.click(); if (w.document.body.classList.contains('order-mode')) throw new Error('did not turn OFF');
+    if (w.__errs.length) throw new Error(w.__errs[0]);
   });
 
   /* ---- summary & misc (original suite) ---- */

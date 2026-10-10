@@ -988,7 +988,7 @@
       document.getElementById("fileImport").click();
     });
     document.getElementById("fileImport").addEventListener("change", handleImportFileChosen);
-    document.getElementById("btnExportCsv").addEventListener("click", handleExportCsv);
+    document.getElementById("btnOrder").addEventListener("click", toggleOrderMode);
     document.getElementById("btnResetSheet").addEventListener("click", handleResetSheet);
     document.getElementById("btnAutoBackup").addEventListener("click", handleAutoBackupButton);
     document.getElementById("taskPrevBtn").addEventListener("click", function () { stepTask(-1, true); });
@@ -2294,10 +2294,21 @@
   function afterMoveSave() { saveWorkbook(); renderAll(); }
   function afterMoveSummary() { refreshSummarySheet(workbook); saveWorkbook(); renderAll(); }
 
+  // "Order" button: shows / hides the drag handles on every page at once.
+  function toggleOrderMode() {
+    var on = !document.body.classList.contains("order-mode");
+    document.body.classList.toggle("order-mode", on);
+    var btn = document.getElementById("btnOrder");
+    btn.classList.toggle("btn-primary", on);
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    btn.title = on ? "Order mode is ON - tap to hide the drag handles" : "Show the drag handles to reorder rows";
+  }
+
   function buildDragHandle() {
     var h = document.createElement("button");
     h.type = "button";
     h.className = "drag-handle";
+    h.textContent = "\u2261";
     h.setAttribute("aria-label", "Drag to move");
     h.title = "Press and drag to move";
     h.addEventListener("pointerdown", onDragHandleDown);
@@ -3264,43 +3275,6 @@
     clearSheetFilters(sheet.name);
     delete sortState[sheet.name];
     renderTable();
-  }
-
-  /* ---------------------------------------------------------
-     CSV export
-     --------------------------------------------------------- */
-  function csvFieldEscape(value) {
-    var v = value === null || value === undefined ? "" : String(value);
-    if (/^[=+\-@\t\r]/.test(v)) v = "'" + v;
-    var needsQuote = /[",\r\n]/.test(v);
-    v = v.replace(/"/g, '""');
-    if (needsQuote) v = '"' + v + '"';
-    return v;
-  }
-
-  function sanitizeFilename(name) {
-    var f = String(name || "").toLowerCase().replace(/[^a-z0-9\-_]+/g, "-").replace(/^-+|-+$/g, "");
-    if (!f) f = "sheet";
-    return f;
-  }
-
-  function handleExportCsv() {
-    var sheet = currentSheet();
-    var lines = [];
-    lines.push(sheet.columns.map(function (col) { return csvFieldEscape(displayColumnLabel(sheet, col)); }).join(","));
-    sheet.rows.forEach(function (row) {
-      lines.push(sheet.columns.map(function (col) { return csvFieldEscape(row[col]); }).join(","));
-    });
-    var csv = lines.join("\r\n");
-    var blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    a.href = url;
-    a.download = sanitizeFilename(shortSheetName(sheet)) + ".csv";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
   }
 
   /* ---------------------------------------------------------

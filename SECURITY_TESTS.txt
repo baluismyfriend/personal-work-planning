@@ -49,12 +49,12 @@ PASS  Import: >MAX_ROWS and huge cells are truncated
 PASS  Import: control characters stripped from cells
 PASS  Import: bidi override/isolate characters stripped (text-spoofing)
 PASS  Import: __proto__/constructor KEYS inside rows cannot pollute Object.prototype
-PASS  Page named "__proto__": no prototype pollution, no crash, label is the plain name, CSV export works
-PASS  Page named "constructor": no prototype pollution, no crash, label is the plain name, CSV export works
-PASS  Page named "prototype": no prototype pollution, no crash, label is the plain name, CSV export works
-PASS  Page named "toString": no prototype pollution, no crash, label is the plain name, CSV export works
-PASS  Page named "hasOwnProperty": no prototype pollution, no crash, label is the plain name, CSV export works
-PASS  Page named "valueOf": no prototype pollution, no crash, label is the plain name, CSV export works
+PASS  Page named "__proto__": no prototype pollution, no crash, label is the plain name
+PASS  Page named "constructor": no prototype pollution, no crash, label is the plain name
+PASS  Page named "prototype": no prototype pollution, no crash, label is the plain name
+PASS  Page named "toString": no prototype pollution, no crash, label is the plain name
+PASS  Page named "hasOwnProperty": no prototype pollution, no crash, label is the plain name
+PASS  Page named "valueOf": no prototype pollution, no crash, label is the plain name
 PASS  Cell values like "__proto__" appear in the filter dropdown (no silent loss)
 PASS  Import: page flood capped (3000 extra pages -> bounded nav)
 PASS  Import: column flood capped (20000 columns -> <=30)
@@ -75,8 +75,7 @@ PASS  Paste inserts literal plain text only (no elements created)
 PASS  "+ Add" keyboard helper uses a CSS class, not inline style
 PASS  Framed page refuses to render (document emptied, no data written)
 PASS  Control: same harness unframed renders normally
-PASS  CSV export escapes formula injection (=,+,-,@,TAB,CR)
-PASS  CSV export quotes fields containing quotes, commas, newlines
+PASS  Order button replaces CSV: no CSV button/code; Order toggles the drag handles on for every page and off again
 PASS  Summary page survives Space names like __proto__/constructor/toString
 PASS  Exported/stored data contains no code-bearing content types
 PASS  Labels: Times page counter reads "Time N of M"
@@ -137,7 +136,7 @@ PASS  BackIn/NextIn wrap on Spacetime: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -
 PASS  BackIn/NextIn wrap: the item shown actually changes (last item shown after BackIn from first)
 PASS  BackIn/NextIn disabled only when there is nothing to move to (0 or 1 items)
 PASS  Finger swipes still stop at the ends (no wraparound); only the buttons wrap
-      (fuzz: 62 imports accepted, 88 rejected)
+      (fuzz: 59 imports accepted, 91 rejected)
 PASS  Fuzz: 150 randomly type-confused/poisoned imports -> no crash, no pollution, storage always reloadable
 
-140 passed, 0 failed
+139 passed, 0 failed

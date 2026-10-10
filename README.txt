@@ -191,16 +191,21 @@ at 5,000 rows; past that, you'll see an alert instead of a new row.
   removed ones are dropped, and everything else is kept as-is.
 
 ------------------------------------------------------------
-10. EXPORT CSV
+10. ORDER (DRAG TO REORDER)
 ------------------------------------------------------------
-"CSV" (Export CSV) downloads only the CURRENTLY SELECTED page as a
-CSV file (named after the page, e.g. daily-planning-all-tasks.csv).
-As a formula-injection safeguard, any cell that starts with =, +,
--, @, a tab, or a carriage return is prefixed with a leading
-apostrophe before being written out, so opening the CSV in Excel or
-similar spreadsheet software cannot trigger unexpected formulas.
-Quotes are doubled and fields containing commas, quotes, or line
-breaks are quoted per standard CSV rules.
+The "Order" button (it replaced the old CSV button) turns reordering
+on and off for every page at once. While it is ON the button is
+highlighted and a small three-line handle appears on each row of the
+pages that support moving rows; turn it OFF and the handles
+disappear everywhere.
+  - Spaces: drag a Space anywhere in the list.
+  - Spacetime: drag a task, only among the tasks of the same Space
+    and status (this also reorders it on the Times page).
+  - TimesX7: drag a task, only within the same date.
+  - Stars: drag an item anywhere.
+Press and hold the handle, drag up or down (a blue line shows the
+drop place), then let go. The new order is saved and included in
+Export / Import.
 
 ------------------------------------------------------------
 11. AUTO BACKUP
@@ -423,7 +428,7 @@ Action buttons:
   "Export"  = Export JSON
   "Backup"  = Enable Auto Backup (see section 11 for its other states)
   "Import"  = Import JSON
-  "CSV"     = Export CSV
+  "Order"   = Show / hide the drag handles for moving rows
   "Reset"   = Reset Sheet
 The floating round button at the bottom-right of the screen still
 reads "+ Add Row" in full, since it stands alone and isn't competing
@@ -476,7 +481,7 @@ you need to scroll:
     7. The Copy/Move/Delete buttons (on their own, full width)
   This is a deliberate visual re-grouping for this compact view
   only - it does not change the actual column order used anywhere
-  else (the desktop table, CSV export, JSON export, etc. are all
+  else (the desktop table, JSON export, etc. are all
   unaffected).
 - On "Week planning", Section and the five weekday columns pair up
   two-per-row in their normal order.
