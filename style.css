@@ -1485,3 +1485,17 @@ div.week-times-link[class*="space-color-"]{border-right:4px solid var(--sc);}
   .data-table tr.roadmap-row{padding-left:6px !important;}
   .data-table tr.roadmap-row > td[data-col="Space"]{padding-left:0 !important;}
 }
+
+/* Spaces: centre the + / - on the title line, a little more room before the name box */
+.space-toggle{
+  display:inline-flex;
+  align-items:center;
+  justify-content:flex-start;
+  height:22px;
+  line-height:1;
+  position:relative;
+  top:-1px;
+}
+@media (max-width:680px){
+  .space-line-label{margin-right:14px;}
+}
