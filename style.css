@@ -1581,48 +1581,44 @@ div.week-times-link[class*="space-color-"]{border-right:4px solid var(--sc);}
   .data-table tr.roadmap-row.roadmap-collapsed .space-dates{margin-top:2px;margin-bottom:0;}
 }
 
-/* Drag to reorder */
-.drag-handle{
-  flex:0 0 auto;
-  width:28px;
-  height:28px;
+/* Drag to reorder: three small dots at the right edge, taking almost no room */
+.drag-cell-wrap{position:relative;display:block;padding-right:12px;min-width:0;}
+.drag-cell-wrap > .drag-handle{
+  position:absolute;
+  right:0;
+  top:50%;
+  transform:translateY(-50%);
+  width:12px;
+  height:34px;
   padding:0;
   border:none;
   background:transparent;
-  color:var(--muted);
-  font-size:22px;
-  line-height:1;
+  font-size:0;
+  line-height:0;
   cursor:grab;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
   touch-action:none;
   -webkit-user-select:none;
   user-select:none;
 }
-.drag-handle:active{cursor:grabbing;color:var(--text);}
+.drag-handle::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:3px;
+  height:3px;
+  margin:-1.5px 0 0 -1.5px;
+  border-radius:50%;
+  background:var(--muted);
+  box-shadow:0 -6px 0 var(--muted), 0 6px 0 var(--muted);
+}
+/* a roomier invisible touch area, reaching a little to the left */
+.drag-handle::after{content:"";position:absolute;top:-6px;bottom:-6px;left:-10px;right:-4px;}
+.drag-handle:active::before{background:var(--text);box-shadow:0 -6px 0 var(--text), 0 6px 0 var(--text);}
 .drag-row.drag-source{opacity:.55;outline:2px dashed #2563eb;outline-offset:-2px;}
 .drag-row.drop-before{box-shadow:0 -3px 0 #2563eb !important;}
 .drag-row.drop-after{box-shadow:0 3px 0 #2563eb !important;}
 .drag-row.drop-before > td{box-shadow:inset 0 3px 0 #2563eb;}
 .drag-row.drop-after > td{box-shadow:inset 0 -3px 0 #2563eb;}
-.drag-cell-wrap{display:flex;align-items:center;gap:4px;}
-.drag-cell-wrap > :first-child{flex:1 1 auto;min-width:0;}
-.space-line > .drag-handle{margin-left:4px;}
-.data-table tr.quick-list-row > td.quick-list-handle-cell{
-  order:1;
-  flex:0 0 30px !important;
-  width:30px !important;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-.quick-list-handle-cell::before{content:none !important;}
-@media (max-width:680px){
-  .data-table tr.summary-task-row > td.summary-drag-td{
-    flex:0 0 auto;
-    align-self:center;
-    padding:0 !important;
-  }
-  .data-table tr.summary-task-row > td.summary-drag-td::before{content:none !important;}
-}
+.space-line > .drag-cell-wrap{flex:1 1 0;min-width:0;}
+.space-line .drag-cell-wrap > .cell-editable{width:100%;}

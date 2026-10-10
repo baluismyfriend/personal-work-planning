@@ -1906,7 +1906,17 @@
     // moved visually ahead of the radio button via CSS `order`.
     var tdItem = document.createElement("td");
     tdItem.className = "quick-list-item-cell";
-    tdItem.appendChild(buildEditableCell(sheet, row, sourceIdx, "Small Times"));
+    var itemCell = buildEditableCell(sheet, row, sourceIdx, "Small Times");
+    if (!sortState[sheet.name]) {
+      var itemWrap = document.createElement("div");
+      itemWrap.className = "drag-cell-wrap";
+      itemWrap.appendChild(itemCell);
+      itemWrap.appendChild(buildDragHandle());
+      tdItem.appendChild(itemWrap);
+      registerDragRow(tr, "stars", row, function () { return sheet.rows; }, afterMoveSave);
+    } else {
+      tdItem.appendChild(itemCell);
+    }
     tr.appendChild(tdItem);
 
     var tdRadio = document.createElement("td");
@@ -1923,14 +1933,6 @@
     });
     tdRadio.appendChild(radioBtn);
     tr.appendChild(tdRadio);
-
-    if (!sortState[sheet.name]) {
-      var tdHandle = document.createElement("td");
-      tdHandle.className = "quick-list-handle-cell";
-      tdHandle.appendChild(buildDragHandle());
-      tr.appendChild(tdHandle);
-      registerDragRow(tr, "stars", row, function () { return sheet.rows; }, afterMoveSave);
-    }
 
     return tr;
   }
@@ -2065,15 +2067,17 @@
     text.textContent = (row["Time"] || "").toString();
     var sc2 = spaceColorClass(row.Space);
     if (sc2) text.classList.add(sc2);
-    tdText.appendChild(text);
+    if (registerSummaryDrag(tr, row)) {
+      var textWrap = document.createElement("div");
+      textWrap.className = "drag-cell-wrap";
+      textWrap.appendChild(text);
+      textWrap.appendChild(buildDragHandle());
+      tdText.appendChild(textWrap);
+    } else {
+      tdText.appendChild(text);
+    }
     tr.appendChild(tdDate);
     tr.appendChild(tdText);
-    if (registerSummaryDrag(tr, row)) {
-      var tdDrag = document.createElement("td");
-      tdDrag.className = "summary-drag-td";
-      tdDrag.appendChild(buildDragHandle());
-      tr.appendChild(tdDrag);
-    }
     tr.addEventListener("click", function () {
       if (typeof row._dailyIdx === "number") goToDailyTaskFromSummary(row._dailyIdx);
     });
@@ -2294,7 +2298,6 @@
     var h = document.createElement("button");
     h.type = "button";
     h.className = "drag-handle";
-    h.textContent = "\u2261";
     h.setAttribute("aria-label", "Drag to move");
     h.title = "Press and drag to move";
     h.addEventListener("pointerdown", onDragHandleDown);
@@ -2453,10 +2456,16 @@
 
     line.appendChild(btn);
     line.appendChild(label);
-    line.appendChild(buildSpaceNavCell(sheet, row, sourceIdx, col));
+    var navCell = buildSpaceNavCell(sheet, row, sourceIdx, col);
     if (!sortState[sheet.name]) {
       registerDragRow(tr, "spaces", row, function () { return sheet.rows; }, afterMoveSave);
-      line.appendChild(buildDragHandle());
+      var navWrap = document.createElement("div");
+      navWrap.className = "drag-cell-wrap";
+      navWrap.appendChild(navCell);
+      navWrap.appendChild(buildDragHandle());
+      line.appendChild(navWrap);
+    } else {
+      line.appendChild(navCell);
     }
     var block = document.createElement("div");
     block.className = "space-block";

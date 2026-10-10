@@ -124,3 +124,5 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 - A small handle (three bars) lets you drag rows on **Spaces** (any place), **Spacetime** (tasks, only inside their own Space and status group; the order is saved by moving the task on the Times page), **TimesX7** (only inside the same date) and **Stars** (any place). The order is saved with the data.
 - The automatic date order on Spaces and the Demand order on Spacetime were removed. The first time this version runs, the current Spaces date order is kept once as the starting order.
 - The reorder only moves existing rows inside the stored lists (matched by identity); no new data, no innerHTML, no new storage fields besides one "done" flag. The full suite, including the fuzzer, was re-run.
+
+- Drag handle is now three small vertical dots overlaying the right edge of the row (12px reserved instead of ~38px). Display only; no logic changed.
