@@ -1499,3 +1499,34 @@ div.week-times-link[class*="space-color-"]{border-right:4px solid var(--sc);}
 @media (max-width:680px){
   .space-line-label{margin-right:14px;}
 }
+
+/* Spaces: + / - drawn with two bars (not a text character) so it is exactly
+   centred on the title line */
+.space-toggle{
+  position:relative;
+  top:0;
+  display:block;
+  align-self:center;
+  flex:0 0 auto;
+  width:20px;
+  height:20px;
+  min-width:0;
+  padding:0;
+  margin:0 2px 0 -5px;
+  font-size:0;
+  line-height:0;
+  color:transparent;
+}
+.space-toggle::before,
+.space-toggle::after{
+  content:"";
+  position:absolute;
+  background:var(--text);
+  border-radius:1px;
+}
+.space-toggle::before{left:5px;width:10px;top:50%;height:2px;margin-top:-1px;}
+.space-toggle::after{top:5px;height:10px;left:50%;width:2px;margin-left:-1px;}
+.space-toggle[aria-expanded="true"]::after{display:none;}
+@media (max-width:680px){
+  .space-toggle{margin:0 -3px 0 -5px;}
+}
