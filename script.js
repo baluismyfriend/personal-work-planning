@@ -21,6 +21,7 @@
   var STORAGE_FILTERS_KEY = "workPlanningFinal.v2.filters";
   var STORAGE_WIDTHS_KEY = "workPlanningFinal.v2.safeManualColumnWidths";
   var STORAGE_WEEK_AUTOADD_KEY = "workPlanningFinal.v2.weekAutoAdded";
+  var STORAGE_SPACES_ORDER_KEY = "workPlanningFinal.v2.spacesOrderMigrated";
   var STORAGE_LAST_EXPORT_DATE_KEY = "workPlanningFinal.v2.lastExportDate";
   var STORAGE_LAST_PROMPT_DISMISS_KEY = "workPlanningFinal.v2.lastBackupPromptDismiss";
 
@@ -522,8 +523,6 @@
         var d = summaryStatusRank(a.timing) - summaryStatusRank(b.timing);
         if (d !== 0) return d;
         if (a.timing !== b.timing) return a.timing < b.timing ? -1 : 1;
-        // inside a status group: Demand 1 first, then 2, 3 ...; blank last
-        if (a.demand !== b.demand) return a.demand < b.demand ? -1 : 1;
         return a.n - b.n;
       });
       entries.forEach(function (entry, i) {
@@ -942,6 +941,7 @@
     } catch (e) { /* ignore */ }
 
     workbook = loadWorkbook();
+    migrateSpacesOrderOnce();
     selectedSheetIndex = loadSelectedSheetIndex(workbook.length);
     var rememberedName = loadPreviouslySelectedSheetName();
     if (rememberedName) {
@@ -1524,21 +1524,6 @@
     });
 
     var sort = sortState[sheet.name];
-    if (!(sort && sort.col) && sheet.name === "Road Map - Pending") {
-      // Spaces default order: Life Ends (earliest first), then Life began;
-      // Spaces without a date go last; otherwise the original order.
-      var keyOf = function (item, c) {
-        var ms = dateToUtcMs(item.row[c]);
-        return ms === null ? Infinity : ms;
-      };
-      filtered.sort(function (a, b) {
-        var d = keyOf(a, "Life Ends") - keyOf(b, "Life Ends");
-        if (d !== 0 && !isNaN(d)) return d;
-        d = keyOf(a, "Life began") - keyOf(b, "Life began");
-        if (d !== 0 && !isNaN(d)) return d;
-        return a.idx - b.idx;
-      });
-    }
     if (sort && sort.col) {
       filtered.sort(function (a, b) {
         var av = (a.row[sort.col] || "").toString().toLowerCase();
@@ -1939,6 +1924,14 @@
     tdRadio.appendChild(radioBtn);
     tr.appendChild(tdRadio);
 
+    if (!sortState[sheet.name]) {
+      var tdHandle = document.createElement("td");
+      tdHandle.className = "quick-list-handle-cell";
+      tdHandle.appendChild(buildDragHandle());
+      tr.appendChild(tdHandle);
+      registerDragRow(tr, "stars", row, function () { return sheet.rows; }, afterMoveSave);
+    }
+
     return tr;
   }
 
@@ -2075,6 +2068,12 @@
     tdText.appendChild(text);
     tr.appendChild(tdDate);
     tr.appendChild(tdText);
+    if (registerSummaryDrag(tr, row)) {
+      var tdDrag = document.createElement("td");
+      tdDrag.className = "summary-drag-td";
+      tdDrag.appendChild(buildDragHandle());
+      tr.appendChild(tdDrag);
+    }
     tr.addEventListener("click", function () {
       if (typeof row._dailyIdx === "number") goToDailyTaskFromSummary(row._dailyIdx);
     });
@@ -2141,6 +2140,12 @@
       styleCompactCell(tdActions, "Transforms");
       tdActions.appendChild(buildActionsCell(sheet, row, sourceIdx));
       tr.appendChild(tdActions);
+    }
+
+    if (sheet.name === "Summary") registerSummaryDrag(tr, row);
+    if (sheet.name === "Week planning" && !sortState[sheet.name]) {
+      var wdate = dateOnlyOf(row["Date/Day"]);
+      registerDragRow(tr, "W|" + (wdate || "none"), row, function () { return sheet.rows; }, afterMoveSave);
     }
 
     return tr;
@@ -2232,6 +2237,170 @@
     }, 60);
   }
 
+  // Spaces used to be shown by date. Now the order is yours (drag to
+  // move), so the first time this version runs the current date order
+  // (Life Ends, then Life began; undated last) becomes the stored order.
+  function migrateSpacesOrderOnce() {
+    try {
+      if (localStorage.getItem(STORAGE_SPACES_ORDER_KEY)) return;
+      var road = workbook.find(function (sh) { return sh.name === "Road Map - Pending"; });
+      if (road && Array.isArray(road.rows) && road.rows.length > 1) {
+        var key = function (r, c) { var ms = dateToUtcMs(r && r[c]); return ms === null ? Infinity : ms; };
+        var tagged = road.rows.map(function (r, i) { return { r: r, i: i }; });
+        tagged.sort(function (a, b) {
+          var d = key(a.r, "Life Ends") - key(b.r, "Life Ends");
+          if (d !== 0 && !isNaN(d)) return d;
+          d = key(a.r, "Life began") - key(b.r, "Life began");
+          if (d !== 0 && !isNaN(d)) return d;
+          return a.i - b.i;
+        });
+        road.rows = tagged.map(function (t) { return t.r; });
+        saveWorkbook();
+      }
+      localStorage.setItem(STORAGE_SPACES_ORDER_KEY, "1");
+    } catch (e) { /* ignore */ }
+  }
+
+  /* ---------------------------------------------------------
+     Drag to reorder
+     ---------------------------------------------------------
+     A small handle (three bars) on a row: press it and drag up/down,
+     release to drop. Rows can only be dropped among rows of the same
+     "group" (e.g. the same day on TimesX7), so a drag can never move a
+     task to another day / status / Space. The order is saved by moving
+     the real row inside the stored list. */
+  var dragRegistry = new WeakMap();
+  var dragState = null;
+
+  function registerDragRow(tr, group, row, getArr, afterMove) {
+    dragRegistry.set(tr, { group: group, row: row, getArr: getArr, afterMove: afterMove });
+    tr.classList.add("drag-row");
+  }
+
+  function moveRowInArray(arr, src, target, after) {
+    if (!Array.isArray(arr) || src === target) return false;
+    var si = arr.indexOf(src);
+    if (si === -1 || arr.indexOf(target) === -1) return false;
+    arr.splice(si, 1);
+    var ti = arr.indexOf(target);
+    arr.splice(after ? ti + 1 : ti, 0, src);
+    return true;
+  }
+
+  function afterMoveSave() { saveWorkbook(); renderAll(); }
+  function afterMoveSummary() { refreshSummarySheet(workbook); saveWorkbook(); renderAll(); }
+
+  function buildDragHandle() {
+    var h = document.createElement("button");
+    h.type = "button";
+    h.className = "drag-handle";
+    h.textContent = "\u2261";
+    h.setAttribute("aria-label", "Drag to move");
+    h.title = "Press and drag to move";
+    h.addEventListener("pointerdown", onDragHandleDown);
+    // a drag must never also count as a tap on the row
+    h.addEventListener("click", function (e) { e.stopPropagation(); });
+    return h;
+  }
+
+  function onDragHandleDown(e) {
+    if (dragState) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    var handle = e.currentTarget;
+    var tr = handle.closest ? handle.closest("tr") : null;
+    var info = tr ? dragRegistry.get(tr) : null;
+    if (!info) return;
+    e.preventDefault();
+    dragState = { tr: tr, info: info, handle: handle, pointerId: e.pointerId, y: e.clientY, target: null, after: false, raf: 0 };
+    try { handle.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    tr.classList.add("drag-source");
+    handle.addEventListener("pointermove", onDragMove);
+    handle.addEventListener("pointerup", onDragEnd);
+    handle.addEventListener("pointercancel", onDragCancel);
+    if (window.requestAnimationFrame) dragState.raf = window.requestAnimationFrame(dragScrollLoop);
+  }
+
+  function dragCandidates() {
+    var all = tableBodyEl.querySelectorAll("tr.drag-row");
+    var out = [];
+    for (var i = 0; i < all.length; i++) {
+      var inf = dragRegistry.get(all[i]);
+      if (inf && inf.group === dragState.info.group) out.push(all[i]);
+    }
+    return out;
+  }
+
+  function updateDropTarget() {
+    if (!dragState) return;
+    var cands = dragCandidates();
+    cands.forEach(function (c) { c.classList.remove("drop-before", "drop-after"); });
+    var target = null, after = false, last = null;
+    for (var i = 0; i < cands.length; i++) {
+      var c = cands[i];
+      if (c === dragState.tr) continue;
+      last = c;
+      var r = c.getBoundingClientRect();
+      if (r.top + r.height / 2 > dragState.y) { target = c; break; }
+    }
+    if (!target && last) { target = last; after = true; }
+    dragState.target = target;
+    dragState.after = after;
+    if (target) target.classList.add(after ? "drop-after" : "drop-before");
+  }
+
+  function dragScrollLoop() {
+    if (!dragState) return;
+    var y = dragState.y, h = window.innerHeight || 0;
+    if (y < 90) window.scrollBy(0, -14);
+    else if (h && y > h - 90) window.scrollBy(0, 14);
+    updateDropTarget();
+    dragState.raf = window.requestAnimationFrame(dragScrollLoop);
+  }
+
+  function onDragMove(e) {
+    if (!dragState) return;
+    dragState.y = e.clientY;
+    updateDropTarget();
+  }
+
+  function endDragCleanup() {
+    if (!dragState) return;
+    var st = dragState;
+    dragState = null;
+    if (st.raf && window.cancelAnimationFrame) window.cancelAnimationFrame(st.raf);
+    st.handle.removeEventListener("pointermove", onDragMove);
+    st.handle.removeEventListener("pointerup", onDragEnd);
+    st.handle.removeEventListener("pointercancel", onDragCancel);
+    try { st.handle.releasePointerCapture(st.pointerId); } catch (err) { /* ignore */ }
+    st.tr.classList.remove("drag-source");
+    var all = tableBodyEl.querySelectorAll("tr.drop-before, tr.drop-after");
+    for (var i = 0; i < all.length; i++) all[i].classList.remove("drop-before", "drop-after");
+    return st;
+  }
+
+  function onDragEnd(e) {
+    if (dragState) { dragState.y = e.clientY; updateDropTarget(); }
+    var st = endDragCleanup();
+    if (!st || !st.target) return;
+    var tInfo = dragRegistry.get(st.target);
+    if (!tInfo) return;
+    if (moveRowInArray(st.info.getArr(), st.info.row, tInfo.row, st.after)) {
+      (st.info.afterMove || afterMoveSave)();
+    }
+  }
+
+  function onDragCancel() { endDragCleanup(); }
+
+  // Spacetime: tasks move among the tasks of the same Space and status.
+  function registerSummaryDrag(tr, row) {
+    if (sortState["Summary"]) return false;
+    var d = dailySheet();
+    var dr = (d && typeof row._dailyIdx === "number") ? d.rows[row._dailyIdx] : null;
+    if (!dr) return false;
+    registerDragRow(tr, "S|" + String(row.Space || "") + "|" + String(row.Timing || ""), dr, function () { var dd = dailySheet(); return dd ? dd.rows : []; }, afterMoveSummary);
+    return true;
+  }
+
   // Spaces page: every Space is one collapsed line - "+  Space  [name]" -
   // and the + opens that Space's other rows (Time, life dates, Transforms).
   // Collapsed by default; a Space with no name yet starts open so a new
@@ -2285,6 +2454,10 @@
     line.appendChild(btn);
     line.appendChild(label);
     line.appendChild(buildSpaceNavCell(sheet, row, sourceIdx, col));
+    if (!sortState[sheet.name]) {
+      registerDragRow(tr, "spaces", row, function () { return sheet.rows; }, afterMoveSave);
+      line.appendChild(buildDragHandle());
+    }
     var block = document.createElement("div");
     block.className = "space-block";
     block.appendChild(line);
@@ -2659,6 +2832,13 @@
     if (wcls) div.classList.add(wcls);
     div.textContent = wtext;
     div.title = "Tap to open this task on the Times page";
+    var weekWrap = null;
+    if (!sortState["Week planning"]) {
+      weekWrap = document.createElement("div");
+      weekWrap.className = "drag-cell-wrap";
+      weekWrap.appendChild(div);
+      weekWrap.appendChild(buildDragHandle());
+    }
     div.tabIndex = 0;
     div.setAttribute("role", "button");
     function open() {
@@ -2676,7 +2856,7 @@
     div.addEventListener("keydown", function (e) {
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
     });
-    return div;
+    return weekWrap || div;
   }
 
   // TimesX7 radio: removes the TimesX7 row; for a normal task also removes
@@ -2735,6 +2915,13 @@
     div.textContent = row["Time"] || "";
     div.title = "Tap to open this time on Daily planning";
     div.tabIndex = 0;
+    var summaryWrap = null;
+    if (!sortState["Summary"]) {
+      summaryWrap = document.createElement("div");
+      summaryWrap.className = "drag-cell-wrap";
+      summaryWrap.appendChild(div);
+      summaryWrap.appendChild(buildDragHandle());
+    }
     div.setAttribute("role", "button");
     div.addEventListener("click", function () {
       if (typeof row._dailyIdx === "number") goToDailyTaskFromSummary(row._dailyIdx);
@@ -2745,7 +2932,7 @@
         if (typeof row._dailyIdx === "number") goToDailyTaskFromSummary(row._dailyIdx);
       }
     });
-    return div;
+    return summaryWrap || div;
   }
 
   // Jumps from a Summary row to the matching row on Daily planning - All

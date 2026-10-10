@@ -125,8 +125,11 @@ PASS  Space colours: tampered/hostile Color values are ignored (no class injecti
 PASS  Spaces: tapping a named Space opens it on Spacetime; double-tap renames; an empty name is editable at once
 PASS  Spaces: every Space starts collapsed (+ before the title); + shows/hides its other rows; a new blank Space starts open
 PASS  Spaces (collapsed): Life began / Life Ends dates are visible under the name box without expanding; hidden when open; no Began/Ends titles
-PASS  Spaces: tiles are ordered by Life Ends, then Life began; undated Spaces last (stored order untouched)
-PASS  Spacetime: tasks inside a status group are ordered by their Demand (1, 2, 3 ...; blank last)
+PASS  Spaces: no automatic date order any more; drag handle moves a tile to the dropped place and the order is saved
+PASS  Spacetime: tasks can be dragged only inside their own Space + status group (saved on the Times rows); no Demand ordering
+PASS  TimesX7: drag only inside the same day (a task never lands on another day), order saved
+PASS  Stars: rows can be dragged to a new place and the order is saved
+PASS  Drag: first run keeps the old date order as the starting order of Spaces (once)
 PASS  BackIn/NextIn wrap on Times: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10
 PASS  BackIn/NextIn wrap on NextIn: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10
 PASS  BackIn/NextIn wrap on NoSpace: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10
@@ -134,7 +137,7 @@ PASS  BackIn/NextIn wrap on Spacetime: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -
 PASS  BackIn/NextIn wrap: the item shown actually changes (last item shown after BackIn from first)
 PASS  BackIn/NextIn disabled only when there is nothing to move to (0 or 1 items)
 PASS  Finger swipes still stop at the ends (no wraparound); only the buttons wrap
-      (fuzz: 62 imports accepted, 88 rejected)
+      (fuzz: 56 imports accepted, 94 rejected)
 PASS  Fuzz: 150 randomly type-confused/poisoned imports -> no crash, no pollution, storage always reloadable
 
-137 passed, 0 failed
+140 passed, 0 failed

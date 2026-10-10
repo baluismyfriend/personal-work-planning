@@ -757,28 +757,89 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
   });
 
 
-  await ta('Spaces: tiles are ordered by Life Ends, then Life began; undated Spaces last (stored order untouched)', async () => {
-    const mk = (n, b, e) => Object.assign(lifeRow(n, e), { 'Life began': b });
-    const w = await weekBoot([], [mk('D', '', ''), mk('C', '03/01/2026', '12/31/2026'), mk('B', '01/01/2026', '12/31/2026'), mk('A', '06/01/2026', '05/01/2026'), mk('E', '', '')]);
+
+
+
+
+  /* ---- Drag to reorder ---- */
+  const mkEv = (w, type, props) => Object.assign(new w.Event(type, { bubbles: true, cancelable: true }), props);
+  function stubRects(trs) { trs.forEach((tr, i) => { tr.getBoundingClientRect = () => ({ top: i * 100, bottom: i * 100 + 90, height: 90, left: 0, right: 300, width: 300 }); }); }
+  function dragHandle(w, handle, y) {
+    handle.dispatchEvent(mkEv(w, 'pointerdown', { clientY: 0, pointerId: 1, pointerType: 'touch', button: 0 }));
+    handle.dispatchEvent(mkEv(w, 'pointermove', { clientY: y, pointerId: 1 }));
+    handle.dispatchEvent(mkEv(w, 'pointerup', { clientY: y, pointerId: 1 }));
+  }
+  await ta('Spaces: no automatic date order any more; drag handle moves a tile to the dropped place and the order is saved', async () => {
+    const mk = (n, e) => lifeRow(n, e);
+    const w = await weekBoot([], [mk('A', '12/31/2026'), mk('B', '01/01/2026'), mk('C', ''), mk('D', '05/05/2026')]);
     clickNav(w, /^Spaces$|^Projects$/);
-    const order = [...w.document.querySelectorAll('tr.roadmap-row td[data-col="Space"] .space-nav, tr.roadmap-row td[data-col="Space"] .cell-editable')].map(e => e.textContent.trim());
-    if (JSON.stringify(order) !== '["A","B","C","D","E"]') throw new Error(JSON.stringify(order));
-    const stored = sheetOf(wbOf(w), 'Road Map - Pending').rows.map(r => r.Space).join(''); if (stored !== 'DCBAE') throw new Error('stored order changed: ' + stored);
+    const names = () => [...w.document.querySelectorAll('tr.roadmap-row td[data-col="Space"] .cell-editable')].map(e => e.textContent.trim()).join('');
+    if (names() !== 'ABCD') throw new Error('should show stored order, got ' + names());
+    let trs = [...w.document.querySelectorAll('tr.roadmap-row')]; stubRects(trs);
+    dragHandle(w, trs[0].querySelector('.drag-handle'), 1000);          // A to the very end
+    if (names() !== 'BCDA') throw new Error('after drag: ' + names());
+    trs = [...w.document.querySelectorAll('tr.roadmap-row')]; stubRects(trs);
+    dragHandle(w, trs[3].querySelector('.drag-handle'), 120);            // A between B and C... (pointer above C's middle)
+    if (names() !== 'BACD') throw new Error('after 2nd drag: ' + names());
+    if (sheetOf(wbOf(w), 'Road Map - Pending').rows.map(r => r.Space).join('') !== 'BACD') throw new Error('not saved');
+    const before = w.localStorage.getItem(DK); trs = [...w.document.querySelectorAll('tr.roadmap-row')]; stubRects(trs);
+    const h = trs[1].querySelector('.drag-handle'); h.dispatchEvent(mkEv(w, 'pointerdown', { clientY: 0, pointerId: 1, pointerType: 'touch', button: 0 })); h.dispatchEvent(mkEv(w, 'pointercancel', {}));
+    if (w.localStorage.getItem(DK) !== before) throw new Error('cancelled drag changed data');
   });
-
-
-  await ta('Spacetime: tasks inside a status group are ordered by their Demand (1, 2, 3 ...; blank last)', async () => {
+  await ta('Spacetime: tasks can be dragged only inside their own Space + status group (saved on the Times rows); no Demand ordering', async () => {
     const w = await weekBoot([
-      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'blank1', Timing: 'In-Progress' }),
-      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'd3', Timing: 'In-Progress', Demand: '3' }),
-      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'd1', Timing: 'In-Progress', Demand: '1' }),
-      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'd2', Timing: 'In-Progress', Demand: '2' }),
-      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'hold2', Timing: 'Hold', Demand: '2' }),
-      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'hold1', Timing: 'Hold', Demand: '1' }),
-      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'blank2', Timing: 'In-Progress' })]);
+      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'a1', Timing: 'In-Progress', Demand: '3' }),
+      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'a2', Timing: 'In-Progress', Demand: '1' }),
+      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'h1', Timing: 'Hold' }),
+      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'a3', Timing: 'In-Progress' }),
+      blankTask({ Space: 'BB', 'Timeframe/Meeting': 'b1', Timing: 'In-Progress' })]);
     clickNav(w, /^Spacetime$/);
-    const order = [...w.document.querySelectorAll('#tableBody .summary-task-link')].map(e => e.textContent.trim()).join(',');
-    if (order !== 'd1,d2,d3,blank1,blank2,hold1,hold2') throw new Error(order);
+    const list = () => [...w.document.querySelectorAll('#tableBody .summary-task-link')].map(e => e.textContent.trim()).join(',');
+    if (list() !== 'a1,a2,a3,h1,b1') throw new Error('stored order expected, got ' + list());
+    let trs = [...w.document.querySelectorAll('#tableBody tr')]; stubRects(trs);
+    const rowOf = txt => trs.find(r => r.querySelector('.summary-task-link') && r.querySelector('.summary-task-link').textContent.trim() === txt);
+    dragHandle(w, rowOf('a1').querySelector('.drag-handle'), 100000);  // far below everything: still only among AA / In-Progress
+    if (list() !== 'a2,a3,a1,h1,b1') throw new Error('after drag: ' + list());
+    const times = sheetOf(wbOf(w), 'Daily planning - All tasks').rows.map(r => r['Timeframe/Meeting']).join(',');
+    if (times !== 'a2,h1,a3,a1,b1') throw new Error('Times order: ' + times);
+  });
+  await ta('TimesX7: drag only inside the same day (a task never lands on another day), order saved', async () => {
+    const w = await weekBoot([
+      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': todayStr }),
+      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T2', 'Time Zero on': todayStr }),
+      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T3', 'Time Zero on': dayStr(1) }),
+      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T4', 'Time Zero on': todayStr })]);
+    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    const list = () => [...w.document.querySelectorAll('tr.week-row .week-times-link')].map(e => e.textContent.replace('AA || ', '')).join(',');
+    if (list() !== 'T1,T2,T4,T3') throw new Error('start ' + list());
+    let trs = [...w.document.querySelectorAll('tr.week-row')]; stubRects(trs);
+    const rowOf = txt => trs.find(r => r.querySelector('.week-times-link').textContent.endsWith(txt));
+    dragHandle(w, rowOf('T1').querySelector('.drag-handle'), 100000);   // far below: only today's rows are possible targets
+    if (list() !== 'T2,T4,T1,T3') throw new Error('after drag: ' + list());
+    const wk = sheetOf(wbOf(w), 'Week planning').rows.map(r => r.Timeframes.replace('AA || ', '')); if (wk.indexOf('T1') < wk.indexOf('T4') || wk.indexOf('T3') < 0) throw new Error('saved ' + wk);
+    trs = [...w.document.querySelectorAll('tr.week-row')]; stubRects(trs);
+    const t3 = trs.find(r => r.querySelector('.week-times-link').textContent.endsWith('T3'));
+    const before = w.localStorage.getItem(DK); dragHandle(w, t3.querySelector('.drag-handle'), 0);  // alone on its day: nothing to drop on
+    if (w.localStorage.getItem(DK) !== before) throw new Error('a lone task moved');
+  });
+  await ta('Stars: rows can be dragged to a new place and the order is saved', async () => {
+    const w = await weekBoot([]);
+    const g = wbOf(w); sheetOf(g, 'Quick list').rows = [{ 'Small Times': 'one' }, { 'Small Times': 'two' }, { 'Small Times': 'three' }]; await doImport(w, JSON.stringify(g));
+    clickNav(w, /^Stars$|^Quick list$/);
+    const list = () => [...w.document.querySelectorAll('tr.quick-list-row .cell-editable')].map(e => e.textContent.trim()).join(',');
+    if (list() !== 'one,two,three') throw new Error('start ' + list());
+    const trs = [...w.document.querySelectorAll('tr.quick-list-row')]; stubRects(trs);
+    dragHandle(w, trs[2].querySelector('.drag-handle'), -50);
+    if (list() !== 'three,one,two') throw new Error('after drag: ' + list());
+    if (sheetOf(wbOf(w), 'Quick list').rows.map(r => r['Small Times']).join(',') !== 'three,one,two') throw new Error('not saved');
+  });
+  await ta('Drag: first run keeps the old date order as the starting order of Spaces (once)', async () => {
+    const mk = (n, e) => lifeRow(n, e);
+    const wb0 = await weekBoot([], [mk('Z', '12/31/2026'), mk('Y', '01/01/2026'), mk('X', '')]);
+    const g = wbOf(wb0); const store = {}; store[DK] = JSON.stringify(g);
+    const w2 = await boot(store); clickNav(w2, /^Spaces$|^Projects$/);
+    const names = [...w2.document.querySelectorAll('tr.roadmap-row td[data-col="Space"] .cell-editable')].map(e => e.textContent.trim()).join('');
+    if (names !== 'YZX') throw new Error('expected date order once, got ' + names);
   });
 
   /* ---- BackIn / NextIn wrap around (Spacetime, Times, NextIn, NoSpace) ---- */
