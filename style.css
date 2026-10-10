@@ -1539,3 +1539,8 @@ div.week-times-link[class*="space-color-"]{border-right:4px solid var(--sc);}
 
 /* Spaces: + / - nudged up slightly */
 .space-toggle{top:-2px;}
+
+/* Spaces: title nudged up to line up with the + */
+@media (max-width:680px){
+  .space-line-label{top:-1px;}
+}
