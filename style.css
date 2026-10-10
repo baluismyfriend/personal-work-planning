@@ -1563,3 +1563,20 @@ div.week-times-link[class*="space-color-"]{border-right:4px solid var(--sc);}
   .space-line-label{flex:0 0 38px;width:38px;}
   .space-dates{margin-left:68px;}
 }
+
+/* Spaces (collapsed): slimmer tiles so more fit on one screen */
+@media (max-width:680px){
+  .data-table tr.roadmap-row.roadmap-collapsed{
+    padding:3px 6px !important;
+    margin-bottom:4px !important;
+  }
+  .data-table tr.roadmap-row.roadmap-collapsed > td[data-col="Space"]{
+    padding:2px 0 !important;
+    border-bottom:none !important;
+  }
+  .data-table tr.roadmap-row.roadmap-collapsed .cell-editable.space-box{
+    min-height:28px !important;
+    padding:2px 8px !important;
+  }
+  .data-table tr.roadmap-row.roadmap-collapsed .space-dates{margin-top:2px;margin-bottom:0;}
+}
