@@ -2239,12 +2239,10 @@
       var e = String(row["Life Ends"] || "").trim();
       dates.replaceChildren();
       dates.hidden = !(b || e);
-      [["Began", b], ["Ends", e]].forEach(function (pair) {
-        var sp = document.createElement("span");
-        sp.className = "space-date-item";
-        sp.textContent = pair[0] + " " + (pair[1] || "\u2014");
-        dates.appendChild(sp);
-      });
+      var sp = document.createElement("span");
+      sp.className = "space-date-item";
+      sp.textContent = (b + " \u2014 " + e).trim();
+      dates.appendChild(sp);
     }
 
     function paint() {
