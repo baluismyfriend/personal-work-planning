@@ -766,6 +766,21 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     const stored = sheetOf(wbOf(w), 'Road Map - Pending').rows.map(r => r.Space).join(''); if (stored !== 'DCBAE') throw new Error('stored order changed: ' + stored);
   });
 
+
+  await ta('Spacetime: tasks inside a status group are ordered by their Demand (1, 2, 3 ...; blank last)', async () => {
+    const w = await weekBoot([
+      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'blank1', Timing: 'In-Progress' }),
+      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'd3', Timing: 'In-Progress', Demand: '3' }),
+      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'd1', Timing: 'In-Progress', Demand: '1' }),
+      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'd2', Timing: 'In-Progress', Demand: '2' }),
+      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'hold2', Timing: 'Hold', Demand: '2' }),
+      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'hold1', Timing: 'Hold', Demand: '1' }),
+      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'blank2', Timing: 'In-Progress' })]);
+    clickNav(w, /^Spacetime$/);
+    const order = [...w.document.querySelectorAll('#tableBody .summary-task-link')].map(e => e.textContent.trim()).join(',');
+    if (order !== 'd1,d2,d3,blank1,blank2,hold1,hold2') throw new Error(order);
+  });
+
   /* ---- BackIn / NextIn wrap around (Spacetime, Times, NextIn, NoSpace) ---- */
   async function wrapBoot(n) {
     const w = await boot(); w.matchMedia = () => ({ matches: true, addListener() {}, removeListener() {}, addEventListener() {} });

@@ -500,6 +500,10 @@
         task: task,
         dailyIdx: dailyIdx,
         timing: ((r && r.Timing) || "").toString().trim(),
+        demand: (function () {
+          var dv = Number(((r && r.Demand) || "").toString().trim());
+          return (isFinite(dv) && ((r && r.Demand) || "").toString().trim() !== "") ? dv : Infinity;
+        })(),
         date: ((r && r["Time Zero on"]) || "").toString().trim()
       });
     });
@@ -518,6 +522,8 @@
         var d = summaryStatusRank(a.timing) - summaryStatusRank(b.timing);
         if (d !== 0) return d;
         if (a.timing !== b.timing) return a.timing < b.timing ? -1 : 1;
+        // inside a status group: Demand 1 first, then 2, 3 ...; blank last
+        if (a.demand !== b.demand) return a.demand < b.demand ? -1 : 1;
         return a.n - b.n;
       });
       entries.forEach(function (entry, i) {

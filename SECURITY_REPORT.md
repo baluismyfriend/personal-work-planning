@@ -116,3 +116,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: Spaces order (136 tests)
 - Spaces tiles are shown by Life Ends (earliest first), then Life began; Spaces without dates go last. Display order only: the stored order is unchanged, and clicking a column sort still overrides it.
+
+## Update: Spacetime order by Demand (137 tests)
+- On Spacetime, tasks inside each status group of a Space are ordered by their Demand on Times (1 first, then 2, 3 ...; blank last). Display order only; nothing stored changed.
