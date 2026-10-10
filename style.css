@@ -1530,3 +1530,9 @@ div.week-times-link[class*="space-color-"]{border-right:4px solid var(--sc);}
 @media (max-width:680px){
   .space-toggle{margin:0 -3px 0 -5px;}
 }
+
+/* Spaces: label optically centred with the + and the name box; a little gap after the + */
+@media (max-width:680px){
+  .space-line-label{position:relative;top:1px;}
+  .space-toggle{margin:0 1px 0 -5px;}
+}
