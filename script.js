@@ -1518,6 +1518,21 @@
     });
 
     var sort = sortState[sheet.name];
+    if (!(sort && sort.col) && sheet.name === "Road Map - Pending") {
+      // Spaces default order: Life Ends (earliest first), then Life began;
+      // Spaces without a date go last; otherwise the original order.
+      var keyOf = function (item, c) {
+        var ms = dateToUtcMs(item.row[c]);
+        return ms === null ? Infinity : ms;
+      };
+      filtered.sort(function (a, b) {
+        var d = keyOf(a, "Life Ends") - keyOf(b, "Life Ends");
+        if (d !== 0 && !isNaN(d)) return d;
+        d = keyOf(a, "Life began") - keyOf(b, "Life began");
+        if (d !== 0 && !isNaN(d)) return d;
+        return a.idx - b.idx;
+      });
+    }
     if (sort && sort.col) {
       filtered.sort(function (a, b) {
         var av = (a.row[sort.col] || "").toString().toLowerCase();

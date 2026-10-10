@@ -113,3 +113,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: life dates on the collapsed Spaces view (135 tests)
 - While a Space is collapsed, a small "Began ... Ends ..." line shows under its name box (hidden when both dates are empty, and while the Space is open). Display only; the dates are read from the same row and written with textContent.
+
+## Update: Spaces order (136 tests)
+- Spaces tiles are shown by Life Ends (earliest first), then Life began; Spaces without dates go last. Display order only: the stored order is unchanged, and clicking a column sort still overrides it.

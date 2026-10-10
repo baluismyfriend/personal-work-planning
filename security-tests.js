@@ -744,16 +744,26 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
   });
 
 
-  await ta('Spaces (collapsed): Life began / Life Ends dates are visible under the name box without expanding; hidden when open; blank dates show a dash', async () => {
+  await ta('Spaces (collapsed): Life began / Life Ends dates are visible under the name box without expanding; hidden when open; no Began/Ends titles', async () => {
     const r1 = Object.assign(lifeRow('AA', '12/31/2026'), { 'Life began': '01/01/2026' }), r2 = lifeRow('BB', '');
     const w = await weekBoot([], [r1, r2]);
     clickNav(w, /^Spaces$|^Projects$/);
     const trs = [...w.document.querySelectorAll('tr.roadmap-row')];
     const txt = tr => [...tr.querySelectorAll('.space-dates .space-date-item')].map(e => e.textContent).join('|');
-    if (txt(trs[0]) !== 'Began 01/01/2026|Ends 12/31/2026') throw new Error(txt(trs[0]));
+    if (txt(trs[0]) !== '01/01/2026 \u2014 12/31/2026') throw new Error(txt(trs[0]));
     if (!trs[1].querySelector('.space-dates').hidden) throw new Error('should be hidden when both dates are empty');
     if (!trs[0].classList.contains('roadmap-collapsed')) throw new Error('should be collapsed');
     const sp = trs[0].querySelector('td[data-col="Space"] .space-block'); if (!sp || sp.firstElementChild.className !== 'space-line' || sp.lastElementChild.className !== 'space-dates') throw new Error('dates must sit under the Space line');
+  });
+
+
+  await ta('Spaces: tiles are ordered by Life Ends, then Life began; undated Spaces last (stored order untouched)', async () => {
+    const mk = (n, b, e) => Object.assign(lifeRow(n, e), { 'Life began': b });
+    const w = await weekBoot([], [mk('D', '', ''), mk('C', '03/01/2026', '12/31/2026'), mk('B', '01/01/2026', '12/31/2026'), mk('A', '06/01/2026', '05/01/2026'), mk('E', '', '')]);
+    clickNav(w, /^Spaces$|^Projects$/);
+    const order = [...w.document.querySelectorAll('tr.roadmap-row td[data-col="Space"] .space-nav, tr.roadmap-row td[data-col="Space"] .cell-editable')].map(e => e.textContent.trim());
+    if (JSON.stringify(order) !== '["A","B","C","D","E"]') throw new Error(JSON.stringify(order));
+    const stored = sheetOf(wbOf(w), 'Road Map - Pending').rows.map(r => r.Space).join(''); if (stored !== 'DCBAE') throw new Error('stored order changed: ' + stored);
   });
 
   /* ---- BackIn / NextIn wrap around (Spacetime, Times, NextIn, NoSpace) ---- */
