@@ -1,0 +1,1470 @@
+:root{
+  --text:#0f172a;
+  --muted:#64748b;
+  --primary:#64748b;
+  --primary-dark:#334155;
+  --accent:#fb7185;
+  --border:rgba(100,116,139,.18);
+  --header:#0f172a;
+  --danger:#dc2626;
+  --shadow:0 18px 45px rgba(15,23,42,.12);
+}
+
+*{box-sizing:border-box;}
+
+html,body{margin:0;padding:0;}
+
+body{
+  font-family:"Segoe UI", Arial, sans-serif;
+  color:var(--text);
+  background:linear-gradient(135deg,#f9fafb 0%,#fef2f2 45%,#ffffff 100%);
+  overflow-x:hidden;
+}
+
+.app{min-height:100vh;display:flex;flex-direction:column;position:relative;z-index:1;}
+
+/* Silver Mist glow accents behind the whole app - kept subtle */
+body::before,body::after{
+  content:"";
+  position:fixed;
+  z-index:-1;
+  pointer-events:none;
+  border-radius:999px;
+  filter:blur(30px);
+  opacity:.22;
+}
+body::before{width:32vw;height:32vw;min-width:260px;min-height:260px;top:-13vw;left:-10vw;background:radial-gradient(circle,#64748b 0%,rgba(100,116,139,0) 68%);}
+body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;bottom:-17vw;background:radial-gradient(circle,#fb7185 0%,rgba(251,113,133,0) 70%);}
+
+.hidden-input{display:none;}
+
+/* Header */
+.site-header{
+  position:sticky;
+  top:0;
+  z-index:20;
+  display:flex;
+  flex-direction:column;
+  padding:calc(14px + env(safe-area-inset-top)) 22px 14px;
+  background:linear-gradient(112deg,rgba(15,23,42,.92),rgba(51,65,85,.84));
+  backdrop-filter:blur(22px) saturate(150%);
+  -webkit-backdrop-filter:blur(22px) saturate(150%);
+  border-bottom:1px solid rgba(148,163,184,.28);
+  box-shadow:0 18px 46px rgba(15,23,42,.30), inset 0 -1px 0 rgba(255,255,255,.08);
+  color:#fff;
+}
+/* Grid (not flex): the Spaces/NoSpace columns are flexible and stretch
+   to fill the row, while the title column is sized to just its own
+   content in the middle - so the buttons take up as much width as
+   possible instead of sitting narrow with empty space around them. */
+.header-row{
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  align-items:center;
+  gap:30px;
+  margin-bottom:12px;
+}
+.header-row .nav-btn-spaces{justify-self:stretch;}
+.header-row .nav-btn-nospace{justify-self:stretch;}
+
+.brand{display:flex;align-items:center;justify-content:center;gap:12px;min-width:0;}
+.brand-icon{
+  width:42px;height:42px;border-radius:14px;
+  background:linear-gradient(135deg,rgba(148,163,184,.95),rgba(251,113,133,.85));
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  border:1px solid rgba(255,255,255,.35);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:900;
+  font-size:12px;
+  letter-spacing:-0.02em;
+  box-shadow:0 12px 28px rgba(51,65,85,.40), inset 0 1px 0 rgba(255,255,255,.55);
+  color:#0f172a;
+  flex-shrink:0;
+}
+.brand-text{min-width:0;}
+.brand-text h1{
+  font-size:26px;
+  font-weight:900;
+  letter-spacing:-0.01em;
+  margin:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  background:linear-gradient(100deg,#e2e8f0 0%,#f8fafc 35%,#fda4af 65%,#fb7185 100%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  color:#fff;
+}
+.brand-subtitle{font-size:11px;color:#fda4af;}
+
+/* The Spaces and NoSpace page buttons live in the title row, pinned to
+   the left and right of the app name respectively (see #navSpacesBtn /
+   #navNoSpaceBtn in index.html), rather than mixed in with the rest of
+   the page pills below. */
+.nav-btn-spaces,.nav-btn-nospace{
+  width:100%;
+  text-align:center;
+  border-radius:12px;
+  font-weight:900;
+  font-size:20px;
+  padding:15px 14px;
+  border-color:rgba(251,113,133,.45);
+  background:rgba(251,113,133,.14);
+}
+
+.nav{
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+  padding-bottom:2px;
+}
+.nav-btn{
+  flex-shrink:0;
+  border-radius:999px;
+  padding:10px 15px;
+  background:rgba(255,255,255,.08);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.18);
+  color:#e2e8f0;
+  font-size:14.5px;
+  font-weight:700;
+  cursor:pointer;
+  white-space:nowrap;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12);
+  transition:background .15s ease, border-color .15s ease, transform .15s ease;
+}
+.nav-btn:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.40);}
+.nav-btn.active{
+  background:linear-gradient(135deg,rgba(148,163,184,.95),rgba(251,113,133,.88));
+  color:#0f172a;
+  border-color:rgba(255,255,255,.50);
+  box-shadow:0 8px 20px rgba(51,65,85,.40), inset 0 1px 0 rgba(255,255,255,.6);
+}
+
+/* Content */
+.content{padding:8px 24px 86px;flex:1;}
+
+.top-row{
+  display:flex;
+  justify-content:space-between;
+  gap:14px;
+  margin:4px 0 8px;
+  align-items:flex-end;
+  flex-wrap:wrap;
+}
+
+.eyebrow{
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  font-size:11px;
+  font-weight:800;
+  color:var(--muted);
+}
+
+.title-block h2{font-size:25px;margin:2px 0 0;}
+
+.row-count-indicator{
+  display:inline-block;
+  margin-top:6px;
+  padding:3px 11px;
+  border-radius:999px;
+  background:rgba(251,113,133,.14);
+  color:#be123c;
+  font-size:11px;
+  font-weight:800;
+}
+.row-count-indicator[hidden]{display:none;}
+
+.task-swipe-nav{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin:14px 0 4px;
+}
+.task-swipe-nav[hidden]{display:none;}
+.task-nav-btn{
+  flex:0 1 auto;
+  min-width:100px;
+  padding:11px 16px;
+  border-radius:999px;
+  border:1px solid rgba(100,116,139,.20);
+  background:rgba(255,255,255,.55);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6);
+  font-size:13px;
+  font-weight:800;
+  color:var(--text);
+  cursor:pointer;
+  text-align:center;
+  white-space:nowrap;
+}
+.task-nav-btn:hover{border-color:#fb7185;}
+.task-nav-btn:disabled{opacity:.35;cursor:default;}
+.task-position{
+  flex:0 0 auto;
+  min-width:64px;
+  text-align:center;
+  font-size:13px;
+  font-weight:800;
+  color:var(--text);
+}
+
+.empty-state-cell{
+  display:block;
+  text-align:center;
+  padding:32px 12px;
+  color:var(--muted);
+  font-size:13px;
+}
+
+.actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;}
+
+.btn{
+  border:1px solid rgba(100,116,139,.18);
+  border-radius:12px;
+  background:rgba(255,255,255,.60);
+  backdrop-filter:blur(12px) saturate(160%);
+  -webkit-backdrop-filter:blur(12px) saturate(160%);
+  color:var(--text);
+  padding:9px 11px;
+  font-weight:800;
+  font-size:12px;
+  cursor:pointer;
+  box-shadow:0 12px 30px rgba(15,23,42,.08), inset 0 1px 0 rgba(255,255,255,.80);
+  transition:border-color .15s ease, transform .15s ease, background .15s ease;
+}
+.btn:hover{border-color:#fb7185;background:rgba(255,255,255,.85);transform:translateY(-1px);box-shadow:0 10px 24px rgba(251,113,133,.18), inset 0 1px 0 #fff;}
+.btn-primary{
+  background:linear-gradient(135deg,rgba(100,116,139,.92),rgba(251,113,133,.85));
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  color:#fff;
+  border-color:rgba(255,255,255,.4);
+  box-shadow:0 16px 32px rgba(51,65,85,.30), inset 0 1px 0 rgba(255,255,255,.45);
+}
+.btn-danger{color:var(--danger);border-color:rgba(220,38,38,.35);}
+
+.floating-add{
+  position:fixed;
+  right:24px;
+  bottom:calc(24px + env(safe-area-inset-bottom));
+  z-index:9999;
+  border-radius:999px;
+  padding:14px 18px;
+  background:linear-gradient(135deg,rgba(100,116,139,.92),rgba(251,113,133,.85));
+  backdrop-filter:blur(14px) saturate(160%);
+  -webkit-backdrop-filter:blur(14px) saturate(160%);
+  border-color:rgba(255,255,255,.40);
+  box-shadow:0 16px 32px rgba(51,65,85,.30), inset 0 1px 0 rgba(255,255,255,.45);
+  color:#fff;
+}
+
+/* Daily backup reminder banner - shown automatically once per day (see
+   maybeShowBackupPrompt in script.js) until the user exports a JSON
+   backup or dismisses it for the day. Pinned near the top of the
+   screen, above everything else, so it can't be missed or scrolled
+   past unnoticed. */
+.backup-prompt{
+  position:fixed;
+  left:50%;
+  transform:translateX(-50%);
+  top:calc(14px + env(safe-area-inset-top, 0px));
+  z-index:10000;
+  width:min(92vw, 460px);
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  padding:14px 16px;
+  border-radius:16px;
+  background:rgba(255,255,255,.92);
+  border:1px solid rgba(251,113,133,.45);
+  box-shadow:0 18px 40px rgba(15,23,42,.18), inset 0 1px 0 #fff;
+  backdrop-filter:blur(18px) saturate(160%);
+  -webkit-backdrop-filter:blur(18px) saturate(160%);
+}
+.backup-prompt-text{display:flex;flex-direction:column;gap:2px;}
+.backup-prompt-text strong{font-size:13.5px;color:#be123c;}
+.backup-prompt-text span{font-size:12.5px;color:var(--muted);line-height:1.4;}
+.backup-prompt-actions{display:flex;gap:8px;}
+.backup-prompt-actions .btn{flex:1 1 0;text-align:center;}
+/* An element's own display:flex/etc. rule always beats the browser's
+   built-in [hidden]{display:none} rule (author styles win over the
+   user-agent stylesheet regardless of selector specificity), so without
+   this override, setting backupPromptEl.hidden = true from script.js
+   would silently do nothing and the banner would never disappear. */
+.backup-prompt[hidden]{display:none !important;}
+
+/* Table card */
+.table-card{
+  background:rgba(255,255,255,.55);
+  border:1px solid rgba(100,116,139,.16);
+  border-radius:18px;
+  box-shadow:0 12px 30px rgba(15,23,42,.08), inset 0 1px 0 rgba(255,255,255,.75);
+  backdrop-filter:blur(26px) saturate(150%);
+  -webkit-backdrop-filter:blur(26px) saturate(150%);
+  overflow:hidden;
+  padding:8px 10px 14px;
+}
+
+.table-scroller{
+  overflow:auto;
+  max-height:calc(100vh - 135px);
+  padding:0 4px 8px;
+}
+
+.data-table{
+  border-collapse:separate;
+  border-spacing:0 12px;
+  table-layout:fixed;
+  width:100%;
+}
+
+.data-table thead th{
+  position:sticky;
+  top:0;
+  z-index:6;
+  background:linear-gradient(100deg,rgba(100,116,139,.10),rgba(251,113,133,.08));
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  color:#334155;
+  font-size:11px;
+  text-align:left;
+  padding:9px 8px;
+  border-bottom:1px solid rgba(100,116,139,.14);
+  border-right:1px solid rgba(100,116,139,.14);
+  cursor:pointer;
+  user-select:none;
+  position:relative;
+}
+.data-table thead th:first-child{border-left:1px solid rgba(100,116,139,.14);}
+.data-table thead th.col-actions{cursor:default;}
+
+.filter-row th{
+  position:sticky;
+  top:32px;
+  z-index:5;
+  background:rgba(255,255,255,.78);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  box-shadow:0 4px 6px -4px rgba(15,23,42,.10);
+  padding:6px 6px;
+  border-right:1px solid rgba(100,116,139,.12);
+  border-bottom:1px solid rgba(100,116,139,.14);
+  cursor:default;
+}
+.filter-row th:first-child{border-left:1px solid rgba(100,116,139,.12);}
+
+.resize-handle{
+  position:absolute;
+  top:0;
+  right:0;
+  width:8px;
+  height:100%;
+  cursor:col-resize;
+  background:transparent;
+}
+.resize-handle:hover{background:rgba(251,113,133,.28);}
+.resize-handle.resizing{background:#fb7185;}
+
+.filter-search{
+  width:100%;
+  border:1px solid rgba(100,116,139,.20);
+  background:rgba(255,255,255,.65);
+  color:var(--text);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  border-radius:8px;
+  padding:4px 6px;
+  font-size:11px;
+  margin-bottom:4px;
+}
+.filter-select{
+  width:100%;
+  border:1px solid rgba(100,116,139,.20);
+  background:rgba(255,255,255,.65);
+  color:var(--text);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  border-radius:8px;
+  padding:3px 4px;
+  font-size:11px;
+}
+
+.data-table tbody tr{
+  background:rgba(255,255,255,.50);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  box-shadow:0 8px 18px rgba(15,23,42,.05), inset 0 1px 0 rgba(255,255,255,.75);
+}
+.data-table tbody tr:hover{background:rgba(255,255,255,.82);box-shadow:0 10px 22px rgba(251,113,133,.14), inset 0 1px 0 #fff;}
+.data-table tbody tr.row-highlight{background:rgba(251,113,133,.16) !important;}
+
+.data-table td{
+  border-top:1px solid rgba(100,116,139,.10);
+  border-bottom:1px solid rgba(100,116,139,.10);
+  border-right:1px solid rgba(100,116,139,.14);
+  padding:8px 8px;
+  vertical-align:top;
+  background:transparent;
+  color:var(--text);
+}
+.data-table td:first-child{border-left:1px solid rgba(100,116,139,.14);border-top-left-radius:10px;border-bottom-left-radius:10px;}
+.data-table td:last-child{border-top-right-radius:10px;border-bottom-right-radius:10px;}
+
+.cell-editable{
+  min-height:20px;
+  outline:none;
+  white-space:pre-wrap;
+  word-break:break-word;
+  border-radius:6px;
+  padding:2px 4px;
+  font-size:12px;
+  line-height:1.35;
+}
+.cell-editable.cell-large{font-size:14px;line-height:1.45;}
+.cell-editable{color:var(--text);}
+.cell-editable:focus{
+  background:#fff;
+  box-shadow:inset 0 0 0 2px #fb7185, 0 0 0 4px rgba(251,113,133,.25);
+}
+
+/* pills */
+.pill{
+  display:inline-block;
+  padding:3px 9px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:700;
+}
+.pill-red{background:#fee2e2;color:#b91c1c;}
+.pill-amber{background:#fef3c7;color:#92400e;}
+.pill-green{background:#d1fae5;color:#065f46;}
+.pill-blue{background:#fecdd3;color:#be123c;}
+.pill-purple{background:#ede9fe;color:#5b21b6;}
+.pill-lightblue{background:#ccfbf1;color:#be123c;}
+.pill-gray{background:#e5e7eb;color:#374151;}
+
+/* status select */
+.status-select{
+  border-radius:999px;
+  min-width:112px;
+  padding:5px 8px;
+  font-size:11px;
+  font-weight:700;
+  border:1px solid rgba(100,116,139,.35);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  cursor:pointer;
+}
+.status-complete{background:rgba(209,250,229,.85);color:#065f46;}
+.status-inprogress{background:rgba(224,242,254,.85);color:#be123c;}
+.status-notstarted{background:rgba(229,231,235,.85);color:#374151;}
+.status-hold{background:rgba(254,243,199,.85);color:#92400e;}
+.status-empty{background:rgba(237,233,254,.85);color:#5b21b6;}
+
+/* due date */
+.due-date-input{
+  width:100%;
+  min-width:110px;
+  background:rgba(255,255,255,.65);
+  color:var(--text);
+  color-scheme:light;
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  border:1px solid rgba(100,116,139,.20);
+  border-radius:8px;
+  padding:5px 6px;
+  cursor:pointer;
+  font-size:12px;
+}
+.due-date-input:focus{
+  outline:none;
+  box-shadow:0 0 0 3px rgba(251,113,133,.28);
+  border-color:var(--primary);
+}
+.cell-readonly{
+  min-height:28px;
+  display:flex;
+  align-items:center;
+  padding:5px 6px;
+  color:var(--muted);
+  font-weight:700;
+  background:rgba(100,116,139,.06);
+  border:1px solid rgba(100,116,139,.16);
+  border-radius:8px;
+}
+.summary-task-link{cursor:pointer;}
+div.summary-task-link{
+  color:#be123c;
+  text-decoration:underline;
+  text-decoration-color:rgba(251,113,133,.4);
+  text-underline-offset:2px;
+}
+.summary-task-link:hover{
+  background:rgba(251,113,133,.14);
+  border-color:rgba(251,113,133,.6);
+}
+.summary-task-link:focus{
+  outline:none;
+  box-shadow:0 0 0 3px rgba(251,113,133,.28);
+  border-color:var(--primary);
+}
+.summary-task-link:active{background:rgba(251,113,133,.22);}
+
+/* actions */
+.actions-cell{
+  display:flex;
+  flex-direction:row;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:nowrap;
+  gap:7px;
+}
+.row-btn{
+  min-width:54px;
+  padding:7px 9px;
+  border-radius:10px;
+  border:1px solid rgba(100,116,139,.18);
+  background:rgba(255,255,255,.65);
+  color:var(--text);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  font-size:11px;
+  font-weight:800;
+  cursor:pointer;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6);
+}
+.row-btn.move{background:rgba(251,191,36,.20);color:#92400e;}
+.row-btn.create-tasks{background:rgba(251,113,133,.16);color:#be123c;min-width:88px;}
+.row-btn.delete{color:var(--danger);}
+.clear-filters-btn{
+  min-width:54px;
+  padding:6px 8px;
+  border-radius:10px;
+  border:1px solid rgba(100,116,139,.18);
+  background:rgba(255,255,255,.65);
+  color:var(--text);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  font-size:11px;
+  font-weight:800;
+  cursor:pointer;
+}
+
+/* quick list */
+.data-table tr.quick-list-row{
+  display:flex !important;
+  align-items:center;
+  gap:10px;
+}
+.data-table tr.quick-list-row > td.quick-list-item-cell{
+  order:0;
+  flex:1 1 auto !important;
+  min-width:0;
+  width:auto !important;
+}
+.data-table tr.quick-list-row > td.quick-list-radio-cell{
+  order:-1;
+  flex:0 0 30px !important;
+  width:30px !important;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.quick-list-radio{
+  position:relative;
+  width:24px;
+  height:24px;
+  padding:0;
+  border:none;
+  background:#dc2626;
+  clip-path:polygon(50% 0%, 61.8% 35.3%, 98.1% 35.3%, 68.2% 57.4%, 79.4% 90.5%, 50% 69.1%, 20.6% 90.5%, 31.8% 57.4%, 1.9% 35.3%, 38.2% 35.3%);
+  cursor:pointer;
+}
+.quick-list-radio::after{
+  content:"";
+  position:absolute;
+  top:3px;
+  left:3px;
+  right:3px;
+  bottom:3px;
+  background:#ffffff;
+  clip-path:polygon(50% 0%, 61.8% 35.3%, 98.1% 35.3%, 68.2% 57.4%, 79.4% 90.5%, 50% 69.1%, 20.6% 90.5%, 31.8% 57.4%, 1.9% 35.3%, 38.2% 35.3%);
+}
+.quick-list-radio:hover{background:#b91c1c;}
+.quick-list-radio:active::after{background:#dc2626;}
+.quick-list-header-row{
+  display:none;
+}
+.quick-list-header-item, .quick-list-header-radio{
+  border:none !important;
+  background:transparent !important;
+  padding:0 !important;
+}
+
+/* responsive */
+@media (max-width:980px){
+  .nav{flex-wrap:wrap;overflow-x:visible;}
+  .top-row{flex-direction:column;align-items:stretch;}
+  .table-scroller{max-height:calc(100vh - 210px);}
+}
+
+/* Phone-width layout: compact header, and the data table collapses from
+   a wide, fixed-column grid into a stack of labeled cards - one card per
+   row, one labeled field per line - so nothing needs to be scrolled
+   sideways or squinted at on a narrow screen. */
+@media (max-width:680px){
+  .site-header{
+    padding:calc(8px + env(safe-area-inset-top, 0px)) 14px 8px;
+    gap:6px;
+  }
+  .header-row{gap:16px;margin-bottom:8px;}
+  .nav-btn-spaces,.nav-btn-nospace{padding:13px 10px;font-size:14.5px;font-weight:900;}
+
+  /* The icon and tagline drop out at phone width to leave room for the
+     Spaces/NoSpace buttons to sit right next to the app name on the
+     same line; the title itself stays visible (just smaller) rather
+     than disappearing, per the title row also shown at wider widths. */
+  .brand-icon,.brand-subtitle{display:none;}
+  .brand-text h1{font-size:19px;}
+
+  /* All remaining page pills fit in a single non-scrolling row: short
+     names (see NAV_SHORT_NAMES in script.js) plus equal-width flex
+     segments. */
+  .nav{gap:3px;flex-wrap:nowrap;overflow-x:hidden;}
+  .nav-btn{
+    flex:1 1 0;
+    min-width:0;
+    padding:9px 1px;
+    font-size:10.5px;
+    font-weight:800;
+    line-height:1.15;
+    letter-spacing:-0.02em;
+    text-align:center;
+    white-space:normal;
+    overflow-wrap:break-word;
+  }
+
+  .content{padding:6px 12px 132px;}
+
+  /* The "CURRENT PAGE" eyebrow and full page-name heading are hidden to
+     save vertical space - the highlighted nav pill above already shows
+     which page is open. */
+  .title-block{display:none;}
+  .top-row{margin:2px 0 6px;}
+
+  /* All 6 action buttons fit in a single row the same way. */
+  .actions{flex-wrap:nowrap;gap:4px;width:100%;justify-content:stretch;}
+  .btn{
+    flex:1 1 0;
+    min-width:0;
+    padding:9px 2px;
+    font-size:10.5px;
+    text-align:center;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .btn-danger{flex-basis:0;}
+
+  .table-card{padding:6px 6px 10px;border-radius:14px;}
+
+  /* The single-task card is bounded to the space actually left on
+     screen (header + action row), with its own independent scroll -
+     so a normal short task needs no scrolling at all, and only a
+     field with genuinely long/multi-line text (Task/Meeting, Next
+     steps, Notes) causes this area specifically to scroll, rather
+     than the whole page. */
+  .table-scroller{
+    max-height:calc(100vh - 190px - env(safe-area-inset-top, 0px));
+    overflow-y:auto;
+    padding:0;
+  }
+
+  /* The position counter and Previous/Next buttons are docked to the
+     actual bottom edge of the screen (rather than sitting wherever
+     they land after a variable-height card, which could leave empty
+     space beneath them) - a fixed footer bar, always in the same
+     place regardless of how much content the current row has. */
+  .task-swipe-nav{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    z-index:500;
+    justify-content:space-between;
+    gap:8px;
+    margin:0;
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+    background:rgba(255,255,255,.88);
+    backdrop-filter:blur(18px) saturate(160%);
+    -webkit-backdrop-filter:blur(18px) saturate(160%);
+    border-top:1px solid rgba(100,116,139,.16);
+    box-shadow:0 -10px 26px rgba(15,23,42,.12);
+  }
+  .task-nav-btn{flex:1 1 0;min-width:0;}
+  .task-position{flex:0 0 auto;}
+
+  /* The floating Add Row button is raised clear of the new fixed
+     bottom bar instead of overlapping it. */
+  .floating-add{
+    bottom:calc(78px + env(safe-area-inset-bottom, 0px));
+    padding:15px 20px;
+    font-size:13px;
+  }
+
+  .backup-prompt{
+    top:calc(8px + env(safe-area-inset-top, 0px));
+    width:calc(100vw - 24px);
+    padding:12px 14px;
+  }
+
+  /* Collapse the table: hide the column headers and filter row (sorting
+     and per-column filters remain available on wider screens/desktop),
+     and stack every cell as its own labeled block inside a card-like
+     row instead of a grid column. */
+  .data-table{border-spacing:0;}
+  .data-table thead{display:none;}
+  .data-table, .data-table tbody, .data-table tr, .data-table td{
+    display:block;
+    width:100% !important;
+  }
+  .data-table tr{
+    margin-bottom:14px;
+    border-radius:16px;
+    padding:12px 14px 14px;
+  }
+  .data-table tr:last-child{margin-bottom:0;}
+  .data-table td{
+    border:none !important;
+    border-radius:0 !important;
+    padding:9px 0;
+    border-bottom:1px solid rgba(100,116,139,.14) !important;
+  }
+  .data-table td:last-child{border-bottom:none !important;padding-top:12px;}
+  .data-table td::before{
+    content:attr(data-label);
+    display:block;
+    font-size:10px;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.07em;
+    color:var(--muted);
+    margin-bottom:4px;
+  }
+
+  /* The single-task view (see script.js isSingleTaskSwipeMode): short
+     fields (Date, Priority, Project, Status, Due date, weekday cells,
+     etc.) pair up two-per-row via flex-wrap; long
+     free-text fields (Task/Meeting, Next steps, Notes) and the Actions
+     button row always take the full width. This is what lets a normal
+     task fit on screen without scrolling. */
+  .single-task-row{
+    display:flex !important;
+    flex-wrap:wrap;
+    align-content:flex-start;
+    gap:2px 10px;
+    padding:14px 14px 16px !important;
+  }
+  .single-task-row > td{
+    display:block !important;
+    width:auto !important;
+    border:none !important;
+    padding:7px 0 !important;
+  }
+  .single-task-row > td.long-field{flex:1 1 100%;}
+  .single-task-row > td.short-field{flex:1 1 calc(50% - 5px);min-width:0;}
+  .single-task-row > td.short-field-solo{flex-basis:100%;}
+
+  /* Week planning: Date/Day and Actions share one row (visually
+     reordered ahead of Tasks via `order`, regardless of DOM order) so
+     Actions doesn't take up a whole row of its own - Tasks (the free-
+     text field) still gets the full width, below them. Padding, row
+     spacing, field height and font size are all trimmed well below the
+     defaults used elsewhere so around 7 day-rows fit on screen at once. */
+  .data-table tr.week-row{
+    display:flex !important;
+    flex-wrap:wrap;
+    align-content:flex-start;
+    gap:0 8px;
+    margin-bottom:3px !important;
+    padding:5px 10px !important;
+    border-radius:10px;
+  }
+  .data-table tr.week-row > td{
+    display:block !important;
+    width:auto !important;
+    border:none !important;
+    padding:2px 0 !important;
+  }
+  .data-table tr.week-row > td::before{
+    font-size:8px;
+    margin-bottom:0;
+  }
+  .data-table tr.week-row > td[data-col="Date/Day"]{flex:0 0 auto;width:auto !important;min-width:0;order:1;}
+  /* Date and Times share one line: the date takes only the room it needs
+     and Times (basis 0, can shrink) takes everything that is left. */
+  .data-table tr.week-row{flex-wrap:nowrap;align-items:flex-start;}
+  .data-table tr.week-row > td[data-col="Timeframes"]{flex:1 1 0;min-width:0;order:2;}
+
+  /* Road Map - Pending: Start date, End date and Duration are short
+     fields that would otherwise each take a full stacked row (Duration
+     especially, since it's read-only and tiny) - shown as a single
+     three-across row instead to save vertical space, while Space,
+     Key milestones and Actions keep the full row width they need. */
+  .data-table tr.roadmap-row{
+    display:flex !important;
+    flex-wrap:wrap;
+    align-content:flex-start;
+    gap:0 10px;
+  }
+  .data-table tr.roadmap-row > td{
+    display:block !important;
+    width:auto !important;
+  }
+  .data-table tr.roadmap-row > td[data-col="Space"],
+  .data-table tr.roadmap-row > td[data-col="Key milestones"],
+  .data-table tr.roadmap-row > td[data-col="Transforms"]{
+    flex:1 1 100%;
+  }
+  .data-table tr.roadmap-row > td[data-col="Life began"],
+  .data-table tr.roadmap-row > td[data-col="Life Ends"],
+  .data-table tr.roadmap-row > td[data-col="Life span"]{
+    flex:1 1 calc(33.333% - 7px);
+    min-width:0;
+  }
+
+  .data-table tr.week-row .cell-editable{
+    font-size:12.5px !important;
+    line-height:1.25 !important;
+    padding:4px 6px !important;
+    min-height:24px !important;
+  }
+  .data-table tr.week-row .due-date-input{
+    font-size:12.5px !important;
+    padding:4px 6px !important;
+    min-width:0 !important;
+    width:auto !important;
+  }
+  .data-table tr.week-row > td[data-col="Date/Day"] .due-date-input{
+    width:112px !important;
+  }
+  /* iOS Safari auto-zooms the page when a focused text field's font is
+     under 16px, and doesn't always reliably zoom back out afterward.
+     Bumping the font size to 16px only while the field is focused (it
+     drops back to the compact size above on blur) avoids the zoom
+     altogether rather than fighting with it after the fact. */
+  .data-table tr.week-row .cell-editable:focus{font-size:16px !important;}
+  .data-table tr.week-row .due-date-input:focus{font-size:16px !important;}
+  .data-table tr.week-row .actions-cell{gap:5px !important;}
+  .data-table tr.week-row .row-btn{
+    min-width:0 !important;
+    padding:4px 7px !important;
+    font-size:10px !important;
+  }
+
+  /* Summary page swipe view: the project name is shown once, in this
+     header row ("Project: Name" on a single line), instead of being
+     repeated on every task row beneath it (see
+     script.js buildSummaryProjectHeaderRow). */
+  .summary-project-header-row{
+    background:rgba(251,113,133,.12) !important;
+    box-shadow:none !important;
+    margin-bottom:6px !important;
+    padding:0 !important;
+    border-radius:10px;
+  }
+  .summary-project-header{
+    display:flex !important;
+    align-items:baseline;
+    flex-wrap:wrap;
+    gap:5px;
+    width:auto !important;
+    border:none !important;
+    padding:9px 12px !important;
+  }
+  .summary-project-header-label{
+    font-size:10.5px;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--muted);
+    flex:0 0 auto;
+  }
+  .summary-project-header-name{
+    font-size:15px;
+    font-weight:800;
+    color:var(--text);
+    line-height:1.3;
+    word-break:break-word;
+    overflow-wrap:anywhere;
+    flex:1 1 auto;
+    min-width:0;
+  }
+
+  /* Each task under a project is one tight "Task N: ..." line - no
+     per-field label row, minimal padding - so a project's whole task
+     list fits on screen with far less scrolling than a full labeled
+     card per task. */
+  .data-table tr.summary-task-row{
+    margin-bottom:0 !important;
+    padding:0 !important;
+    border-radius:0;
+    background:transparent !important;
+    box-shadow:none !important;
+  }
+  .data-table tr.summary-task-row:last-child{margin-bottom:2px !important;}
+  .data-table tr.summary-task-link{cursor:pointer;}
+  .data-table tr.summary-task-link:active .summary-task-cell,
+  .data-table tr.summary-task-link:focus .summary-task-cell{
+    background:rgba(251,113,133,.14) !important;
+    outline:none;
+  }
+  .summary-task-text{text-decoration:underline;text-decoration-color:rgba(251,113,133,.35);text-underline-offset:2px;}
+  .summary-task-cell{
+    display:flex !important;
+    align-items:baseline;
+    gap:6px;
+    width:auto !important;
+    border:none !important;
+    border-bottom:1px solid rgba(100,116,139,.12) !important;
+    padding:7px 2px !important;
+  }
+  .summary-task-cell::before{content:none !important;}
+  .data-table tr.summary-task-row:last-child .summary-task-cell{border-bottom:none !important;}
+  .summary-task-num{
+    flex:0 0 auto;
+    font-size:12px;
+    font-weight:800;
+    color:#be123c;
+    white-space:nowrap;
+  }
+  .summary-task-text{
+    flex:1 1 auto;
+    min-width:0;
+    font-size:13px;
+    line-height:1.35;
+    color:var(--text);
+    word-break:break-word;
+    overflow-wrap:anywhere;
+  }
+
+  /* Quick list: one line per item, header shown once at the top (the
+     normal <thead> is hidden at this width - see the display:none rule
+     above), minimal row padding/spacing and a smaller font so roughly
+     10-15 items fit on screen without scrolling. */
+  .quick-list-header-row{
+    display:flex !important;
+    align-items:center;
+    gap:10px;
+    padding:2px 12px 6px !important;
+    margin-bottom:2px !important;
+    background:transparent !important;
+    box-shadow:none !important;
+  }
+  .data-table tr.quick-list-header-row > td.quick-list-header-item{
+    order:-1;
+    flex:1 1 auto !important;
+    width:auto !important;
+    font-size:10.5px;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--muted);
+  }
+  .data-table tr.quick-list-header-row > td.quick-list-header-radio{
+    order:0;
+    flex:0 0 30px !important;
+    width:30px !important;
+  }
+  .quick-list-item-cell::before, .quick-list-radio-cell::before{content:none !important;margin:0;}
+  .data-table tr.quick-list-row{
+    margin-bottom:3px !important;
+    padding:4px 12px !important;
+    border-radius:10px;
+  }
+  .data-table tr.quick-list-row > td{
+    padding:0 !important;
+    border:none !important;
+  }
+  .quick-list-radio{width:21px;height:21px;}
+  .data-table tr.quick-list-row .cell-editable{
+    font-size:13px !important;
+    line-height:1.3 !important;
+    padding:3px 6px !important;
+    min-height:22px !important;
+  }
+  /* See the matching comment on .week-row above - keeps iOS from
+     zooming the page in on focus and getting stuck zoomed in. */
+  .data-table tr.quick-list-row .cell-editable:focus{font-size:16px !important;}
+
+  /* Bigger, easier-to-tap fields and controls at phone width */
+  .cell-editable{font-size:15px;line-height:1.5;padding:8px 10px;min-height:38px;border:1px solid rgba(100,116,139,.18);background:rgba(255,255,255,.55);color:var(--text);}
+  .cell-editable.cell-large{font-size:15.5px;}
+  .cell-editable:focus{font-size:16px !important;}
+  .status-select{width:100%;min-width:0;padding:10px 10px;font-size:13px;}
+  .due-date-input{padding:10px 10px;font-size:14px;}
+  .actions-cell{justify-content:flex-start;flex-wrap:wrap;gap:8px;}
+  .row-btn{min-width:64px;padding:9px 12px;font-size:12px;}
+  .clear-filters-btn{display:none;}
+}
+
+
+/* TimesX7 weekday group titles */
+.data-table tr.week-day-header-row > td.week-day-header{
+  background:rgba(251,113,133,.12);
+  font-size:13px;
+  font-weight:800;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--text);
+  padding:9px 12px;
+}
+.btn[hidden]{display:none;}
+@media (max-width:680px){
+  .data-table tr.week-day-header-row{
+    display:block;
+    background:rgba(251,113,133,.12);
+    border-radius:10px;
+    margin:10px 0 6px;
+    padding:0;
+    box-shadow:none;
+  }
+  .data-table tr.week-day-header-row > td.week-day-header{
+    display:block;
+    width:auto !important;
+    border:none;
+    padding:9px 12px;
+  }
+}
+
+/* TimesX7: the group for today's weekday - blue/gray mix of the theme's
+   slate and the blue used for "In-Progress" - so today stands out. */
+.data-table tr.week-day-header-row.week-day-today > td.week-day-header{
+  background:linear-gradient(100deg,rgba(59,130,246,.24),rgba(100,116,139,.24));
+  color:#1e3a8a;
+  border-left:4px solid #3b82f6;
+}
+@media (max-width:680px){
+  .data-table tr.week-day-header-row.week-day-today{
+    background:linear-gradient(100deg,rgba(59,130,246,.24),rgba(100,116,139,.24));
+    box-shadow:inset 4px 0 0 #3b82f6;
+  }
+  .data-table tr.week-day-header-row.week-day-today > td.week-day-header{border-left:none;}
+}
+
+/* Invisible helper input used to raise the iOS keyboard synchronously on
+   "+ Add" (see handleAddRow). A class instead of inline styles keeps the
+   strict style-src 'self' CSP honest. */
+.kb-helper{
+  position:fixed;
+  top:0;
+  left:0;
+  width:1px;
+  height:1px;
+  opacity:0;
+  border:0;
+  padding:0;
+  font-size:16px;
+  pointer-events:none;
+}
+
+
+/* TimesX7: small delete radio before the "Defined time on" date */
+.week-date-wrap{display:flex;align-items:center;gap:6px;}
+.week-date-wrap .due-date-input{flex:1 1 auto;min-width:0;}
+.week-radio{
+  flex:0 0 auto;
+  position:relative;
+  width:16px;
+  height:16px;
+  padding:0;
+  border:2px solid #dc2626;
+  border-radius:50%;
+  background:#ffffff;
+  cursor:pointer;
+}
+.week-radio:hover{background:#fecaca;}
+.week-radio:active{background:#dc2626;}
+@media (max-width:680px){
+  .data-table tr.week-row > td[data-col="Date/Day"] .due-date-input{width:96px !important;}
+}
+
+/* TimesX7: Times text is display-only (tap opens the task on Times) */
+.week-times-link{font-weight:500;white-space:normal;word-break:break-word;}
+@media (max-width:680px){
+  .data-table tr.week-row .week-times-link{font-size:12.5px;line-height:1.25;padding:4px 6px;min-height:24px;}
+}
+
+/* TimesX7 Times text: plain black, no underline (still tappable) */
+div.week-times-link,
+.data-table tr.week-row .week-times-link{
+  color:#000000;
+  text-decoration:none;
+}
+
+/* Spacetime: status group headings, date field in place of "Time N:" */
+.summary-status-row td.summary-status-cell{
+  padding:6px 8px;
+  font-size:11px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  color:#be123c;
+  background:rgba(251,113,133,.08);
+}
+.summary-time-wrap{display:flex;align-items:center;gap:8px;}
+.summary-time-wrap .summary-task-link{flex:1 1 auto;min-width:0;}
+.summary-date-input{flex:0 0 auto;width:112px !important;min-width:112px;}
+@media (max-width:680px){
+  .data-table tr.summary-status-row{
+    margin:6px 0 0 !important;
+    padding:0 !important;
+    background:transparent !important;
+    box-shadow:none !important;
+  }
+  .summary-status-cell{
+    display:block !important;
+    width:auto !important;
+    border:none !important;
+    padding:4px 2px !important;
+    background:transparent !important;
+  }
+  .summary-status-cell::before{content:none !important;}
+  .summary-task-cell .summary-date-input{font-size:12.5px;padding:3px 6px;}
+}
+
+/* Spaces: collapsible Key milestones text box */
+.milestones-wrap{display:flex;flex-direction:column;align-items:flex-start;gap:6px;}
+.milestones-wrap > .cell-editable{align-self:stretch;}
+.milestones-wrap.collapsed > .cell-editable{display:none;}
+.milestones-toggle{
+  min-width:44px;
+  height:28px;
+  padding:0 12px;
+  border:1px solid rgba(100,116,139,.35);
+  border-radius:8px;
+  background:#ffffff;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1;
+  cursor:pointer;
+}
+.milestones-toggle:hover{background:rgba(100,116,139,.1);}
+.milestones-toggle.has-content{color:#0f172a;border-color:#0f172a;font-weight:700;}
+
+/* Spacetime: same look as TimesX7 (Defined time on | Times, group titles) */
+.data-table tr.summary-status-row > td.summary-status-cell{
+  background:transparent;
+  border:none;
+  font-size:11px;
+  padding:2px 12px 0;
+  color:var(--muted);
+}
+@media (max-width:680px){
+  .data-table tr.summary-task-row{
+    margin-bottom:3px !important;
+    padding:5px 10px !important;
+    border-radius:10px;
+    background:rgba(255,255,255,.50) !important;
+    box-shadow:0 8px 18px rgba(15,23,42,.05), inset 0 1px 0 rgba(255,255,255,.75) !important;
+  }
+  .data-table tr.summary-task-row:last-child{margin-bottom:3px !important;}
+  .summary-task-cell{align-items:flex-start;padding:2px 0 !important;border-bottom:none !important;gap:8px;}
+  .summary-task-cell .summary-date-input{width:112px !important;min-width:0 !important;font-size:12.5px;padding:4px 6px;}
+  .summary-task-text{
+    font-size:12.5px;
+    line-height:1.25;
+    font-weight:500;
+    color:#000000;
+    text-decoration:none;
+    padding:4px 6px;
+  }
+  .data-table tr.summary-status-row{margin:0 !important;}
+  .summary-status-cell{padding:2px 12px !important;font-size:11px;color:var(--muted);}
+}
+
+/* Spacetime: titles keep their own capitalisation; task text has an
+   outline like the date field; narrower date column */
+.data-table tr.summary-space-title > td.week-day-header{text-transform:none;letter-spacing:.02em;}
+.data-table tr.summary-status-row > td.summary-status-cell,
+.summary-status-cell{text-transform:none;letter-spacing:.02em;}
+.summary-date-input{width:100px !important;min-width:100px !important;}
+.data-table td[data-col="Time"] .week-times-link{
+  background:rgba(255,255,255,.65);
+  border:1px solid rgba(100,116,139,.20);
+  border-radius:8px;
+}
+@media (max-width:680px){
+  .summary-task-cell .summary-date-input{width:96px !important;min-width:0 !important;flex:0 0 auto;}
+  .summary-task-text{
+    flex:1 1 0;
+    background:rgba(255,255,255,.65);
+    border:1px solid rgba(100,116,139,.20);
+    border-radius:8px;
+  }
+  .summary-status-cell{text-transform:none !important;}
+
+  /* Spaces: the show/hide arrow sits on the same line as the "Time"
+     title, at the right-hand end of the row. */
+  .data-table tr.roadmap-row > td[data-col="Key milestones"]{position:relative;}
+  .data-table tr.roadmap-row > td[data-col="Key milestones"]::before{min-height:22px;}
+  .data-table tr.roadmap-row > td[data-col="Key milestones"] .milestones-toggle{
+    position:absolute;
+    top:9px;
+    right:0;
+    height:22px;
+    min-width:40px;
+    padding:0 10px;
+  }
+}
+
+/* Spacetime task text: same gray as the Times column on TimesX7 */
+.data-table td[data-col="Time"] .week-times-link{
+  background:rgba(100,116,139,.06);
+  border:1px solid rgba(100,116,139,.16);
+}
+@media (max-width:680px){
+  .summary-task-text{
+    background:rgba(100,116,139,.06);
+    border:1px solid rgba(100,116,139,.16);
+  }
+
+  /* Spaces: "Space" title and its box share one row (title as narrow as
+     its text, the box takes the rest). */
+  .data-table tr.roadmap-row > td[data-col="Space"]{
+    display:flex !important;
+    align-items:center;
+    gap:8px;
+  }
+  .data-table tr.roadmap-row > td[data-col="Space"]::before{
+    flex:0 0 auto;
+    margin:0;
+  }
+  .data-table tr.roadmap-row > td[data-col="Space"] > .cell-editable{
+    flex:1 1 0;
+    min-width:0;
+  }
+
+  /* Spaces: "Transforms" title at the left, the buttons at the far right
+     of the same row. */
+  .data-table tr.roadmap-row > td[data-col="Transforms"]{
+    display:flex !important;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+  }
+  .data-table tr.roadmap-row > td[data-col="Transforms"]::before{
+    flex:0 0 auto;
+    margin:0;
+  }
+  .data-table tr.roadmap-row > td[data-col="Transforms"] > .actions-cell{
+    flex:1 1 auto;
+    justify-content:flex-end;
+    flex-wrap:nowrap;
+    gap:6px;
+  }
+  .data-table tr.roadmap-row > td[data-col="Transforms"] .row-btn{
+    min-width:0;
+    padding:6px 8px;
+  }
+}
+
+/* Spacetime status titles (In-Progress, Hold, No status): capitals, blue-gray */
+.data-table tr.summary-status-row > td.summary-status-cell,
+.summary-status-cell{
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  font-weight:800;
+  color:#475569;
+}
+@media (max-width:680px){
+  .summary-status-cell{
+    text-transform:uppercase !important;
+    color:#475569 !important;
+    font-weight:800;
+  }
+}
+
+/* Spacetime status titles: a clearer blue */
+.data-table tr.summary-status-row > td.summary-status-cell,
+.summary-status-cell{color:#2563eb;}
+@media (max-width:680px){
+  .summary-status-cell{color:#2563eb !important;}
+}
+
+/* Space colours: one colour per Space, shown as a 4px strip on the left
+   (same colour everywhere the Space's name shows) */
+.space-color-0{--sc:#dc2626;}
+.space-color-1{--sc:#ea580c;}
+.space-color-2{--sc:#a16207;}
+.space-color-3{--sc:#4d7c0f;}
+.space-color-4{--sc:#16a34a;}
+.space-color-5{--sc:#0d9488;}
+.space-color-6{--sc:#0891b2;}
+.space-color-7{--sc:#7c3aed;}
+.space-color-8{--sc:#c026d3;}
+.space-color-9{--sc:#db2777;}
+.space-color-10{--sc:#4f46e5;}
+.space-color-11{--sc:#92400e;}
+/* Space cells (Spaces, Times, NextIn, NoSpace): gray box, Space name in
+   that Space's colour */
+.cell-editable.space-box{
+  background:rgba(100,116,139,.06);
+  border:1px solid rgba(100,116,139,.16);
+  border-radius:8px;
+  padding:4px 6px;
+  color:var(--sc);
+  font-size:11px;
+  font-weight:700;
+}
+.cell-editable.space-box:focus{background:#fff;}
+/* TimesX7: strip on the left of the whole "Space || Time" box */
+div.week-times-link[class*="space-color-"]{border-right:4px solid var(--sc);}
+/* Spacetime: Space group title keeps the pink bar, with nicely rounded corners */
+.data-table tr.week-day-header-row.summary-space-title > td.week-day-header{border-radius:12px;}
+
+/* Spacetime on the phone: labelled "Defined time on" / "Times" cells like TimesX7 */
+@media (max-width:680px){
+  .data-table tr.summary-task-row{
+    display:flex !important;
+    flex-wrap:nowrap;
+    align-items:flex-start;
+    gap:0 8px;
+  }
+  .data-table tr.summary-task-row > td{
+    display:block !important;
+    border:none !important;
+    width:auto !important;
+    padding:2px 0 !important;
+  }
+  .data-table tr.summary-task-row > td::before{
+    content:attr(data-label) !important;
+    display:block;
+    font-size:8px;
+    margin-bottom:0;
+  }
+  .data-table tr.summary-task-row > td.summary-date-td{flex:0 0 auto;min-width:0;}
+  .data-table tr.summary-task-row > td.summary-times-td{flex:1 1 0;min-width:0;}
+  .data-table tr.summary-task-row .summary-task-text{
+    display:block;
+    min-height:24px;
+    padding:4px 6px;
+    font-size:12.5px;
+    line-height:1.25;
+    font-weight:500;
+    color:#000000;
+    text-decoration:none;
+    white-space:normal;
+    word-break:break-word;
+  }
+}
+
+/* Spaces / Times: Space name a little larger and centred in its gray box */
+.data-table .cell-editable.space-box{
+  display:flex !important;
+  align-items:center;
+  font-size:13px !important;
+  line-height:1.3 !important;
+  min-height:34px !important;
+}
+.data-table .cell-editable.space-box:focus{font-size:16px !important;}
+.cell-editable.space-nav{
+  cursor:pointer;
+  touch-action:manipulation;
+  -webkit-user-select:none;
+  user-select:none;
+}
+
+/* Spaces: Copy, Create Times and Delete share one gray look */
+.data-table tr.roadmap-row .row-btn{
+  background:rgba(100,116,139,.12);
+  color:var(--text);
+  font-size:11px;
+  font-weight:800;
+}
+
+/* Spacetime date field: same size as the one on TimesX7 */
+@media (max-width:680px){
+  .data-table tr.summary-task-row .summary-date-input{
+    font-size:12.5px !important;
+    padding:4px 6px !important;
+    width:96px !important;
+    min-width:0 !important;
+  }
+  .data-table tr.summary-task-row .summary-date-input:focus{font-size:16px !important;}
+}
+
+/* Stars: round radio button, same as the one on TimesX7 */
+.quick-list-radio{
+  width:16px;
+  height:16px;
+  border:2px solid #dc2626;
+  border-radius:50%;
+  background:#ffffff;
+  clip-path:none;
+}
+.quick-list-radio::after{content:none;display:none;}
+.quick-list-radio:hover{background:#fecaca;}
+.quick-list-radio:active{background:#dc2626;}
+@media (max-width:680px){
+  .quick-list-radio{width:16px;height:16px;}
+}
+
+/* Spaces: collapsed list - "+  Space  [name]" on one line per Space */
+.space-line{display:flex;align-items:center;gap:8px;width:100%;}
+.space-line > .cell-editable{flex:1 1 0;min-width:0;}
+.space-line-label{display:none;}
+.space-toggle{
+  flex:0 0 auto;
+  width:26px;
+  height:26px;
+  padding:0;
+  border:1px solid rgba(100,116,139,.35);
+  border-radius:8px;
+  background:rgba(100,116,139,.12);
+  color:var(--text);
+  font-size:16px;
+  font-weight:800;
+  line-height:1;
+  cursor:pointer;
+}
+.space-toggle:hover{background:rgba(100,116,139,.22);}
+.data-table tr.roadmap-row.roadmap-collapsed > td:not([data-col="Space"]){display:none !important;}
+@media (max-width:680px){
+  .space-line-label{
+    display:block;
+    flex:0 0 auto;
+    font-size:10px;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.07em;
+    color:var(--muted);
+  }
+  .data-table tr.roadmap-row > td[data-col="Space"]::before{content:none !important;display:none !important;}
+  .data-table tr.roadmap-row.roadmap-collapsed{padding-top:6px !important;padding-bottom:6px !important;margin-bottom:6px !important;}
+}
+
+/* Spaces: the + / - button has no background or outline */
+.space-toggle,
+.space-toggle:hover,
+.space-toggle:active{
+  background:transparent;
+  border:none;
+  box-shadow:none;
+}
+.space-toggle{color:var(--text);}
+
+/* Spaces: "+" sits right next to the Space title; the room saved goes to the name box */
+.space-toggle{
+  width:16px;
+  min-width:0;
+  height:26px;
+  margin-right:-5px;
+}
+.space-line > .cell-editable{flex:1 1 0;min-width:0;}
