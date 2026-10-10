@@ -743,6 +743,19 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     if (w.localStorage.getItem(DK) !== before) throw new Error('data changed');
   });
 
+
+  await ta('Spaces (collapsed): Life began / Life Ends dates are visible under the name box without expanding; hidden when open; blank dates show a dash', async () => {
+    const r1 = Object.assign(lifeRow('AA', '12/31/2026'), { 'Life began': '01/01/2026' }), r2 = lifeRow('BB', '');
+    const w = await weekBoot([], [r1, r2]);
+    clickNav(w, /^Spaces$|^Projects$/);
+    const trs = [...w.document.querySelectorAll('tr.roadmap-row')];
+    const txt = tr => [...tr.querySelectorAll('.space-dates .space-date-item')].map(e => e.textContent).join('|');
+    if (txt(trs[0]) !== 'Began 01/01/2026|Ends 12/31/2026') throw new Error(txt(trs[0]));
+    if (!trs[1].querySelector('.space-dates').hidden) throw new Error('should be hidden when both dates are empty');
+    if (!trs[0].classList.contains('roadmap-collapsed')) throw new Error('should be collapsed');
+    const sp = trs[0].querySelector('td[data-col="Space"] .space-block'); if (!sp || sp.firstElementChild.className !== 'space-line' || sp.lastElementChild.className !== 'space-dates') throw new Error('dates must sit under the Space line');
+  });
+
   /* ---- BackIn / NextIn wrap around (Spacetime, Times, NextIn, NoSpace) ---- */
   async function wrapBoot(n) {
     const w = await boot(); w.matchMedia = () => ({ matches: true, addListener() {}, removeListener() {}, addEventListener() {} });

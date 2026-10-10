@@ -110,3 +110,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: Spaces collapsed list (134 tests)
 - Each Space is one collapsed line: "+  Space  [name]". The + shows/hides that Space's other rows (Time, life dates, Transforms). A Space with no name yet starts open. UI only; nothing stored or imported changed.
+
+## Update: life dates on the collapsed Spaces view (135 tests)
+- While a Space is collapsed, a small "Began ... Ends ..." line shows under its name box (hidden when both dates are empty, and while the Space is open). Display only; the dates are read from the same row and written with textContent.

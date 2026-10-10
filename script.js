@@ -2230,7 +2230,25 @@
 
     if (!String(row[col] || "").trim()) expandedSpaceRows.add(row);
 
+    // Small "Began ... Ends ..." line under the name box, shown while the
+    // Space is collapsed so the life dates are visible without opening it.
+    var dates = document.createElement("div");
+    dates.className = "space-dates";
+    function paintDates() {
+      var b = String(row["Life began"] || "").trim();
+      var e = String(row["Life Ends"] || "").trim();
+      dates.replaceChildren();
+      dates.hidden = !(b || e);
+      [["Began", b], ["Ends", e]].forEach(function (pair) {
+        var sp = document.createElement("span");
+        sp.className = "space-date-item";
+        sp.textContent = pair[0] + " " + (pair[1] || "\u2014");
+        dates.appendChild(sp);
+      });
+    }
+
     function paint() {
+      paintDates();
       var open = expandedSpaceRows.has(row);
       tr.classList.toggle("roadmap-collapsed", !open);
       btn.textContent = open ? "\u2212" : "+";
@@ -2248,7 +2266,11 @@
     line.appendChild(btn);
     line.appendChild(label);
     line.appendChild(buildSpaceNavCell(sheet, row, sourceIdx, col));
-    return line;
+    var block = document.createElement("div");
+    block.className = "space-block";
+    block.appendChild(line);
+    block.appendChild(dates);
+    return block;
   }
 
   // Spaces page "Space" cell: a single tap opens that Space on Spacetime;
