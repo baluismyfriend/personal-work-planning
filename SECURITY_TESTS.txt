@@ -129,14 +129,16 @@ PASS  Spacetime: tasks can be dragged only inside their own Space + status group
 PASS  TimesX7: drag only inside the same day (a task never lands on another day), order saved
 PASS  Stars: rows can be dragged to a new place and the order is saved
 PASS  Drag: first run keeps the old date order as the starting order of Spaces (once)
+PASS  Spacetime: each Space is one collapsed line (+, "Times", Space box in its colour); + opens its tasks, + again closes them
+PASS  TimesX7: groups start with today, then the following days in sequence
+PASS  Spacetime on the phone layout: list of collapsed Spaces (no paging); opened Space shows labelled "Defined time on" / "Times" rows
 PASS  BackIn/NextIn wrap on Times: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10
 PASS  BackIn/NextIn wrap on NextIn: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10
 PASS  BackIn/NextIn wrap on NoSpace: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10
-PASS  BackIn/NextIn wrap on Spacetime: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10
 PASS  BackIn/NextIn wrap: the item shown actually changes (last item shown after BackIn from first)
 PASS  BackIn/NextIn disabled only when there is nothing to move to (0 or 1 items)
 PASS  Finger swipes still stop at the ends (no wraparound); only the buttons wrap
-      (fuzz: 59 imports accepted, 91 rejected)
+      (fuzz: 53 imports accepted, 97 rejected)
 PASS  Fuzz: 150 randomly type-confused/poisoned imports -> no crash, no pollution, storage always reloadable
 
-139 passed, 0 failed
+141 passed, 0 failed

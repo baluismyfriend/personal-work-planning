@@ -1572,7 +1572,7 @@
     // one at a time with a "1 of N" counter. Road Map - Pending is a
     // short list of projects the user wants to scroll through all at
     // once too, rather than flipping through one project per screen.
-    if (sheet.name === "Week planning" || sheet.name === "Quick list" || sheet.name === "Road Map - Pending") return false;
+    if (sheet.name === "Week planning" || sheet.name === "Quick list" || sheet.name === "Road Map - Pending" || sheet.name === "Summary") return false;
     return isMobileWidth();
   }
 
@@ -1793,15 +1793,35 @@
       return;
     }
 
-    var prevSpace = null, prevTiming = null;
+    if (sheet.name === "Summary") {
+      renderSummaryList(sheet, items);
+      return;
+    }
+
     items.forEach(function (item) {
-      if (sheet.name === "Summary") {
-        var sp = (item.row && item.row.Space) || "", tm = (item.row && item.row.Timing) || "";
-        if (sp !== prevSpace) tableBodyEl.appendChild(buildSummarySpaceHeaderRow(sheet, sp));
-        if (sp !== prevSpace || tm !== prevTiming) { tableBodyEl.appendChild(buildSummaryStatusRow(sheet, tm)); prevSpace = sp; prevTiming = tm; }
+      tableBodyEl.appendChild(buildRowElement(sheet, item.row, item.idx, false));
+    });
+  }
+
+  // Spacetime: one collapsed line per Space ("+  Times  [Space name]");
+  // + opens that Space's tasks, grouped by status.
+  var expandedSummarySpaces = new Set();
+
+  function renderSummaryList(sheet, items) {
+    var phone = isMobileWidth();
+    var prevSpace = null, prevTiming = null, open = false;
+    items.forEach(function (item) {
+      var raw = String((item.row && item.row.Space) || "").trim();
+      var tm = (item.row && item.row.Timing) || "";
+      if (raw !== prevSpace) {
+        tableBodyEl.appendChild(buildSummarySpaceHeaderRow(sheet, raw));
+        prevSpace = raw;
+        prevTiming = null;
+        open = expandedSummarySpaces.has(raw);
       }
-      var tr = buildRowElement(sheet, item.row, item.idx, false);
-      tableBodyEl.appendChild(tr);
+      if (!open) return;
+      if (tm !== prevTiming) { tableBodyEl.appendChild(buildSummaryStatusRow(sheet, tm)); prevTiming = tm; }
+      tableBodyEl.appendChild(phone ? buildSummaryTaskRow(item.row, item.idx, 0) : buildRowElement(sheet, item.row, item.idx, false));
     });
   }
 
@@ -1841,6 +1861,9 @@
       var g = groups.find(function (x) { return x.day === di; });
       (g || other).items.push(item);
     });
+    // today's weekday first, then the days that follow it in sequence
+    var todayAt = groups.findIndex(function (g) { return g.day === todayDay; });
+    if (todayAt > 0) groups = groups.slice(todayAt).concat(groups.slice(0, todayAt));
     groups.push(other);
     if (!userSorted) {
       groups.forEach(function (g) {
@@ -1963,9 +1986,46 @@
 
   // Space group title: same look as TimesX7's weekday titles, but shown
   // exactly as typed (not forced to capitals).
-  function buildSummarySpaceHeaderRow(sheet, name) {
-    var tr = buildWeekDayHeaderRow(sheet, name, false);
-    tr.classList.add("summary-space-title");
+  function buildSummarySpaceHeaderRow(sheet, key) {
+    var name = key || "(No space)";
+    var tr = document.createElement("tr");
+    tr.className = "summary-space-title summary-space-head-row";
+    tr.dataset.space = key;
+    var td = document.createElement("td");
+    td.colSpan = sheet.columns.length;
+    td.className = "summary-space-head";
+    var line = document.createElement("div");
+    line.className = "space-line";
+
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "space-toggle";
+    var label = document.createElement("span");
+    label.className = "space-line-label";
+    label.textContent = "Times";
+    var box = document.createElement("div");
+    box.className = "cell-editable space-box";
+    var scc = spaceColorClass(key);
+    if (scc) box.classList.add(scc);
+    box.textContent = name;
+
+    var open = expandedSummarySpaces.has(key);
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    btn.setAttribute("aria-label", open ? "Hide the tasks of this Space" : "Show the tasks of this Space");
+    btn.title = open ? "Tap to hide the tasks" : "Tap to show the tasks";
+    function toggle() {
+      if (expandedSummarySpaces.has(key)) expandedSummarySpaces.delete(key);
+      else expandedSummarySpaces.add(key);
+      renderTableBody(sheet);
+    }
+    btn.addEventListener("click", toggle);
+    box.addEventListener("click", toggle);
+
+    line.appendChild(btn);
+    line.appendChild(label);
+    line.appendChild(box);
+    td.appendChild(line);
+    tr.appendChild(td);
     return tr;
   }
 
@@ -2216,6 +2276,7 @@
     delete sortState[sheet.name];
     selectedSheetIndex = idx;
     persistSelectedSheet();
+    expandedSummarySpaces.add(target);
     if (isSingleTaskSwipeMode(sheet)) {
       var pages = getSwipePages(sheet, getFilteredSortedRows(sheet));
       for (var p = 0; p < pages.length; p++) {
@@ -2231,7 +2292,7 @@
     setTimeout(function () {
       var titles = tableBodyEl.querySelectorAll("tr.summary-space-title");
       for (var i = 0; i < titles.length; i++) {
-        if (titles[i].textContent.trim() === target) {
+        if (titles[i].dataset.space === target) {
           titles[i].scrollIntoView({ behavior: "smooth", block: "center" });
           titles[i].classList.add("row-highlight");
           (function (el) { setTimeout(function () { el.classList.remove("row-highlight"); }, 2200); })(titles[i]);

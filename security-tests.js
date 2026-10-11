@@ -632,6 +632,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
   });
 
 
+  const expandSpacetime = w => { for (let i = 0; i < 60; i++) { const b = w.document.querySelector('tr.summary-space-title .space-toggle[aria-expanded="false"]'); if (!b) break; b.click(); } };
   /* ---- Spacetime: date instead of "Time N", Life Ends limit, sync, status groups ---- */
   await ta('Spacetime: shows each task\'s Time Zero on date (blank when empty); tasks grouped per Space by status', async () => {
     const w = await weekBoot([
@@ -639,8 +640,8 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
       blankTask({ Space: 'AA', 'Timeframe/Meeting': 'p1', Timing: 'In-Progress' }),
       blankTask({ Space: 'AA', 'Timeframe/Meeting': 'h2', Timing: 'Hold' }),
       blankTask({ Space: 'AA', 'Timeframe/Meeting': 'p2', Timing: 'In-Progress', 'Time Zero on': dayStr(2) })]);
-    clickNav(w, /^Spacetime$/);
-    const trs = [...w.document.querySelectorAll('#tableBody tr')].map(tr => tr.classList.contains('week-day-header-row') ? '@' + tr.textContent.trim() : tr.classList.contains('summary-status-row') ? '#' + tr.textContent.trim() : (tr.querySelector('.summary-date-input').value || '_') + '|' + tr.querySelector('.summary-task-link').textContent.trim());
+    clickNav(w, /^Spacetime$/); expandSpacetime(w);
+    const trs = [...w.document.querySelectorAll('#tableBody tr')].map(tr => tr.classList.contains('summary-space-title') ? '@' + tr.dataset.space : tr.classList.contains('summary-status-row') ? '#' + tr.textContent.trim() : (tr.querySelector('.summary-date-input').value || '_') + '|' + tr.querySelector('.summary-task-link').textContent.trim());
     const want = ['@AA', '#In-Progress', '_|p1', dayStr(2) + '|p2', '#Hold', dayStr(1) + '|h1', '_|h2'];
     if (JSON.stringify(trs) !== JSON.stringify(want)) throw new Error(JSON.stringify(trs));
     if (/Time \d+:/.test(w.document.getElementById('tableBody').textContent)) throw new Error('"Time N:" label still shown');
@@ -649,19 +650,19 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
   await ta("Spacetime: date picker saves to the Times row; cannot go past the Space's Life Ends; blank date can be set", async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', Timing: 'Hold' })], [lifeRow('AA', dayStr(5))]);
     let msg = ''; w.alert = m => { msg = m; };
-    clickNav(w, /^Spacetime$/); let inp = w.document.querySelector('.summary-date-input');
+    clickNav(w, /^Spacetime$/); expandSpacetime(w); let inp = w.document.querySelector('.summary-date-input');
     pickDate(w, inp, dayStr(9));
     if (!/Life Ends/.test(msg) || sheetOf(wbOf(w), 'Daily planning - All tasks').rows[0]['Time Zero on'] !== '') throw new Error('beyond date accepted');
     if (inp.max !== isoOf(dayStr(5))) throw new Error('max ' + inp.max);
     pickDate(w, inp, dayStr(4));
     if (sheetOf(wbOf(w), 'Daily planning - All tasks').rows[0]['Time Zero on'] !== dayStr(4)) throw new Error('not synced to Times');
     clickNav(w, /^Times$/); if (w.document.querySelector('td[data-col="Time Zero on"] input').value !== dayStr(4)) throw new Error('Times page not showing the date');
-    clickNav(w, /^Spacetime$/); inp = w.document.querySelector('.summary-date-input'); inp.dispatchEvent(new w.Event('focus')); inp.value = ''; inp.dispatchEvent(new w.Event('change'));
+    clickNav(w, /^Spacetime$/); expandSpacetime(w); inp = w.document.querySelector('.summary-date-input'); inp.dispatchEvent(new w.Event('focus')); inp.value = ''; inp.dispatchEvent(new w.Event('change'));
     if (sheetOf(wbOf(w), 'Daily planning - All tasks').rows[0]['Time Zero on'] !== '') throw new Error('clear not saved');
   });
   await ta('Spacetime: tapping the date does not navigate away; tapping the task text still opens it on Times', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1' })]);
-    clickNav(w, /^Spacetime$/); w.document.querySelector('.summary-date-input').click();
+    clickNav(w, /^Spacetime$/); expandSpacetime(w); w.document.querySelector('.summary-date-input').click();
     if (!/Spacetime$/.test(w.document.getElementById('pageTitle').textContent.trim())) throw new Error('left Spacetime');
     w.document.querySelector('.summary-task-link').click();
     if (!/Times$/.test(w.document.getElementById('pageTitle').textContent.trim())) throw new Error('did not open Times');
@@ -700,7 +701,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     const colourOf = el => (/space-color-\d+/.exec(el.className) || [''])[0];
     clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
     const x7 = w.document.querySelector('td[data-col="Timeframes"] .week-times-link'); if (!x7 || colourOf(x7) !== colourOf({ className: aaCls }) || x7.querySelector('.space-color') || x7.textContent !== 'AA || T1') throw new Error('TimesX7 colour (whole box): ' + (x7 && x7.className));
-    clickNav(w, /^Spacetime$/); const title = w.document.querySelector('tr.summary-space-title td'); if (!title || /space-color-/.test(title.className)) throw new Error('Spacetime title should stay pink (no Space colour class)');
+    clickNav(w, /^Spacetime$/); const title = w.document.querySelector('tr.summary-space-title .space-box'); if (!title || colourOf(title) !== colourOf({ className: aaCls })) throw new Error('Spacetime Space box colour: ' + (title && title.className)); expandSpacetime(w);
     const box = w.document.querySelector('td[data-col="Time"] .week-times-link'); if (!box || colourOf(box) !== colourOf({ className: aaCls })) throw new Error('Spacetime task box colour: ' + (box && box.className));
     clickNav(w, /^Spaces$|^Projects$/); const sc = w.document.querySelector('td[data-col="Space"] .space-box'); if (colourOf(sc) !== colourOf({ className: aaCls })) throw new Error('Spaces page colour');
   });
@@ -725,7 +726,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     cells[0].dispatchEvent(new w.Event('blur'));
     const again = [...w.document.querySelectorAll('td[data-col="Space"] .cell-editable')][0]; again.click(); await sleep(350);
     if (!/Spacetime$/.test(w.document.getElementById('pageTitle').textContent.trim())) throw new Error('single tap did not open Spacetime: ' + w.document.getElementById('pageTitle').textContent);
-    const t = [...w.document.querySelectorAll('tr.summary-space-title')].map(x => x.textContent.trim()); if (t[0] !== 'AA') throw new Error(JSON.stringify(t));
+    const t = [...w.document.querySelectorAll('tr.summary-space-title')].map(x => x.dataset.space); if (t[0] !== 'AA') throw new Error(JSON.stringify(t)); if (!w.document.querySelector('.summary-task-link')) throw new Error('the Space should be open on Spacetime');
   });
 
 
@@ -791,7 +792,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
       blankTask({ Space: 'AA', 'Timeframe/Meeting': 'h1', Timing: 'Hold' }),
       blankTask({ Space: 'AA', 'Timeframe/Meeting': 'a3', Timing: 'In-Progress' }),
       blankTask({ Space: 'BB', 'Timeframe/Meeting': 'b1', Timing: 'In-Progress' })]);
-    clickNav(w, /^Spacetime$/);
+    clickNav(w, /^Spacetime$/); expandSpacetime(w);
     const list = () => [...w.document.querySelectorAll('#tableBody .summary-task-link')].map(e => e.textContent.trim()).join(',');
     if (list() !== 'a1,a2,a3,h1,b1') throw new Error('stored order expected, got ' + list());
     let trs = [...w.document.querySelectorAll('#tableBody tr')]; stubRects(trs);
@@ -840,6 +841,44 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     if (names !== 'YZX') throw new Error('expected date order once, got ' + names);
   });
 
+
+  /* ---- Spacetime collapsed Space lines; TimesX7 today first ---- */
+  await ta('Spacetime: each Space is one collapsed line (+, "Times", Space box in its colour); + opens its tasks, + again closes them', async () => {
+    const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', Timing: 'Hold' }), blankTask({ Space: 'BB', 'Timeframe/Meeting': 'T2', Timing: 'Hold' })], [lifeRow('AA', ''), lifeRow('BB', '')]);
+    clickNav(w, /^Spacetime$/);
+    if (w.document.querySelector('#tableBody .summary-task-link')) throw new Error('tasks should be hidden at first');
+    const heads = [...w.document.querySelectorAll('tr.summary-space-title')]; if (heads.length !== 2) throw new Error('heads ' + heads.length);
+    const line = heads[0].querySelector('.space-line'); const kids = [...line.children].map(e => e.className.split(' ')[0]);
+    if (kids.join() !== 'space-toggle,space-line-label,cell-editable') throw new Error(kids.join());
+    if (line.querySelector('.space-line-label').textContent !== 'Times' || !/space-color-\d+/.test(line.querySelector('.space-box').className) || line.querySelector('.space-box').textContent !== 'AA') throw new Error('label/box');
+    heads[0].querySelector('.space-toggle').click();
+    const shown = [...w.document.querySelectorAll('#tableBody .summary-task-link')].map(e => e.textContent.trim()); if (shown.join() !== 'T1') throw new Error('only AA tasks expected, got ' + shown);
+    w.document.querySelector('tr.summary-space-title .space-toggle').click();
+    if (w.document.querySelector('#tableBody .summary-task-link')) throw new Error('did not collapse');
+    if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
+  await ta('TimesX7: groups start with today, then the following days in sequence', async () => {
+    const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T0', 'Time Zero on': dayStr(0) }), blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': dayStr(1) }), blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T3', 'Time Zero on': dayStr(3) }), blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T6', 'Time Zero on': dayStr(6) })]);
+    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const want = [0, 1, 3, 6].map(n => days[new Date(now.getFullYear(), now.getMonth(), now.getDate() + n).getDay()] + (n === 0 ? ' - Today' : '')).join('|');
+    const got = [...w.document.querySelectorAll('tr.week-day-header-row')].map(e => e.textContent.trim()).join('|');
+    if (got !== want) throw new Error(got + ' != ' + want);
+  });
+
+
+  await ta('Spacetime on the phone layout: list of collapsed Spaces (no paging); opened Space shows labelled "Defined time on" / "Times" rows', async () => {
+    const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', Timing: 'Hold' }), blankTask({ Space: 'BB', 'Timeframe/Meeting': 'T2', Timing: 'Hold' })]);
+    w.matchMedia = () => ({ matches: true, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
+    clickNav(w, /^Spacetime$/);
+    if (w.document.querySelectorAll('tr.summary-space-title').length !== 2) throw new Error('both Spaces must be listed on one page');
+    if (!w.document.getElementById('taskSwipeNav').hidden) throw new Error('no BackIn/NextIn paging expected');
+    w.document.querySelector('tr.summary-space-title .space-toggle').click();
+    const row = w.document.querySelector('tr.summary-task-row'); if (!row) throw new Error('no phone task row');
+    const labels = [...row.querySelectorAll('td')].map(td => td.dataset.label).join('|'); if (labels !== 'Defined time on|Times') throw new Error(labels);
+    if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
+
   /* ---- BackIn / NextIn wrap around (Spacetime, Times, NextIn, NoSpace) ---- */
   async function wrapBoot(n) {
     const w = await boot(); w.matchMedia = () => ({ matches: true, addListener() {}, removeListener() {}, addEventListener() {} });
@@ -852,7 +891,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
   }
   const lbl = w => w.document.getElementById('taskPositionLabel').textContent;
   const prev = w => w.document.getElementById('taskPrevBtn'), next = w => w.document.getElementById('taskNextBtn');
-  for (const [page, re, fmt] of [['Times', /^Times$/, (i, n) => 'Time ' + i + ' of ' + n], ['NextIn', /^NextIn$/, (i, n) => 'Time ' + i + ' of ' + n], ['NoSpace', /^NoSpace$/, (i, n) => i + ' of ' + n], ['Spacetime', /^Spacetime$/, (i, n) => 'Space ' + i + ' of ' + n]]) {
+  for (const [page, re, fmt] of [['Times', /^Times$/, (i, n) => 'Time ' + i + ' of ' + n], ['NextIn', /^NextIn$/, (i, n) => 'Time ' + i + ' of ' + n], ['NoSpace', /^NoSpace$/, (i, n) => i + ' of ' + n]]) {
     await ta('BackIn/NextIn wrap on ' + page + ': 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10', async () => {
       const w = await wrapBoot(10); clickNav(w, re);
       const seq = [[null, 1], [prev, 10], [prev, 9], [next, 10], [next, 1], [next, 2], [prev, 1]];

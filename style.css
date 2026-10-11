@@ -1611,3 +1611,38 @@ body.order-mode .drag-handle:active{cursor:grabbing;color:var(--text);}
 .drag-row.drop-after{box-shadow:0 3px 0 #2563eb !important;}
 .drag-row.drop-before > td{box-shadow:inset 0 3px 0 #2563eb;}
 .drag-row.drop-after > td{box-shadow:inset 0 -3px 0 #2563eb;}
+
+/* Spacetime: collapsed Space line, same look as the Spaces page */
+.data-table tr.summary-space-head-row > td.summary-space-head{padding:6px 8px;}
+.summary-space-head-row .space-line .space-toggle{margin:0 2px 0 -5px;}
+.summary-space-head-row .space-line-label{
+  display:block;
+  flex:0 0 38px;
+  width:38px;
+  font-size:10px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.07em;
+  color:var(--muted);
+  margin-right:14px;
+}
+.summary-space-head-row .cell-editable.space-box{flex:1 1 0;min-width:0;cursor:pointer;}
+@media (max-width:680px){
+  .data-table tr.summary-space-head-row{
+    padding:3px 6px !important;
+    margin:0 0 4px !important;
+  }
+  .data-table tr.summary-space-head-row > td.summary-space-head{
+    display:block !important;
+    width:auto !important;
+    border:none !important;
+    padding:2px 0 !important;
+  }
+  .data-table tr.summary-space-head-row > td::before{content:none !important;display:none !important;}
+  .summary-space-head-row .space-toggle{margin:0 1px 0 -5px;}
+  .summary-space-head-row .space-line-label{position:relative;top:-1px;}
+  .data-table tr.summary-space-head-row .cell-editable.space-box{
+    min-height:28px !important;
+    padding:2px 8px !important;
+  }
+}

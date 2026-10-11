@@ -129,3 +129,7 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: Order button replaces CSV (139 tests)
 - The CSV button and all CSV export code were removed (so the two CSV tests were removed too; the CSV-injection risk no longer exists). The new "Order" button switches the three-line drag handles on/off for every page at once (hidden by default). Display only; the drag logic is unchanged.
+
+## Update: TimesX7 order, collapsible Spacetime (141 tests)
+- TimesX7 groups now start with today's weekday and continue in sequence (today, tomorrow, ...); "No date" stays last.
+- Spacetime: each Space is a collapsed line "+  Times  [Space name]" (same classes/fonts/widths as the Spaces page; the Space name box uses the Space colour); + shows that Space's tasks grouped by status. On the phone Spacetime is now one list of all Spaces, so the old BackIn/NextIn paging on Spacetime is gone. Opening a Space from the Spaces page also opens its tasks. UI only; no security-relevant code changed.
