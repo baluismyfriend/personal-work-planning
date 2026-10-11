@@ -43,7 +43,7 @@
   var MAX_COL_WIDTH = 2000;
   var RESERVED_KEYS = ["__proto__", "constructor", "prototype"];
   var KNOWN_SHEET_NAMES = ["Daily planning - All tasks", "Completed tasks",
-    "Week planning", "Timex0", "Road Map - Pending", "Quick list", "Summary"];
+    "Week planning", "TimeX0", "Road Map - Pending", "Quick list", "Summary"];
 
   // Own-property helpers. Page names and column names can come from an
   // imported file, so they must never be used as keys on a plain object
@@ -94,7 +94,7 @@
     // 2. Week planning
     sheets.push(buildWeekPlanningSheet());
 
-    // 3. Timex0 (what actually happened, day by day; replaces NextIn)
+    // 3. TimeX0 (what actually happened, day by day; replaces NextIn)
     sheets.push(buildTimex0Sheet());
 
     // 4. Road Map - Pending
@@ -354,7 +354,7 @@
   }
 
   function buildTimex0Sheet() {
-    return { name: "Timex0", columns: TIMEX0_COLUMNS.slice(), rows: [] };
+    return { name: "TimeX0", columns: TIMEX0_COLUMNS.slice(), rows: [] };
   }
 
   function normalizeTimex0Sheet(rawSheet) {
@@ -369,7 +369,7 @@
         "Happened": sanitizeCell(hasOwn(r, "Happened") ? r["Happened"] : "", MAX_CELL_LEN)
       };
     });
-    return { name: "Timex0", columns: TIMEX0_COLUMNS.slice(), rows: outRows };
+    return { name: "TimeX0", columns: TIMEX0_COLUMNS.slice(), rows: outRows };
   }
 
   // "10/5/2026", "Thu, 10/05/2026" -> "10/05/2026" (a real date) or "".
@@ -392,6 +392,7 @@
       if (!name) throw new Error("each sheet must have a name");
       if (REMOVED_PAGE_NAMES.indexOf(name) !== -1) continue;
       if (name === "Summary") continue; // always recomputed fresh below
+      if (name === "Timex0") name = "TimeX0";
       if (seenNames[name]) continue;    // duplicate page name: first copy wins
       if (KNOWN_SHEET_NAMES.indexOf(name) === -1) {
         // Unknown pages are tolerated for old backups but capped, so a
@@ -406,7 +407,7 @@
         else sheets.push(buildWeekPlanningSheet());
         continue;
       }
-      if (name === "Timex0") {
+      if (name === "TimeX0" || name === "Timex0") { // "Timex0" = earlier spelling
         sheets.push(normalizeTimex0Sheet(s));
       } else if (TASK_SHEET_NAMES.indexOf(name) !== -1) {
         sheets.push(normalizeTaskSheet(name, s));
@@ -431,7 +432,7 @@
     var hasWeekPlanning = sheets.some(function (s) { return s.name === "Week planning"; });
     if (!hasWeekPlanning) sheets.splice(1, 0, buildWeekPlanningSheet());
     // Ensure Timex0 always present (right after Week planning / TimesX7)
-    if (!sheets.some(function (s) { return s.name === "Timex0"; })) {
+    if (!sheets.some(function (s) { return s.name === "TimeX0"; })) {
       var wkAt = sheets.findIndex(function (s) { return s.name === "Week planning"; });
       sheets.splice(wkAt + 1, 0, buildTimex0Sheet());
     }
@@ -656,7 +657,7 @@
   function hasActionsColumn(sheet) {
     // Quick list deletes a row via tapping its radio button instead of a
     // Copy/Move/Delete actions column (see buildQuickListRow).
-    return !isComputedSheet(sheet) && sheet.name !== "Quick list" && sheet.name !== "Week planning" && sheet.name !== "Timex0";
+    return !isComputedSheet(sheet) && sheet.name !== "Quick list" && sheet.name !== "Week planning" && sheet.name !== "TimeX0";
   }
 
   // Pages that have a "Move" row action, and where that action sends the
@@ -671,7 +672,7 @@
     "Summary": "Spacetime",
     "Daily planning - All tasks": "Times",
     "Week planning": "TimesX7",
-    "Timex0": "Timex0",
+    "TimeX0": "TimeX0",
     "Road Map - Pending": "Spaces",
     "Quick list": "Stars",
     "Completed tasks": "NoSpace"
@@ -1383,7 +1384,7 @@
       var savedW = manualWidths[widthKey(sheet.name, col)];
       if (savedW) {
         c.style.width = savedW + "px";
-      } else if (sheet.name === "Week planning" || sheet.name === "Timex0") {
+      } else if (sheet.name === "Week planning" || sheet.name === "TimeX0") {
         // Date / time column is only as wide as it needs; the Times column
         // gets no width so the fixed-layout table gives it all the rest.
         if (col === "Date/Day" || col === "Time at") c.style.width = "160px";
@@ -1619,7 +1620,7 @@
     // one at a time with a "1 of N" counter. Road Map - Pending is a
     // short list of projects the user wants to scroll through all at
     // once too, rather than flipping through one project per screen.
-    if (sheet.name === "Week planning" || sheet.name === "Timex0" || sheet.name === "Quick list" || sheet.name === "Road Map - Pending" || sheet.name === "Summary") return false;
+    if (sheet.name === "Week planning" || sheet.name === "TimeX0" || sheet.name === "Quick list" || sheet.name === "Road Map - Pending" || sheet.name === "Summary") return false;
     return isMobileWidth();
   }
 
@@ -1876,18 +1877,17 @@
      at the top when you open the page or tap Refresh, scrolling down
      shows the following days and scrolling up shows the days before. */
   var DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  var DAY_RANGE_DEFAULT_FROM = -3, DAY_RANGE_DEFAULT_TO = 10;
-  var DAY_RANGE_LIMIT = 730;
-  var dayRange = { from: DAY_RANGE_DEFAULT_FROM, to: DAY_RANGE_DEFAULT_TO }; // days relative to today
+  var DAY_COUNT = 7;        // the page shows 7 days: today and the next 6
+  var dayCopies = 5;        // the 7 days are drawn several times in a row so scrolling can loop
   var dayScrollPending = true; // put today's tile at the top after the next render
-  var dayExtendBusy = false;
+  var dayWrapBusy = false;
+  var dayCopyNow = 0;       // which repeat is being drawn (keeps drag groups apart)
 
   function isDaySheet(sheet) {
-    return !!sheet && (sheet.name === "Week planning" || sheet.name === "Timex0");
+    return !!sheet && (sheet.name === "Week planning" || sheet.name === "TimeX0");
   }
 
   function resetDayView() {
-    dayRange = { from: DAY_RANGE_DEFAULT_FROM, to: DAY_RANGE_DEFAULT_TO };
     dayScrollPending = true;
   }
 
@@ -1901,32 +1901,20 @@
     return m ? DAY_NAMES[new Date(Number(m[3]), Number(m[1]) - 1, Number(m[2])).getDay()] : "";
   }
 
+  // The 7 tiles: today, tomorrow ... today + 6, each with its rows.
   function buildDayGroups(items, dateOf) {
     var byDate = newMap();
-    var noDate = [];
-    var now = new Date();
-    var todayMs = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
     items.forEach(function (it) {
       var d = dateOf(it.row);
-      if (d) {
-        if (!hasOwn(byDate, d)) byDate[d] = [];
-        byDate[d].push(it);
-        // rows dated a little before/after today are always reachable
-        var off = Math.round((dateToUtcMs(d) - todayMs) / 86400000);
-        if (off >= -30 && off <= 60) {
-          if (off < dayRange.from) dayRange.from = off;
-          if (off > dayRange.to) dayRange.to = off;
-        }
-      } else {
-        noDate.push(it);
-      }
+      if (!d) return;
+      if (!hasOwn(byDate, d)) byDate[d] = [];
+      byDate[d].push(it);
     });
     var groups = [];
-    for (var off2 = dayRange.from; off2 <= dayRange.to; off2++) {
-      var ds = dayDateForOffset(off2);
-      groups.push({ date: ds, label: dayNameOf(ds), isToday: off2 === 0, items: hasOwn(byDate, ds) ? byDate[ds] : [] });
+    for (var off = 0; off < DAY_COUNT; off++) {
+      var ds = dayDateForOffset(off);
+      groups.push({ date: ds, label: dayNameOf(ds), isToday: off === 0, items: hasOwn(byDate, ds) ? byDate[ds] : [] });
     }
-    if (noDate.length) groups.push({ date: "", label: "No date", isToday: false, items: noDate });
     return groups;
   }
 
@@ -1956,27 +1944,31 @@
   }
 
   function buildDayBody(sheet, items) {
-    var isT0 = sheet.name === "Timex0";
+    var isT0 = sheet.name === "TimeX0";
     var userSorted = !!sortState[sheet.name];
     var groups = buildDayGroups(items, function (row) { return dayKeyOf(row["Date/Day"]); });
     tableBodyEl.replaceChildren();
-    groups.forEach(function (g) {
-      tableBodyEl.appendChild(buildDayHeaderRow(sheet, g, isT0 && g.date !== ""));
-      var list = g.items.slice();
-      if (!userSorted) {
-        if (isT0) {
-          list.sort(function (a, b) {
-            var ta = timeAtMinutes(a.row["Time at"]), tb = timeAtMinutes(b.row["Time at"]);
-            return ((ta === null ? 1e9 : ta) - (tb === null ? 1e9 : tb)) || (a.idx - b.idx);
-          });
-        } else {
-          list.sort(function (a, b) { return a.idx - b.idx; });
+    for (var copy = 0; copy < dayCopies; copy++) {
+      dayCopyNow = copy;
+      groups.forEach(function (g) {
+        tableBodyEl.appendChild(buildDayHeaderRow(sheet, g, isT0));
+        var list = g.items.slice();
+        if (!userSorted) {
+          if (isT0) {
+            list.sort(function (a, b) {
+              var ta = timeAtMinutes(a.row["Time at"]), tb = timeAtMinutes(b.row["Time at"]);
+              return ((ta === null ? 1e9 : ta) - (tb === null ? 1e9 : tb)) || (a.idx - b.idx);
+            });
+          } else {
+            list.sort(function (a, b) { return a.idx - b.idx; });
+          }
         }
-      }
-      list.forEach(function (item) {
-        tableBodyEl.appendChild(isT0 ? buildTimex0Row(sheet, item.row, item.idx) : buildRowElement(sheet, item.row, item.idx, false));
+        list.forEach(function (item) {
+          tableBodyEl.appendChild(isT0 ? buildTimex0Row(sheet, item.row, item.idx) : buildRowElement(sheet, item.row, item.idx, false));
+        });
       });
-    });
+    }
+    dayCopyNow = 0;
   }
 
   function buildDayHeaderRow(sheet, g, withAdd) {
@@ -2007,70 +1999,64 @@
     return tr;
   }
 
-  // After the tiles are drawn: make sure there is room to scroll, put
-  // today's tile at the top when asked to.
+  // Geometry of the repeated 7-day block: { h: height of one block,
+  // t: scrollTop that puts today's tile (middle block) at the top }.
+  function dayGeometry() {
+    var sc = tableScrollerEl;
+    var hdrs = tableBodyEl.querySelectorAll("tr.week-day-today");
+    if (!sc || hdrs.length < 2) return null;
+    var mid = Math.floor(hdrs.length / 2);
+    var h = hdrs[1].getBoundingClientRect().top - hdrs[0].getBoundingClientRect().top;
+    if (!(h > 0)) return null;
+    var t = hdrs[mid].getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - (tableHeadEl.offsetHeight || 0) - 4;
+    return { h: h, t: t, mid: mid };
+  }
+
+  // After the tiles are drawn: repeat the 7 days enough times to loop
+  // smoothly, and put today's tile at the top when asked to.
   function finishDayView(sheet) {
     var sc = tableScrollerEl;
     if (!sc || !sc.clientHeight) return;
-    function todayTarget() {
-      var hdr = tableBodyEl.querySelector("tr.week-day-today");
-      if (!hdr) return null;
-      return hdr.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - (tableHeadEl.offsetHeight || 0) - 4;
+    var g = dayGeometry();
+    if (!g) return;
+    var needMid = Math.min(20, Math.max(2, Math.ceil(sc.clientHeight / g.h) + 1));
+    if (needMid * 2 + 1 !== dayCopies) {
+      dayCopies = needMid * 2 + 1;
+      buildDayBody(sheet, getFilteredSortedRows(sheet));
+      g = dayGeometry();
+      if (!g) return;
     }
     if (dayScrollPending) {
-      var guard = 0, target = todayTarget();
-      while (target !== null && target > sc.scrollHeight - sc.clientHeight - 200 && guard++ < 14 && dayRange.to < 120) {
-        dayRange.to += 7;
-        buildDayBody(sheet, getFilteredSortedRows(sheet));
-        target = todayTarget();
-      }
-      if (target !== null) sc.scrollTop = Math.max(0, target);
+      sc.scrollTop = Math.max(0, g.t);
       dayScrollPending = false;
     }
   }
 
-  // Near the top / bottom of the list: add more days there (the view does
-  // not jump - the tile you were looking at stays where it was).
+  // Scrolling past either end of the 7 days wraps round: below the last
+  // day comes today again, above today comes the last day. The block is
+  // drawn several times, and when you drift away from the middle one the
+  // view silently jumps by exactly one block (it looks identical).
   function onDayScroll() {
     var sheet = currentSheet();
     var sc = tableScrollerEl;
-    if (!isDaySheet(sheet) || dayExtendBusy || !sc || !sc.clientHeight) return;
+    if (!isDaySheet(sheet) || dayWrapBusy || !sc || !sc.clientHeight) return;
     var a = document.activeElement;
     if (a && tableBodyEl.contains(a) && (a.isContentEditable || a.tagName === "INPUT")) return; // never while typing
-    var nearTop = sc.scrollTop < 80;
-    var nearBottom = sc.scrollTop + sc.clientHeight > sc.scrollHeight - 80;
-    if (!nearTop && !nearBottom) return;
-    if (nearTop && dayRange.from <= -DAY_RANGE_LIMIT) nearTop = false;
-    if (nearBottom && dayRange.to >= DAY_RANGE_LIMIT) nearBottom = false;
-    if (!nearTop && !nearBottom) return;
-    dayExtendBusy = true;
+    var g = dayGeometry();
+    if (!g) return;
+    dayWrapBusy = true;
     try {
-      var scTop = sc.getBoundingClientRect().top + (tableHeadEl.offsetHeight || 0);
-      var anchor = null, hdrs = tableBodyEl.querySelectorAll("tr.week-day-header-row");
-      for (var i = 0; i < hdrs.length; i++) {
-        var r = hdrs[i].getBoundingClientRect();
-        if (r.bottom > scTop && hdrs[i].dataset.date) { anchor = { date: hdrs[i].dataset.date, top: r.top }; break; }
-      }
-      if (nearTop) dayRange.from -= 7;
-      if (nearBottom) dayRange.to += 7;
-      buildDayBody(sheet, getFilteredSortedRows(sheet));
-      if (anchor) {
-        var again = tableBodyEl.querySelectorAll("tr.week-day-header-row");
-        for (var j = 0; j < again.length; j++) {
-          if (again[j].dataset.date === anchor.date) {
-            sc.scrollTop += again[j].getBoundingClientRect().top - anchor.top;
-            break;
-          }
-        }
-      }
+      var lo = g.t - (g.mid - 1) * g.h, hi = g.t + (g.mid - 1) * g.h;
+      if (sc.scrollTop < lo) sc.scrollTop += g.h;
+      else if (sc.scrollTop > hi) sc.scrollTop -= g.h;
     } finally {
-      dayExtendBusy = false;
+      dayWrapBusy = false;
     }
   }
 
   // Timex0: add an entry (Time at + Happened) to one day.
   function addTimex0Row(dateStr) {
-    var sheet = workbook.find(function (s) { return s.name === "Timex0"; });
+    var sheet = workbook.find(function (s) { return s.name === "TimeX0"; });
     if (!sheet) return;
     if (sheet.rows.length >= MAX_ROWS) { window.alert("Row limit reached for this sheet."); return; }
     // iOS only raises the keyboard for focus() made inside the tap itself.
@@ -2087,8 +2073,9 @@
     renderTable();
     setTimeout(function () {
       var rows = tableBodyEl.querySelectorAll("tr");
-      var tr = null;
-      for (var i = 0; i < rows.length; i++) { if (rows[i].dataset.sourceIdx === String(newIdx)) { tr = rows[i]; break; } }
+      var hits = [];
+      for (var i = 0; i < rows.length; i++) { if (rows[i].dataset.sourceIdx === String(newIdx)) hits.push(rows[i]); }
+      var tr = hits.length ? hits[Math.floor(hits.length / 2)] : null; // the middle repeat
       if (tr) {
         tr.scrollIntoView({ behavior: "smooth", block: "center" });
         tr.classList.add("row-highlight");
@@ -2497,7 +2484,7 @@
     if (sheet.name === "Summary") registerSummaryDrag(tr, row);
     if (sheet.name === "Week planning" && !sortState[sheet.name]) {
       var wdate = dateOnlyOf(row["Date/Day"]);
-      registerDragRow(tr, "W|" + (wdate || "none"), row, function () { return sheet.rows; }, afterMoveSave);
+      registerDragRow(tr, "W|" + (wdate || "none") + "|" + dayCopyNow, row, function () { return sheet.rows; }, afterMoveSave);
     }
 
     return tr;
@@ -2942,7 +2929,7 @@
 
     div.addEventListener("blur", function () {
       var text = sanitizeTyped(extractPlainText(div)).trim();
-      if (sheet.name === "Timex0" && col === "Time at") text = normalizeTimeAt(text);
+      if (sheet.name === "TimeX0" && col === "Time at") text = normalizeTimeAt(text);
       row[col] = text;
       rawVal = text;
       saveWorkbook();
@@ -3537,7 +3524,7 @@
 
   function handleAddRow() {
     var sheet = currentSheet();
-    if (sheet.name === "Timex0") { addTimex0Row(todayLocalMMDDYYYY()); return; }
+    if (sheet.name === "TimeX0") { addTimex0Row(todayLocalMMDDYYYY()); return; }
     if (isComputedSheet(sheet)) {
       window.alert(shortSheetName(sheet) + " is generated automatically from Daily planning and can't be added to directly.");
       return;

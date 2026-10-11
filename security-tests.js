@@ -397,7 +397,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     const w = await weekBoot([blankTask({ Space: 'A', 'Timeframe/Meeting': 'x', 'Time Zero on': todayStr }), blankTask({ Space: 'B', 'Timeframe/Meeting': 'y', 'Time Zero on': tomorrowStr })]);
     clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
     const hdrs = [...w.document.querySelectorAll('tr.week-day-header-row')];
-    const today = hdrs.filter(h => h.classList.contains('week-day-today')); const others = hdrs.filter(h => !h.classList.contains('week-day-today'));
+    const today = hdrs.filter(h => h.classList.contains('week-day-today')).slice(0, 1); const others = hdrs.filter(h => !h.classList.contains('week-day-today')).slice(0, 6);
     if (today.length !== 1 || today[0].textContent !== todayName + ' - Today') throw new Error(JSON.stringify(hdrs.map(h => h.textContent)));
     if (!others.length || others.some(h => / - Today/.test(h.textContent))) throw new Error('other header changed');
     if (!others.some(h => h.textContent === tomorrowName + ', ' + tomorrowStr)) throw new Error('tomorrow header should be "Day, MM/DD/YYYY"');
@@ -807,7 +807,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
       blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T3', 'Time Zero on': dayStr(1) }),
       blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T4', 'Time Zero on': todayStr })]);
     clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
-    const list = () => [...w.document.querySelectorAll('tr.week-row .week-times-link')].map(e => e.textContent.replace('AA || ', '')).join(',');
+    const list = () => [...w.document.querySelectorAll('tr.week-row .week-times-link')].slice(0, 4).map(e => e.textContent.replace('AA || ', '')).join(',');
     if (list() !== 'T1,T2,T4,T3') throw new Error('start ' + list());
     let trs = [...w.document.querySelectorAll('tr.week-row')]; stubRects(trs);
     const rowOf = txt => trs.find(r => r.querySelector('.week-times-link').textContent.endsWith(txt));
@@ -855,67 +855,68 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     if (w.document.querySelector('#tableBody .summary-task-link')) throw new Error('did not collapse');
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
-  await ta('TimesX7: one tile per DATE; today first, previous days above it, following days in sequence (no weekday merging)', async () => {
+  await ta('TimesX7: exactly 7 date tiles (today .. +6), repeated for the scroll loop, no weekday merging', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T0', 'Time Zero on': dayStr(0) }), blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': dayStr(1) }), blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T3', 'Time Zero on': dayStr(3) })]);
     clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
-    const dates = [...w.document.querySelectorAll('tr.week-day-header-row')].map(e => e.dataset.date);
-    const want = []; for (let n = -3; n <= 10; n++) want.push(dayStr(n));
-    if (dates.join() !== want.join()) throw new Error(dates.join() + ' != ' + want.join());
+    const all = [...w.document.querySelectorAll('tr.week-day-header-row')].map(e => e.dataset.date);
+    const want = []; for (let n = 0; n < 7; n++) want.push(dayStr(n));
+    if (all.length % 7 !== 0 || all.length < 21) throw new Error('block is not repeated for looping: ' + all.length);
+    for (let i = 0; i < all.length; i++) if (all[i] !== want[i % 7]) throw new Error('tile ' + i + ': ' + all[i]);
     const today = w.document.querySelector('tr.week-day-today'); if (!today || today.dataset.date !== dayStr(0)) throw new Error('today tile');
+    if (all.includes(dayStr(7)) || all.includes(dayStr(-1))) throw new Error('only 7 days may be shown');
   });
-  await ta('TimesX7: Demand 99 task shows once in today\'s tile; next week\'s same weekday is its own tile (no double)', async () => {
+  await ta('TimesX7: Demand 99 task shows once per day for the 7 days; next week\'s same weekday is not mixed into today\'s tile', async () => {
     const w = await weekBoot([blankTask({ Date: dayStr(0), Space: 'AA', Demand: '99', 'Timeframe/Meeting': 'Daily', 'Time Zero on': dayStr(40) })]);
     clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
-    const perTile = {}; let cur = null;
-    [...w.document.querySelectorAll('#tableBody tr')].forEach(tr => { if (tr.classList.contains('week-day-header-row')) { cur = tr.dataset.date; perTile[cur] = 0; } else if (tr.classList.contains('week-row')) perTile[cur]++; });
-    if (perTile[dayStr(0)] !== 1) throw new Error('today tile has ' + perTile[dayStr(0)]);
-    if (perTile[dayStr(7)] !== 1) throw new Error('+7 tile has ' + perTile[dayStr(7)]);
-    for (let n = 0; n <= 7; n++) if (perTile[dayStr(n)] !== 1) throw new Error('day ' + n + ' count ' + perTile[dayStr(n)]);
+    const perTile = {}; let cur = null, seen = {};
+    [...w.document.querySelectorAll('#tableBody tr')].forEach(tr => { if (tr.classList.contains('week-day-header-row')) { cur = tr.dataset.date; if (seen[cur]) cur = null; else { seen[cur] = true; perTile[cur] = 0; } } else if (cur && tr.classList.contains('week-row')) perTile[cur]++; });
+    for (let n = 0; n < 7; n++) if (perTile[dayStr(n)] !== 1) throw new Error('day ' + n + ' count ' + perTile[dayStr(n)]);
+    if (dayStr(7) in perTile) throw new Error('+7 day must not be shown');
   });
-  await ta('Timex0: replaces NextIn; old "All future Tasks" page in a backup is dropped; Timex0 sits after TimesX7', async () => {
+  await ta('TimeX0: replaces NextIn; old "All future Tasks" page in a backup is dropped; Timex0 sits after TimesX7', async () => {
     const w = await boot(); const g = wbOf(w);
     g.push({ name: 'All future Tasks', columns: ['Space'], rows: [{ Space: 'x' }] });
     await doImport(w, JSON.stringify(g));
     const names = wbOf(w).map(x => x.name);
     if (names.includes('All future Tasks')) throw new Error('old page kept');
-    if (names.indexOf('Timex0') !== names.indexOf('Week planning') + 1) throw new Error(names.join());
+    if (names.indexOf('TimeX0') !== names.indexOf('Week planning') + 1) throw new Error(names.join());
     if (navBtns(w).some(b => /NextIn/.test(b.textContent))) throw new Error('NextIn button still there');
-    clickNav(w, /^Timex0$/);
+    clickNav(w, /^TimeX0$/);
     const heads = [...w.document.querySelectorAll('#tableHead th span')].map(e => e.textContent.trim()).filter(Boolean).join();
     if (!/Time at/.test(heads) || !/Happened/.test(heads)) throw new Error(heads);
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
-  await ta('Timex0: + Add puts an entry in today\'s tile; "10am" becomes "10 AM"; text saved; entries sort by time; delete radio; round trip', async () => {
-    const w = await boot(); clickNav(w, /^Timex0$/);
+  await ta('TimeX0: + Add puts an entry in today\'s tile; "10am" becomes "10 AM"; text saved; entries sort by time; delete radio; round trip', async () => {
+    const w = await boot(); clickNav(w, /^TimeX0$/);
     const edit = (el, text) => { el.focus(); el.textContent = text; el.dispatchEvent(new w.Event('blur')); };
     const addAndFill = async (t, h) => { w.document.getElementById('btnAddRow').click(); await sleep(120); const rows = w.document.querySelectorAll('tr.timex0-row'); const tr = [...rows].find(r => !r.querySelector('.timex0-time').textContent && !r.querySelectorAll('.cell-editable')[1].textContent); edit(tr.querySelector('.timex0-time'), t); const tr2 = [...w.document.querySelectorAll('tr.timex0-row')].find(r => r.querySelector('.timex0-time').textContent === normT(t)); edit(tr2.querySelectorAll('.cell-editable')[1], h); };
     const normT = t => ({ '6pm': '6 PM', '10am': '10 AM', 'zzz': 'zzz' }[t]);
     await addAndFill('6pm', 'Dinner'); await addAndFill('10am', 'Standup');
-    const stored = sheetOf(wbOf(w), 'Timex0').rows;
+    const stored = sheetOf(wbOf(w), 'TimeX0').rows;
     if (stored.length !== 2 || stored.some(r => r['Date/Day'] !== todayStr)) throw new Error(JSON.stringify(stored));
-    const shown = [...w.document.querySelectorAll('tr.timex0-row')].map(r => r.querySelector('.timex0-time').textContent + '=' + r.querySelectorAll('.cell-editable')[1].textContent).join('|');
-    if (shown !== '10 AM=Standup|6 PM=Dinner') throw new Error(shown);
+    const shownAll = [...w.document.querySelectorAll('tr.timex0-row')].map(r => r.querySelector('.timex0-time').textContent + '=' + r.querySelectorAll('.cell-editable')[1].textContent);
+    if (shownAll.length % 2 !== 0 || shownAll.slice(0, 2).join('|') !== '10 AM=Standup|6 PM=Dinner') throw new Error(shownAll.join('|'));
     // the + on a day's header adds to that day
-    const hdr = [...w.document.querySelectorAll('tr.week-day-header-row')].find(h => h.dataset.date === dayStr(-1)); hdr.querySelector('.day-add-btn').click(); await sleep(120);
-    if (sheetOf(wbOf(w), 'Timex0').rows.filter(r => r['Date/Day'] === dayStr(-1)).length !== 1) throw new Error('header + did not add to that day');
+    const hdr = [...w.document.querySelectorAll('tr.week-day-header-row')].find(h => h.dataset.date === dayStr(1)); hdr.querySelector('.day-add-btn').click(); await sleep(120);
+    if (sheetOf(wbOf(w), 'TimeX0').rows.filter(r => r['Date/Day'] === dayStr(1)).length !== 1) throw new Error('header + did not add to that day');
     // export -> import keeps everything
     const cap = captureBlobs(w); w.document.getElementById('btnExportJson').click(); await sleep(30);
     await doImport(w, cap[0]);
-    if (sheetOf(wbOf(w), 'Timex0').rows.length !== 3) throw new Error('round trip lost rows');
+    if (sheetOf(wbOf(w), 'TimeX0').rows.length !== 3) throw new Error('round trip lost rows');
     // delete radio
-    clickNav(w, /^Timex0$/); w.document.querySelector('tr.timex0-row .week-radio').click();
-    if (sheetOf(wbOf(w), 'Timex0').rows.length !== 2) throw new Error('radio did not delete');
+    clickNav(w, /^TimeX0$/); w.document.querySelector('tr.timex0-row .week-radio').click();
+    if (sheetOf(wbOf(w), 'TimeX0').rows.length !== 2) throw new Error('radio did not delete');
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
-  await ta('Timex0: tampered import (bad dates, __proto__ keys, long time) is cleaned; no pollution', async () => {
+  await ta('TimeX0: tampered import (bad dates, __proto__ keys, long time) is cleaned; no pollution', async () => {
     const w = await boot(); const before = protoNames(w); const g = wbOf(w);
-    const bad = { name: 'Timex0', columns: ['x'], rows: [{ 'Date/Day': '13/45/2026', 'Time at': 't'.repeat(500), Happened: 'ok' }, { 'Date/Day': '10/5/2026', 'Time at': '1pm', Happened: '<img src=x>' }, null] };
+    const bad = { name: 'TimeX0', columns: ['x'], rows: [{ 'Date/Day': '13/45/2026', 'Time at': 't'.repeat(500), Happened: 'ok' }, { 'Date/Day': '10/5/2026', 'Time at': '1pm', Happened: '<img src=x>' }, null] };
     defineKey(bad.rows[0], '__proto__', { polluted: 1 });
-    g.splice(g.findIndex(x => x.name === 'Timex0'), 1, bad); await doImport(w, JSON.stringify(g));
-    const r = sheetOf(wbOf(w), 'Timex0'); if (r.columns.join() !== 'Time at,Happened') throw new Error(r.columns.join());
+    g.splice(g.findIndex(x => x.name === 'TimeX0'), 1, bad); await doImport(w, JSON.stringify(g));
+    const r = sheetOf(wbOf(w), 'TimeX0'); if (r.columns.join() !== 'Time at,Happened') throw new Error(r.columns.join());
     if (r.rows[0]['Date/Day'] !== '' || r.rows[0]['Time at'].length > 40 || r.rows[1]['Date/Day'] !== '10/05/2026') throw new Error(JSON.stringify(r.rows));
     if (protoNames(w) !== before) throw new Error('prototype changed');
-    clickNav(w, /^Timex0$/); if (w.document.querySelector('#tableBody img')) throw new Error('markup injected');
+    clickNav(w, /^TimeX0$/); if (w.document.querySelector('#tableBody img')) throw new Error('markup injected');
   });
   await ta('Spacetime: Began/Ends dates under the Space name; Order handle on each Space line moves the Space (Spaces page order, saved)', async () => {
     const lr = (n, b, e) => ({ Space: n, 'Key milestones': 'k', 'Life began': b, 'Life Ends': e, 'Life span': '' });

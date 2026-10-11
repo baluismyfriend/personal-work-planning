@@ -591,15 +591,15 @@ you need to scroll:
 ------------------------------------------------------------
 24. DAY TILES (TIMESX7), TIMEX0, SPACETIME ORDER
 ------------------------------------------------------------
-- TimesX7 now has one tile per real DATE ("Monday, 10/12/2026"), not one
-  per weekday name. A daily (Demand 99) task therefore appears once in
-  today's tile, and next Sunday is its own tile - it is no longer added
-  into today's.
-- When you open TimesX7 (or tap Refresh) today's tile is put at the top.
-  Scroll down for the following days, scroll up for the days before; more
-  days are added at either end as you scroll, so it never runs out.
-- NextIn is replaced by Timex0 (same place in the page bar). It has the
-  same endless day tiles but shows NO tasks from other pages: you add
+- TimesX7 and TimeX0 show exactly 7 days: today and the next 6, one tile per
+  real date ("Monday, 10/12/2026"). A daily (Demand 99) task therefore
+  shows once in today's tile; next week's same weekday is not mixed in.
+- When you open the page (or tap Refresh) today's tile is at the top. Scroll
+  down and after the last day comes today again; scroll up from today and
+  you reach the last day - the 7 days loop endlessly. Entries dated outside
+  these 7 days (past days, or later than +6) are kept but not shown.
+- NextIn is replaced by TimeX0 (same place in the page bar). It has the
+  same 7-day looping tiles but shows NO tasks from other pages: you add
   entries yourself. "+ Add" (top) adds to today; the "+" on a day's title
   adds to that day. Columns: "Time at" (type a time such as 10am, 6 pm or
   18:30 - it is tidied to "10 AM" / "6 PM"; entries sort by time within
