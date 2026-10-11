@@ -1646,3 +1646,35 @@ body.order-mode .drag-handle:active{cursor:grabbing;color:var(--text);}
     padding:2px 8px !important;
   }
 }
+
+/* Day tiles (TimesX7 / Timex0): label on the left, "+" (Timex0) on the right */
+.day-header-line{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.day-header-text{min-width:0;}
+.day-add-btn{
+  flex:0 0 auto;
+  width:26px;
+  height:26px;
+  padding:0;
+  border:none;
+  border-radius:50%;
+  background:rgba(15,23,42,.12);
+  color:var(--text);
+  font-size:18px;
+  font-weight:800;
+  line-height:1;
+  cursor:pointer;
+}
+.day-add-btn:active{background:rgba(15,23,42,.3);}
+
+/* Timex0: "Time at" box (typed time, e.g. 10 AM) next to the delete radio */
+.week-date-wrap > .cell-editable{flex:1 1 auto;min-width:0;}
+.week-date-wrap > .timex0-time{width:96px;flex:0 0 auto;}
+@media (max-width:680px){
+  .data-table tr.week-row > td[data-col="Date/Day"] .timex0-time{width:84px !important;}
+}
+
+/* Spacetime: Began / Ends dates under the Space name (lined up with the name box) */
+.summary-space-head-row .space-dates{margin:3px 0 1px 70px;}
+@media (max-width:680px){
+  .summary-space-head-row .space-dates{margin-left:70px;}
+}

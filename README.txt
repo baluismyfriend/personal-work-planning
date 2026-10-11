@@ -586,3 +586,29 @@ you need to scroll:
   on "10 of 10", NextIn shows "1 of 10".
 - The buttons are only greyed out when the page has 0 or 1 items.
 - Swiping with a finger still stops at the first/last item.
+
+
+------------------------------------------------------------
+24. DAY TILES (TIMESX7), TIMEX0, SPACETIME ORDER
+------------------------------------------------------------
+- TimesX7 now has one tile per real DATE ("Monday, 10/12/2026"), not one
+  per weekday name. A daily (Demand 99) task therefore appears once in
+  today's tile, and next Sunday is its own tile - it is no longer added
+  into today's.
+- When you open TimesX7 (or tap Refresh) today's tile is put at the top.
+  Scroll down for the following days, scroll up for the days before; more
+  days are added at either end as you scroll, so it never runs out.
+- NextIn is replaced by Timex0 (same place in the page bar). It has the
+  same endless day tiles but shows NO tasks from other pages: you add
+  entries yourself. "+ Add" (top) adds to today; the "+" on a day's title
+  adds to that day. Columns: "Time at" (type a time such as 10am, 6 pm or
+  18:30 - it is tidied to "10 AM" / "6 PM"; entries sort by time within
+  the day) and "Happened" (free text). The small round button before the
+  time deletes the entry (asks first).
+- IMPORTANT: the old NextIn page ("All future Tasks") and its rows are
+  removed - Export a backup before installing this version if you still
+  need them. The Move button on Times (it sent rows to NextIn) is gone.
+- Spacetime: each Space shows its "Began - Ends" dates under its name.
+  The Order button now also puts a handle on every Space line; dragging
+  it moves that Space on the Spaces page, and Spacetime lists Spaces in
+  the Spaces-page order. Task handles (inside an opened Space) still work.

@@ -133,3 +133,9 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 ## Update: TimesX7 order, collapsible Spacetime (141 tests)
 - TimesX7 groups now start with today's weekday and continue in sequence (today, tomorrow, ...); "No date" stays last.
 - Spacetime: each Space is a collapsed line "+  Times  [Space name]" (same classes/fonts/widths as the Spaces page; the Space name box uses the Space colour); + shows that Space's tasks grouped by status. On the phone Spacetime is now one list of all Spaces, so the old BackIn/NextIn paging on Spacetime is gone. Opening a Space from the Spaces page also opens its tasks. UI only; no security-relevant code changed.
+
+## Update: day tiles, Timex0, Spacetime (145 tests)
+- TimesX7 groups by real date (fixes the Demand 99 task appearing twice under "Sunday - Today"); endless scroll in both directions with today at the top on open/Refresh.
+- NextIn ("All future Tasks") replaced by Timex0: manual entries per day, columns "Time at" / "Happened". Stored as `Date/Day`, `Time at`, `Happened`; on load/import each row is rebuilt from those three fields only (date validated as a real MM/DD/YYYY, time capped at 40 characters, text sanitised, own-property reads only). The old page is dropped on import.
+- Spacetime: life dates under each Space name; Order handle on every Space line.
+- No innerHTML / network APIs / inline styles added. 7 tests replaced or added; the full suite, including the fuzzer, was re-run in jsdom (not on a real iPhone: please check the scrolling on the phone).

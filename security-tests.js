@@ -400,7 +400,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     const today = hdrs.filter(h => h.classList.contains('week-day-today')); const others = hdrs.filter(h => !h.classList.contains('week-day-today'));
     if (today.length !== 1 || today[0].textContent !== todayName + ' - Today') throw new Error(JSON.stringify(hdrs.map(h => h.textContent)));
     if (!others.length || others.some(h => / - Today/.test(h.textContent))) throw new Error('other header changed');
-    if (!others.some(h => h.textContent === tomorrowName)) throw new Error('tomorrow header should be plain day name');
+    if (!others.some(h => h.textContent === tomorrowName + ', ' + tomorrowStr)) throw new Error('tomorrow header should be "Day, MM/DD/YYYY"');
   });
   await ta('TimesX7: no Transforms/actions column, no row buttons', async () => {
     const w = await weekBoot([blankTask({ Space: 'A', 'Timeframe/Meeting': 'x', 'Time Zero on': todayStr })]);
@@ -481,22 +481,20 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     const w = await boot(); const g = wbOf(w);
     sheetOf(g, 'Road Map - Pending').rows = road;
     sheetOf(g, 'Daily planning - All tasks').rows = [blankTask({ Space: 'AA', 'Timeframe/Meeting': 'a1' }), blankTask({ Space: ' AA ', 'Timeframe/Meeting': 'a2' }), blankTask({ Space: 'AAB', 'Timeframe/Meeting': 'keep-AAB' }), blankTask({ Space: 'aa', 'Timeframe/Meeting': 'keep-lower' }), blankTask({ 'Timeframe/Meeting': 'keep-nospace' })];
-    sheetOf(g, 'All future Tasks').rows = [blankTask({ Space: 'AA', 'Timeframe/Meeting': 'f1' }), blankTask({ Space: 'BB', 'Timeframe/Meeting': 'keep-f' })];
     sheetOf(g, 'Completed tasks').rows = [blankTask({ Space: 'AA', 'Timeframe/Meeting': 'c1', Timing: 'Complete' }), blankTask({ Space: 'BB', 'Timeframe/Meeting': 'keep-c', Timing: 'Complete' })];
     await doImport(w, JSON.stringify(g)); clickNav(w, /^Spaces$/); return w;
   }
   const spaceDeleteBtn = (w, i) => w.document.querySelectorAll('tr[data-source-idx] .row-btn.delete')[i];
   const texts = (w, n) => sheetOf(wbOf(w), n).rows.map(r => r['Timeframe/Meeting']).sort();
-  await ta('Spaces Delete: removes the Space and its tasks on Times, NextIn and NoSpace (exact trimmed name only)', async () => {
+  await ta('Spaces Delete: removes the Space and its tasks on Times and NoSpace (exact trimmed name only)', async () => {
     const w = await spaceBoot([roadRow('AA'), roadRow('BB')]); let msg = ''; w.confirm = m => { msg = m; return true; };
     spaceDeleteBtn(w, 0).click();
     const g = wbOf(w);
     if (JSON.stringify(sheetOf(g, 'Road Map - Pending').rows.map(r => r.Space)) !== '["BB"]') throw new Error('space rows: ' + JSON.stringify(sheetOf(g, 'Road Map - Pending').rows));
     if (JSON.stringify(texts(w, 'Daily planning - All tasks')) !== JSON.stringify(['keep-AAB', 'keep-lower', 'keep-nospace'])) throw new Error('Times: ' + texts(w, 'Daily planning - All tasks'));
-    if (JSON.stringify(texts(w, 'All future Tasks')) !== '["keep-f"]') throw new Error('NextIn: ' + texts(w, 'All future Tasks'));
     if (JSON.stringify(texts(w, 'Completed tasks')) !== '["keep-c"]') throw new Error('NoSpace: ' + texts(w, 'Completed tasks'));
     const sum = sheetOf(g, 'Summary').rows.map(r => r.Space + ':' + r.Time); if (sum.some(x => /^AA:/.test(x))) throw new Error('Spacetime still has AA: ' + sum);
-    if (!/"AA"/.test(msg) || !/2 row\(s\) on Times/.test(msg) || !/1 row\(s\) on NextIn/.test(msg) || !/1 row\(s\) on NoSpace/.test(msg)) throw new Error('confirm text: ' + msg);
+    if (!/"AA"/.test(msg) || !/2 row\(s\) on Times/.test(msg) || !/1 row\(s\) on NoSpace/.test(msg)) throw new Error('confirm text: ' + msg);
     for (const b of navBtns(w)) b.click(); if (w.__errs.length) throw new Error(w.__errs[0]);
   });
   await ta('Spaces Delete: Cancel deletes nothing', async () => {
@@ -511,12 +509,12 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
   await ta('Spaces Delete: if another Spaces row has the same name, only the row goes and tasks are kept', async () => {
     const w = await spaceBoot([roadRow('AA'), roadRow('AA')]); let msg = ''; w.confirm = m => { msg = m; return true; }; spaceDeleteBtn(w, 0).click();
     if (sheetOf(wbOf(w), 'Road Map - Pending').rows.length !== 1) throw new Error('row not deleted');
-    if (texts(w, 'Daily planning - All tasks').length !== 5 || texts(w, 'All future Tasks').length !== 2) throw new Error('tasks deleted');
+    if (texts(w, 'Daily planning - All tasks').length !== 5) throw new Error('tasks deleted');
     if (!/tasks are kept/.test(msg)) throw new Error('message: ' + msg);
   });
   await ta('Delete on other pages still deletes just that row', async () => {
-    const w = await spaceBoot([roadRow('AA')]); clickNav(w, /^NextIn$/); w.document.querySelector('tr[data-source-idx] .row-btn.delete').click();
-    if (sheetOf(wbOf(w), 'All future Tasks').rows.length !== 1 || sheetOf(wbOf(w), 'Road Map - Pending').rows.length !== 1 || texts(w, 'Daily planning - All tasks').length !== 5) throw new Error('cascade leaked to another page');
+    const w = await spaceBoot([roadRow('AA')]); clickNav(w, /^NoSpace$/); w.document.querySelector('tr[data-source-idx] .row-btn.delete').click();
+    if (sheetOf(wbOf(w), 'Completed tasks').rows.length !== 1 || sheetOf(wbOf(w), 'Road Map - Pending').rows.length !== 1 || texts(w, 'Daily planning - All tasks').length !== 5) throw new Error('cascade leaked to another page');
   });
 
 
@@ -849,7 +847,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     if (w.document.querySelector('#tableBody .summary-task-link')) throw new Error('tasks should be hidden at first');
     const heads = [...w.document.querySelectorAll('tr.summary-space-title')]; if (heads.length !== 2) throw new Error('heads ' + heads.length);
     const line = heads[0].querySelector('.space-line'); const kids = [...line.children].map(e => e.className.split(' ')[0]);
-    if (kids.join() !== 'space-toggle,space-line-label,cell-editable') throw new Error(kids.join());
+    if (kids.join() !== 'space-toggle,space-line-label,drag-cell-wrap') throw new Error(kids.join());
     if (line.querySelector('.space-line-label').textContent !== 'Times' || !/space-color-\d+/.test(line.querySelector('.space-box').className) || line.querySelector('.space-box').textContent !== 'AA') throw new Error('label/box');
     heads[0].querySelector('.space-toggle').click();
     const shown = [...w.document.querySelectorAll('#tableBody .summary-task-link')].map(e => e.textContent.trim()); if (shown.join() !== 'T1') throw new Error('only AA tasks expected, got ' + shown);
@@ -857,15 +855,81 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     if (w.document.querySelector('#tableBody .summary-task-link')) throw new Error('did not collapse');
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
-  await ta('TimesX7: groups start with today, then the following days in sequence', async () => {
-    const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T0', 'Time Zero on': dayStr(0) }), blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': dayStr(1) }), blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T3', 'Time Zero on': dayStr(3) }), blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T6', 'Time Zero on': dayStr(6) })]);
+  await ta('TimesX7: one tile per DATE; today first, previous days above it, following days in sequence (no weekday merging)', async () => {
+    const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T0', 'Time Zero on': dayStr(0) }), blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': dayStr(1) }), blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T3', 'Time Zero on': dayStr(3) })]);
     clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const want = [0, 1, 3, 6].map(n => days[new Date(now.getFullYear(), now.getMonth(), now.getDate() + n).getDay()] + (n === 0 ? ' - Today' : '')).join('|');
-    const got = [...w.document.querySelectorAll('tr.week-day-header-row')].map(e => e.textContent.trim()).join('|');
-    if (got !== want) throw new Error(got + ' != ' + want);
+    const dates = [...w.document.querySelectorAll('tr.week-day-header-row')].map(e => e.dataset.date);
+    const want = []; for (let n = -3; n <= 10; n++) want.push(dayStr(n));
+    if (dates.join() !== want.join()) throw new Error(dates.join() + ' != ' + want.join());
+    const today = w.document.querySelector('tr.week-day-today'); if (!today || today.dataset.date !== dayStr(0)) throw new Error('today tile');
   });
-
+  await ta('TimesX7: Demand 99 task shows once in today\'s tile; next week\'s same weekday is its own tile (no double)', async () => {
+    const w = await weekBoot([blankTask({ Date: dayStr(0), Space: 'AA', Demand: '99', 'Timeframe/Meeting': 'Daily', 'Time Zero on': dayStr(40) })]);
+    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    const perTile = {}; let cur = null;
+    [...w.document.querySelectorAll('#tableBody tr')].forEach(tr => { if (tr.classList.contains('week-day-header-row')) { cur = tr.dataset.date; perTile[cur] = 0; } else if (tr.classList.contains('week-row')) perTile[cur]++; });
+    if (perTile[dayStr(0)] !== 1) throw new Error('today tile has ' + perTile[dayStr(0)]);
+    if (perTile[dayStr(7)] !== 1) throw new Error('+7 tile has ' + perTile[dayStr(7)]);
+    for (let n = 0; n <= 7; n++) if (perTile[dayStr(n)] !== 1) throw new Error('day ' + n + ' count ' + perTile[dayStr(n)]);
+  });
+  await ta('Timex0: replaces NextIn; old "All future Tasks" page in a backup is dropped; Timex0 sits after TimesX7', async () => {
+    const w = await boot(); const g = wbOf(w);
+    g.push({ name: 'All future Tasks', columns: ['Space'], rows: [{ Space: 'x' }] });
+    await doImport(w, JSON.stringify(g));
+    const names = wbOf(w).map(x => x.name);
+    if (names.includes('All future Tasks')) throw new Error('old page kept');
+    if (names.indexOf('Timex0') !== names.indexOf('Week planning') + 1) throw new Error(names.join());
+    if (navBtns(w).some(b => /NextIn/.test(b.textContent))) throw new Error('NextIn button still there');
+    clickNav(w, /^Timex0$/);
+    const heads = [...w.document.querySelectorAll('#tableHead th span')].map(e => e.textContent.trim()).filter(Boolean).join();
+    if (!/Time at/.test(heads) || !/Happened/.test(heads)) throw new Error(heads);
+    if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
+  await ta('Timex0: + Add puts an entry in today\'s tile; "10am" becomes "10 AM"; text saved; entries sort by time; delete radio; round trip', async () => {
+    const w = await boot(); clickNav(w, /^Timex0$/);
+    const edit = (el, text) => { el.focus(); el.textContent = text; el.dispatchEvent(new w.Event('blur')); };
+    const addAndFill = async (t, h) => { w.document.getElementById('btnAddRow').click(); await sleep(120); const rows = w.document.querySelectorAll('tr.timex0-row'); const tr = [...rows].find(r => !r.querySelector('.timex0-time').textContent && !r.querySelectorAll('.cell-editable')[1].textContent); edit(tr.querySelector('.timex0-time'), t); const tr2 = [...w.document.querySelectorAll('tr.timex0-row')].find(r => r.querySelector('.timex0-time').textContent === normT(t)); edit(tr2.querySelectorAll('.cell-editable')[1], h); };
+    const normT = t => ({ '6pm': '6 PM', '10am': '10 AM', 'zzz': 'zzz' }[t]);
+    await addAndFill('6pm', 'Dinner'); await addAndFill('10am', 'Standup');
+    const stored = sheetOf(wbOf(w), 'Timex0').rows;
+    if (stored.length !== 2 || stored.some(r => r['Date/Day'] !== todayStr)) throw new Error(JSON.stringify(stored));
+    const shown = [...w.document.querySelectorAll('tr.timex0-row')].map(r => r.querySelector('.timex0-time').textContent + '=' + r.querySelectorAll('.cell-editable')[1].textContent).join('|');
+    if (shown !== '10 AM=Standup|6 PM=Dinner') throw new Error(shown);
+    // the + on a day's header adds to that day
+    const hdr = [...w.document.querySelectorAll('tr.week-day-header-row')].find(h => h.dataset.date === dayStr(-1)); hdr.querySelector('.day-add-btn').click(); await sleep(120);
+    if (sheetOf(wbOf(w), 'Timex0').rows.filter(r => r['Date/Day'] === dayStr(-1)).length !== 1) throw new Error('header + did not add to that day');
+    // export -> import keeps everything
+    const cap = captureBlobs(w); w.document.getElementById('btnExportJson').click(); await sleep(30);
+    await doImport(w, cap[0]);
+    if (sheetOf(wbOf(w), 'Timex0').rows.length !== 3) throw new Error('round trip lost rows');
+    // delete radio
+    clickNav(w, /^Timex0$/); w.document.querySelector('tr.timex0-row .week-radio').click();
+    if (sheetOf(wbOf(w), 'Timex0').rows.length !== 2) throw new Error('radio did not delete');
+    if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
+  await ta('Timex0: tampered import (bad dates, __proto__ keys, long time) is cleaned; no pollution', async () => {
+    const w = await boot(); const before = protoNames(w); const g = wbOf(w);
+    const bad = { name: 'Timex0', columns: ['x'], rows: [{ 'Date/Day': '13/45/2026', 'Time at': 't'.repeat(500), Happened: 'ok' }, { 'Date/Day': '10/5/2026', 'Time at': '1pm', Happened: '<img src=x>' }, null] };
+    defineKey(bad.rows[0], '__proto__', { polluted: 1 });
+    g.splice(g.findIndex(x => x.name === 'Timex0'), 1, bad); await doImport(w, JSON.stringify(g));
+    const r = sheetOf(wbOf(w), 'Timex0'); if (r.columns.join() !== 'Time at,Happened') throw new Error(r.columns.join());
+    if (r.rows[0]['Date/Day'] !== '' || r.rows[0]['Time at'].length > 40 || r.rows[1]['Date/Day'] !== '10/05/2026') throw new Error(JSON.stringify(r.rows));
+    if (protoNames(w) !== before) throw new Error('prototype changed');
+    clickNav(w, /^Timex0$/); if (w.document.querySelector('#tableBody img')) throw new Error('markup injected');
+  });
+  await ta('Spacetime: Began/Ends dates under the Space name; Order handle on each Space line moves the Space (Spaces page order, saved)', async () => {
+    const lr = (n, b, e) => ({ Space: n, 'Key milestones': 'k', 'Life began': b, 'Life Ends': e, 'Life span': '' });
+    const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'a' }), blankTask({ Space: 'BB', 'Timeframe/Meeting': 'b' }), blankTask({ Space: 'CC', 'Timeframe/Meeting': 'c' })], [lr('AA', '01/01/2026', '12/31/2026'), lr('BB', '', ''), lr('CC', '', '11/30/2026')]);
+    clickNav(w, /^Spacetime$/);
+    let heads = [...w.document.querySelectorAll('tr.summary-space-title')];
+    const dates = heads.map(h => (h.querySelector('.space-dates') || {}).textContent || '-').join('|');
+    if (dates !== '01/01/2026 \u2014 12/31/2026|-|\u2014 11/30/2026') throw new Error(dates);
+    stubRects(heads); dragHandle(w, heads[0].querySelector('.drag-handle'), 100000);
+    heads = [...w.document.querySelectorAll('tr.summary-space-title')];
+    const order = heads.map(h => h.dataset.space).join(); if (order !== 'BB,CC,AA') throw new Error(order);
+    const road = sheetOf(wbOf(w), 'Road Map - Pending').rows.map(r => r.Space).join(); if (road !== 'BB,CC,AA') throw new Error('saved: ' + road);
+    if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
 
   await ta('Spacetime on the phone layout: list of collapsed Spaces (no paging); opened Space shows labelled "Defined time on" / "Times" rows', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', Timing: 'Hold' }), blankTask({ Space: 'BB', 'Timeframe/Meeting': 'T2', Timing: 'Hold' })]);
@@ -885,13 +949,12 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     const g = wbOf(w); const mk = (i, extra) => blankTask(Object.assign({ Space: 'S' + i, 'Timeframe/Meeting': 't' + i }, extra || {}));
     const list = Array.from({ length: n }, (_, i) => mk(i));
     sheetOf(g, 'Daily planning - All tasks').rows = list.map(r => Object.assign({}, r));
-    sheetOf(g, 'All future Tasks').rows = list.map(r => Object.assign({}, r));
     sheetOf(g, 'Completed tasks').rows = list.map(r => Object.assign({}, r, { Timing: 'Complete' }));
     await doImport(w, JSON.stringify(g)); return w;
   }
   const lbl = w => w.document.getElementById('taskPositionLabel').textContent;
   const prev = w => w.document.getElementById('taskPrevBtn'), next = w => w.document.getElementById('taskNextBtn');
-  for (const [page, re, fmt] of [['Times', /^Times$/, (i, n) => 'Time ' + i + ' of ' + n], ['NextIn', /^NextIn$/, (i, n) => 'Time ' + i + ' of ' + n], ['NoSpace', /^NoSpace$/, (i, n) => i + ' of ' + n]]) {
+  for (const [page, re, fmt] of [['Times', /^Times$/, (i, n) => 'Time ' + i + ' of ' + n], ['NoSpace', /^NoSpace$/, (i, n) => i + ' of ' + n]]) {
     await ta('BackIn/NextIn wrap on ' + page + ': 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10', async () => {
       const w = await wrapBoot(10); clickNav(w, re);
       const seq = [[null, 1], [prev, 10], [prev, 9], [next, 10], [next, 1], [next, 2], [prev, 1]];

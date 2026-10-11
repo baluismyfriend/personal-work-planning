@@ -97,7 +97,7 @@ PASS  Demand 99: stops at the Time Zero on date (inclusive) and starts at time-o
 PASS  Demand 99: no past days (even on Refresh), no Time Zero on -> nothing, " 99 " is accepted
 PASS  Demand 99: blank/invalid time-on falls back to the end date only (any day, weekend too); other Demand values are not repeated
 PASS  Demand 99: repeat rows are not duplicated by a second Refresh or the automatic sync
-PASS  Spaces Delete: removes the Space and its tasks on Times, NextIn and NoSpace (exact trimmed name only)
+PASS  Spaces Delete: removes the Space and its tasks on Times and NoSpace (exact trimmed name only)
 PASS  Spaces Delete: Cancel deletes nothing
 PASS  Spaces Delete: a Space with no name deletes only its own row (never every task without a Space)
 PASS  Spaces Delete: if another Spaces row has the same name, only the row goes and tasks are kept
@@ -130,10 +130,14 @@ PASS  TimesX7: drag only inside the same day (a task never lands on another day)
 PASS  Stars: rows can be dragged to a new place and the order is saved
 PASS  Drag: first run keeps the old date order as the starting order of Spaces (once)
 PASS  Spacetime: each Space is one collapsed line (+, "Times", Space box in its colour); + opens its tasks, + again closes them
-PASS  TimesX7: groups start with today, then the following days in sequence
+PASS  TimesX7: one tile per DATE; today first, previous days above it, following days in sequence (no weekday merging)
+PASS  TimesX7: Demand 99 task shows once in today's tile; next week's same weekday is its own tile (no double)
+PASS  Timex0: replaces NextIn; old "All future Tasks" page in a backup is dropped; Timex0 sits after TimesX7
+PASS  Timex0: + Add puts an entry in today's tile; "10am" becomes "10 AM"; text saved; entries sort by time; delete radio; round trip
+PASS  Timex0: tampered import (bad dates, __proto__ keys, long time) is cleaned; no pollution
+PASS  Spacetime: Began/Ends dates under the Space name; Order handle on each Space line moves the Space (Spaces page order, saved)
 PASS  Spacetime on the phone layout: list of collapsed Spaces (no paging); opened Space shows labelled "Defined time on" / "Times" rows
 PASS  BackIn/NextIn wrap on Times: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10
-PASS  BackIn/NextIn wrap on NextIn: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10
 PASS  BackIn/NextIn wrap on NoSpace: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10
 PASS  BackIn/NextIn wrap: the item shown actually changes (last item shown after BackIn from first)
 PASS  BackIn/NextIn disabled only when there is nothing to move to (0 or 1 items)
@@ -141,4 +145,4 @@ PASS  Finger swipes still stop at the ends (no wraparound); only the buttons wra
       (fuzz: 53 imports accepted, 97 rejected)
 PASS  Fuzz: 150 randomly type-confused/poisoned imports -> no crash, no pollution, storage always reloadable
 
-141 passed, 0 failed
+145 passed, 0 failed
