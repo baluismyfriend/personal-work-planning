@@ -1946,6 +1946,13 @@
     return h12 + (mi ? ":" + String(mi).padStart(2, "0") : "") + " " + (h24 >= 12 ? "PM" : "AM");
   }
 
+  function weekTimeRank(row) {
+    var t = String((row && row["Time at"]) || "").trim();
+    if (!t) return 2e6;
+    var m = timeAtMinutes(t);
+    return m === null ? 1e6 : m;
+  }
+
   function buildDayBody(sheet, items) {
     var userSorted = !!sortState[sheet.name];
     var groups = buildDayGroups(items, function (row) { return dayKeyOf(row["Date/Day"]); });
@@ -1953,7 +1960,10 @@
     groups.forEach(function (g) {
       frag.appendChild(buildDayHeaderRow(sheet, g));
       var list = g.items.slice();
-      if (!userSorted) list.sort(function (a, b) { return a.idx - b.idx; });
+      // Within a day: timed tasks in time order (7 AM, 7 PM, 11 PM ...), a
+      // time that is not a clear clock time next, tasks with no time last;
+      // ties keep the order set with Order / drag.
+      if (!userSorted) list.sort(function (a, b) { return weekTimeRank(a.row) - weekTimeRank(b.row) || (a.idx - b.idx); });
       list.forEach(function (item) {
         frag.appendChild(buildRowElement(sheet, item.row, item.idx, false));
       });
@@ -3002,7 +3012,7 @@
     }
     put(row, val);
     saveWorkbook();
-    return changedOthers;
+    return true; // the order within the day may change, so the page is redrawn
   }
 
   // Week planning's Date/Day is stored as "Thu, 09/24/2026" (weekday +
@@ -3122,7 +3132,7 @@
     timeInput.addEventListener("blur", function () {
       var val = normalizeTimeAt(sanitizeTyped(timeInput.value));
       timeInput.value = val;
-      if (setWeekRowTime(sheet, row, val)) renderTable(); // other days of a daily task followed
+      if (setWeekRowTime(sheet, row, val)) renderTable(); // re-sort the day (and show days that followed)
     });
 
     return wrap;

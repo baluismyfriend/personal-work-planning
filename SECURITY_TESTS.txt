@@ -136,6 +136,7 @@ PASS  TimeX0 / NextIn are gone: a backup containing them imports, those pages ar
 PASS  Header: title row has only the title; page bar order is Spaces, Spacetime, Times, TimesX7, NoSpace (no Stars, no TimeX0)
 PASS  Actions row: no "+ Add" button; "+Stars" comes first and opens the Stars page
 PASS  TimesX7: time typed in the date field ("11pm" -> "11 PM"), shown beside MM/DD, saved, kept on import/Refresh, cleared when emptied
+PASS  TimesX7: within a day tasks sort by time ascending (7 AM, 7 PM, 11 PM), odd text after, no time last; re-sorts when a time is set
 PASS  TimesX7: Demand 99 - a first time is given to all its days; later edits change one day only
 PASS  TimesX7: tampered "Time at" in an import is cleaned (length, type; markup stays text)
 PASS  Spacetime: Began/Ends dates under the Space name; Order handle on each Space line moves the Space (Spaces page order, saved)
@@ -148,4 +149,4 @@ PASS  Finger swipes still stop at the ends (no wraparound); only the buttons wra
       (fuzz: 57 imports accepted, 93 rejected)
 PASS  Fuzz: 150 randomly type-confused/poisoned imports -> no crash, no pollution, storage always reloadable
 
-148 passed, 0 failed
+149 passed, 0 failed

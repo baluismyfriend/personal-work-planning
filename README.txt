@@ -643,7 +643,9 @@ you need to scroll:
 - Daily (Demand 99) tasks: giving a time to one day that has none gives it
   to all that task's days that have none (new days inherit it too). After
   that each day is edited on its own.
-- Tasks are not re-sorted by time; the order you set with Order is kept.
+- Within each day, tasks are sorted by time (7 AM, 7 PM, 11 PM ...); a time that is
+  not a clear clock time comes after them and tasks with no time stay at the bottom.
+  Order/drag still sets the order among tasks with the same time (or no time).
 
 ------------------------------------------------------------
 27. HEADER / BUTTON CHANGES  (this section replaces the TimeX0 notes above)
@@ -658,3 +660,5 @@ you need to scroll:
   at the bottom of the screen still adds rows). In its place is "+Stars",
   which opens the Stars page exactly as the old Stars page button did.
 - Section 24's TimeX0 bullets no longer apply; TimesX7's 7-day view stays.
+
+- Title font is 28px.

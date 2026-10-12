@@ -151,3 +151,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: header, nav, TimeX0 removed (148 tests)
 - TimeX0 code, storage handling and styles removed; "TimeX0"/"Timex0"/"All future Tasks" in a backup are dropped on import. Page bar is built in a fixed order (extra pages from old backups follow NoSpace); "+Stars" opens the Stars page. Layout/markup only; no innerHTML / network APIs / inline styles added.
+
+## Update: time sort on TimesX7, title 28px (149 tests)
+- Tasks in a day are ordered by their time; display order only, nothing stored changed. No security-relevant code changed.

@@ -78,7 +78,7 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
 }
 .brand-text{min-width:0;}
 .brand-text h1{
-  font-size:31px;
+  font-size:28px;
   font-weight:900;
   letter-spacing:-0.01em;
   margin:0;
@@ -612,7 +612,7 @@ div.summary-task-link{
      same line; the title itself stays visible (just smaller) rather
      than disappearing, per the title row also shown at wider widths. */
   .brand-icon,.brand-subtitle{display:none;}
-  .brand-text h1{font-size:24px;}
+  .brand-text h1{font-size:28px;}
 
   /* All remaining page pills fit in a single non-scrolling row: short
      names (see NAV_SHORT_NAMES in script.js) plus equal-width flex

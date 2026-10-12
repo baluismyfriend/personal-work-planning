@@ -916,6 +916,17 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     if ('Time at' in sheetOf(wbOf(w), 'Week planning').rows[0]) throw new Error('not cleared');
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
+  await ta('TimesX7: within a day tasks sort by time ascending (7 AM, 7 PM, 11 PM), odd text after, no time last; re-sorts when a time is set', async () => {
+    const w = await weekBoot([1, 2, 3, 4, 5].map(n => blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T' + n, 'Time Zero on': todayStr })));
+    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    const order = () => [...w.document.querySelectorAll('tr.week-row')].slice(0, 5).map(r => r.querySelector('.week-times-link').textContent.replace('AA || ', '') + '=' + r.querySelector('.week-dt-time').value).join(' ');
+    const setT = (name, v) => { const r = [...w.document.querySelectorAll('tr.week-row')].find(x => x.querySelector('.week-times-link').textContent.endsWith(name)); const i = r.querySelector('.week-dt-time'); i.value = v; i.dispatchEvent(new w.Event('blur')); };
+    if (order() !== 'T1= T2= T3= T4= T5=') throw new Error('start ' + order());
+    setT('T3', '11 pm'); setT('T5', '7 am'); setT('T2', '7 pm'); setT('T4', 'whenever');
+    const got = order(); if (got !== 'T5=7 AM T2=7 PM T3=11 PM T4=whenever T1=') throw new Error(got);
+    setT('T1', '6 am'); if (order().split(' ')[0] !== 'T1=6') throw new Error('T1 should now be first: ' + order());
+    if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
   await ta('TimesX7: Demand 99 - a first time is given to all its days; later edits change one day only', async () => {
     const w = await weekBoot([blankTask({ Date: dayStr(0), Space: 'AA', Demand: '99', 'Timeframe/Meeting': 'D', 'Time Zero on': dayStr(40) })]);
     clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
