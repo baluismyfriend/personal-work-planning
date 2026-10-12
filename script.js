@@ -339,6 +339,21 @@
     return { name: "Week planning", columns: WEEK_PLANNING_COLUMNS.slice(), rows: newRows };
   }
 
+  // TimesX7 rows may carry an optional "Time at" (e.g. "6 PM") next to the
+  // date. It is not a column; it is kept here, own-property reads only.
+  function normalizeWeekSheet(rawSheet) {
+    var out = normalizeGenericSheet(rawSheet);
+    var raw = Array.isArray(rawSheet.rows) ? rawSheet.rows : [];
+    out.rows.forEach(function (r, i) {
+      var rr = raw[i];
+      if (rr && typeof rr === "object" && hasOwn(rr, "Time at")) {
+        var t = normalizeTimeAt(sanitizeCell(rr["Time at"], 40));
+        if (t) r["Time at"] = t;
+      }
+    });
+    return out;
+  }
+
   // The Quick list schema before "Item" was renamed to "Small Times".
   // Detected separately so existing checklist text is carried forward
   // into the new column instead of being dropped.
@@ -402,7 +417,7 @@
       }
       seenNames[name] = true;
       if (name === "Week planning") {
-        if (isCurrentWeekPlanningSchema(s)) sheets.push(normalizeGenericSheet(s));
+        if (isCurrentWeekPlanningSchema(s)) sheets.push(normalizeWeekSheet(s));
         else if (isLegacyWeekPlanningSchema(s)) sheets.push(migrateLegacyWeekPlanningSheet(s));
         else sheets.push(buildWeekPlanningSheet());
         continue;
@@ -884,16 +899,6 @@
     return null;
   }
 
-  function projectPillClass(raw) {
-    var v = (raw || "").toUpperCase();
-    if (v.indexOf("AA") !== -1) return "pill-purple";
-    if (v.indexOf("DD") !== -1) return "pill-lightblue";
-    if (v.indexOf("RR") !== -1) return "pill-green";
-    if (v.indexOf("TT") !== -1) return "pill-amber";
-    if (v.trim().length > 0) return "pill-gray";
-    return null;
-  }
-
   function statusClass(v) {
     if (v === "Complete") return "status-complete";
     if (v === "In-Progress") return "status-inprogress";
@@ -1008,16 +1013,21 @@
     tableBodyEl.addEventListener("focusout", function () {
       setTimeout(autoAddToWeekPlanning, 150);
     });
+    // A date picked in a calendar box fires "change" (iOS may never blur it).
+    tableBodyEl.addEventListener("change", function () {
+      setTimeout(autoAddToWeekPlanning, 150);
+    });
     window.addEventListener("pageshow", function () { autoAddToWeekPlanning(); });
     // Safety net: iOS keeps a date box focused after "Done", so no blur
     // may ever fire. Check every few seconds, but never while the user
     // is mid-edit in a date box or text cell (avoids adding half-typed
     // text or the calendar's pre-selected "today").
     setInterval(function () {
+      if (document.hidden) return;
       var a = document.activeElement;
       if (a && a.closest && a.closest("#tableBody") && (a.type === "date" || a.isContentEditable)) return;
       autoAddToWeekPlanning();
-    }, 3000);
+    }, 10000);
 
     // Re-check whenever the app comes back to the foreground, so a new
     // day (or a date entered earlier) is picked up without a reload.
@@ -1041,13 +1051,21 @@
     if (backupPromptExportBtn) backupPromptExportBtn.addEventListener("click", handleBackupPromptExport);
     if (backupPromptDismissBtn) backupPromptDismissBtn.addEventListener("click", handleBackupPromptDismiss);
 
+    // The keyboard or the address bar also fire "resize" on phones; rebuilding
+    // the table then is slow and drops what is being typed, so only rebuild
+    // when the layout really switches between phone and wide.
     var resizeDebounceTimer = null;
+    var lastPhoneLayout = isMobileWidth();
     window.addEventListener("resize", function () {
       if (resizeDebounceTimer) clearTimeout(resizeDebounceTimer);
-      resizeDebounceTimer = setTimeout(function () { renderTable(); }, 150);
+      resizeDebounceTimer = setTimeout(function () {
+        var nowPhone = isMobileWidth();
+        if (nowPhone === lastPhoneLayout) return;
+        lastPhoneLayout = nowPhone;
+        renderTable();
+      }, 150);
     });
 
-    if (tableScrollerEl) tableScrollerEl.addEventListener("scroll", onDayScroll, { passive: true });
     resetDayView();
     renderAll();
     initAutoBackupOnStartup();
@@ -1168,6 +1186,8 @@
     window.alert("The date can't be later than the Life Ends date of \"" + String(spaceName).trim() + "\" on Spaces (" + lim.str + ").");
   }
 
+  var lastWeekSyncSig = "";
+
   function autoAddToWeekPlanning(includeOverdue) {
     includeOverdue = includeOverdue === true; // only the Refresh button passes true
     if (!Array.isArray(workbook)) return 0;
@@ -1178,11 +1198,28 @@
 
     var now = new Date();
     var todayMs = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+    // Cheap change check: the sync only depends on the Times rows' relevant
+    // fields and on today's date. Same inputs as last time -> nothing to do
+    // (Refresh always runs it in full).
+    if (!includeOverdue) {
+      var sig = todayMs + "#" + (daily && Array.isArray(daily.rows) ? daily.rows.length : 0);
+      if (daily && Array.isArray(daily.rows)) {
+        for (var si = 0; si < daily.rows.length; si++) {
+          var sr = daily.rows[si] || {};
+          sig += "|" + sr.Space + "\u0001" + sr["Timeframe/Meeting"] + "\u0001" + sr.Demand + "\u0001" + sr.Date + "\u0001" + sr["Time Zero on"];
+        }
+      }
+      sig += "#" + week.rows.length;
+      if (sig === lastWeekSyncSig) return 0;
+      lastWeekSyncSig = sig;
+    } else {
+      lastWeekSyncSig = "";
+    }
     var synced = loadWeekAutoAdded();
     var added = 0, changedKeys = false;
     var liveKeys = Object.create(null); // keys the source rows currently produce
 
-    function consider(tag, dateStr, text, legacyText) {
+    function consider(tag, dateStr, text, legacyText, recurring) {
       var ms = dateToUtcMs(dateStr);
       if (ms === null) return;
       var diff = Math.round((ms - todayMs) / 86400000);
@@ -1209,7 +1246,12 @@
       }
       if (!exists) {
         if (week.rows.length >= MAX_ROWS) return;
-        week.rows.push({ "Date/Day": dateDay, "Timeframes": text });
+        var newWeekRow = { "Date/Day": dateDay, "Timeframes": text };
+        if (recurring) {
+          var sibling = week.rows.find(function (r) { return r && r["Time at"] && String(r["Timeframes"] || "").trim() === text; });
+          if (sibling) newWeekRow["Time at"] = sibling["Time at"];
+        }
+        week.rows.push(newWeekRow);
         added++;
       }
       synced[key] = true;
@@ -1241,7 +1283,7 @@
             var d = new Date(ms);                      // UTC midnight; read back in UTC
             var dayStr = String(d.getUTCMonth() + 1).padStart(2, "0") + "/" +
               String(d.getUTCDate()).padStart(2, "0") + "/" + d.getUTCFullYear();
-            consider("T", dayStr, text, timeText);
+            consider("T", dayStr, text, timeText, true);
           }
           return;
         }
@@ -1695,7 +1737,6 @@
       }
       var prevBtn = document.getElementById("taskPrevBtn");
       var nextBtn = document.getElementById("taskNextBtn");
-      var curIdx = clampTaskIndex(sheet, pages.length);
       // The buttons wrap around, so they only need disabling when there is
       // nothing to move to (0 or 1 items).
       if (prevBtn) prevBtn.disabled = (pages.length <= 1);
@@ -1833,7 +1874,7 @@
 
     if (isDaySheet(sheet)) {
       buildDayBody(sheet, items);
-      finishDayView(sheet);
+      finishDayView();
       return;
     }
 
@@ -1877,11 +1918,8 @@
      at the top when you open the page or tap Refresh, scrolling down
      shows the following days and scrolling up shows the days before. */
   var DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  var DAY_COUNT = 7;        // the page shows 7 days: today and the next 6
-  var dayCopies = 5;        // the 7 days are drawn several times in a row so scrolling can loop
-  var dayScrollPending = true; // put today's tile at the top after the next render
-  var dayWrapBusy = false;
-  var dayCopyNow = 0;       // which repeat is being drawn (keeps drag groups apart)
+  var DAY_FROM = -1, DAY_TO = 5; // the page shows 7 days: yesterday, today (2nd) and the next 5
+  var dayScrollPending = true;   // put today's tile at the top after the next render
 
   function isDaySheet(sheet) {
     return !!sheet && (sheet.name === "Week planning" || sheet.name === "TimeX0");
@@ -1911,7 +1949,7 @@
       byDate[d].push(it);
     });
     var groups = [];
-    for (var off = 0; off < DAY_COUNT; off++) {
+    for (var off = DAY_FROM; off <= DAY_TO; off++) {
       var ds = dayDateForOffset(off);
       groups.push({ date: ds, label: dayNameOf(ds), isToday: off === 0, items: hasOwn(byDate, ds) ? byDate[ds] : [] });
     }
@@ -1947,28 +1985,32 @@
     var isT0 = sheet.name === "TimeX0";
     var userSorted = !!sortState[sheet.name];
     var groups = buildDayGroups(items, function (row) { return dayKeyOf(row["Date/Day"]); });
-    tableBodyEl.replaceChildren();
-    for (var copy = 0; copy < dayCopies; copy++) {
-      dayCopyNow = copy;
-      groups.forEach(function (g) {
-        tableBodyEl.appendChild(buildDayHeaderRow(sheet, g, isT0));
-        var list = g.items.slice();
-        if (!userSorted) {
-          if (isT0) {
-            list.sort(function (a, b) {
-              var ta = timeAtMinutes(a.row["Time at"]), tb = timeAtMinutes(b.row["Time at"]);
-              return ((ta === null ? 1e9 : ta) - (tb === null ? 1e9 : tb)) || (a.idx - b.idx);
-            });
-          } else {
-            list.sort(function (a, b) { return a.idx - b.idx; });
-          }
+    var frag = document.createDocumentFragment();
+    groups.forEach(function (g) {
+      frag.appendChild(buildDayHeaderRow(sheet, g, isT0));
+      var list = g.items.slice();
+      if (!userSorted) {
+        if (isT0) {
+          list.sort(function (a, b) {
+            var ta = timeAtMinutes(a.row["Time at"]), tb = timeAtMinutes(b.row["Time at"]);
+            return ((ta === null ? 1e9 : ta) - (tb === null ? 1e9 : tb)) || (a.idx - b.idx);
+          });
+        } else {
+          list.sort(function (a, b) { return a.idx - b.idx; });
         }
-        list.forEach(function (item) {
-          tableBodyEl.appendChild(isT0 ? buildTimex0Row(sheet, item.row, item.idx) : buildRowElement(sheet, item.row, item.idx, false));
-        });
+      }
+      list.forEach(function (item) {
+        frag.appendChild(isT0 ? buildTimex0Row(sheet, item.row, item.idx) : buildRowElement(sheet, item.row, item.idx, false));
       });
-    }
-    dayCopyNow = 0;
+    });
+    // Empty space after the last tile so today's tile can always be scrolled to the top.
+    var spacer = document.createElement("tr");
+    spacer.className = "day-spacer";
+    var spTd = document.createElement("td");
+    spTd.colSpan = sheet.columns.length;
+    spacer.appendChild(spTd);
+    frag.appendChild(spacer);
+    tableBodyEl.replaceChildren(frag);
   }
 
   function buildDayHeaderRow(sheet, g, withAdd) {
@@ -1999,58 +2041,24 @@
     return tr;
   }
 
-  // Geometry of the repeated 7-day block: { h: height of one block,
-  // t: scrollTop that puts today's tile (middle block) at the top }.
-  function dayGeometry() {
-    var sc = tableScrollerEl;
-    var hdrs = tableBodyEl.querySelectorAll("tr.week-day-today");
-    if (!sc || hdrs.length < 2) return null;
-    var mid = Math.floor(hdrs.length / 2);
-    var h = hdrs[1].getBoundingClientRect().top - hdrs[0].getBoundingClientRect().top;
-    if (!(h > 0)) return null;
-    var t = hdrs[mid].getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - (tableHeadEl.offsetHeight || 0) - 4;
-    return { h: h, t: t, mid: mid };
-  }
-
-  // After the tiles are drawn: repeat the 7 days enough times to loop
-  // smoothly, and put today's tile at the top when asked to.
-  function finishDayView(sheet) {
+  // After the tiles are drawn: size the empty space under the last tile
+  // and, when the page was just opened or refreshed, scroll so that
+  // today's tile is at the top (yesterday is just above, the rest below).
+  function finishDayView() {
     var sc = tableScrollerEl;
     if (!sc || !sc.clientHeight) return;
-    var g = dayGeometry();
-    if (!g) return;
-    var needMid = Math.min(20, Math.max(2, Math.ceil(sc.clientHeight / g.h) + 1));
-    if (needMid * 2 + 1 !== dayCopies) {
-      dayCopies = needMid * 2 + 1;
-      buildDayBody(sheet, getFilteredSortedRows(sheet));
-      g = dayGeometry();
-      if (!g) return;
-    }
+    var hdr = tableBodyEl.querySelector("tr.week-day-today");
+    var sp = tableBodyEl.querySelector("tr.day-spacer td");
+    if (!hdr || !sp) return;
+    var headH = tableHeadEl.offsetHeight || 0;
+    var scTop = sc.getBoundingClientRect().top;
+    sp.style.height = "0px";
+    var below = sp.getBoundingClientRect().top - hdr.getBoundingClientRect().top; // today's tile down to the end
+    var room = sc.clientHeight - headH - below;
+    sp.style.height = Math.max(0, Math.ceil(room)) + "px";
     if (dayScrollPending) {
-      sc.scrollTop = Math.max(0, g.t);
       dayScrollPending = false;
-    }
-  }
-
-  // Scrolling past either end of the 7 days wraps round: below the last
-  // day comes today again, above today comes the last day. The block is
-  // drawn several times, and when you drift away from the middle one the
-  // view silently jumps by exactly one block (it looks identical).
-  function onDayScroll() {
-    var sheet = currentSheet();
-    var sc = tableScrollerEl;
-    if (!isDaySheet(sheet) || dayWrapBusy || !sc || !sc.clientHeight) return;
-    var a = document.activeElement;
-    if (a && tableBodyEl.contains(a) && (a.isContentEditable || a.tagName === "INPUT")) return; // never while typing
-    var g = dayGeometry();
-    if (!g) return;
-    dayWrapBusy = true;
-    try {
-      var lo = g.t - (g.mid - 1) * g.h, hi = g.t + (g.mid - 1) * g.h;
-      if (sc.scrollTop < lo) sc.scrollTop += g.h;
-      else if (sc.scrollTop > hi) sc.scrollTop -= g.h;
-    } finally {
-      dayWrapBusy = false;
+      sc.scrollTop = Math.max(0, hdr.getBoundingClientRect().top - scTop + sc.scrollTop - headH - 4);
     }
   }
 
@@ -2072,10 +2080,7 @@
     var newIdx = sheet.rows.length - 1;
     renderTable();
     setTimeout(function () {
-      var rows = tableBodyEl.querySelectorAll("tr");
-      var hits = [];
-      for (var i = 0; i < rows.length; i++) { if (rows[i].dataset.sourceIdx === String(newIdx)) hits.push(rows[i]); }
-      var tr = hits.length ? hits[Math.floor(hits.length / 2)] : null; // the middle repeat
+      var tr = tableBodyEl.querySelector('tr[data-source-idx="' + newIdx + '"]');
       if (tr) {
         tr.scrollIntoView({ behavior: "smooth", block: "center" });
         tr.classList.add("row-highlight");
@@ -2135,10 +2140,27 @@
     var week = workbook.find(function (s) { return s.name === "Week planning"; });
     if (!week) return;
     if (!window.confirm("Rebuild TimesX7 from the Spaces and Times pages?\n\nRows currently on this page (including any added or edited by hand) will be replaced.")) return;
+    // Remember the times typed on this page: by date + text, and (when a
+    // task's date was changed on Times) by text alone if it is unambiguous.
+    var keepByKey = newMap(), keepByText = newMap();
+    week.rows.forEach(function (r) {
+      var t = r && r["Time at"];
+      if (!t) return;
+      var text = String(r["Timeframes"] || "").trim();
+      keepByKey[dateOnlyOf(r["Date/Day"]) + "|" + text] = t;
+      keepByText[text] = (hasOwn(keepByText, text) && keepByText[text] !== t) ? "" : t;
+    });
     week.rows = [];
     resetDayView();
     clearWeekAutoAdded();
     autoAddToWeekPlanning(true); // Refresh also pulls in overdue items
+    week.rows.forEach(function (r) {
+      if (r["Time at"]) return;
+      var text = String(r["Timeframes"] || "").trim();
+      var k = dateOnlyOf(r["Date/Day"]) + "|" + text;
+      var t = hasOwn(keepByKey, k) ? keepByKey[k] : (hasOwn(keepByText, text) ? keepByText[text] : "");
+      if (t) r["Time at"] = t;
+    });
     saveWorkbook();
     renderAll();
   }
@@ -2484,7 +2506,7 @@
     if (sheet.name === "Summary") registerSummaryDrag(tr, row);
     if (sheet.name === "Week planning" && !sortState[sheet.name]) {
       var wdate = dateOnlyOf(row["Date/Day"]);
-      registerDragRow(tr, "W|" + (wdate || "none") + "|" + dayCopyNow, row, function () { return sheet.rows; }, afterMoveSave);
+      registerDragRow(tr, "W|" + (wdate || "none"), row, function () { return sheet.rows; }, afterMoveSave);
     }
 
     return tr;
@@ -3081,11 +3103,42 @@
     return m ? m[0] : String(v || "");
   }
 
+  // The short form shown in the field: "10/12".
+  function weekDateShort(v) {
+    var m = /(\d{1,2}\/\d{1,2})\/\d{4}/.exec(String(v || ""));
+    return m ? m[1] : String(v || "");
+  }
+
+  // Sets (or clears) a TimesX7 row's time. For a recurring (Demand 99)
+  // task, giving a time to a day that had none gives it to all of the
+  // task's days that have none; after that each day is edited on its own.
+  function setWeekRowTime(sheet, row, val) {
+    function put(r, v) { if (v) r["Time at"] = v; else delete r["Time at"]; }
+    var old = String(row["Time at"] || "");
+    if (old === val) return false;
+    var changedOthers = false;
+    var src = findWeekSource(row);
+    if (src && src.recurring && !old && val) {
+      var text = String(row["Timeframes"] || "").trim();
+      sheet.rows.forEach(function (r) {
+        if (!r || r === row || String(r["Timeframes"] || "").trim() !== text) return;
+        if (r["Time at"]) return;
+        var s2 = findWeekSource(r);
+        if (s2 && s2.recurring && s2.row === src.row) { put(r, val); changedOthers = true; }
+      });
+    }
+    put(row, val);
+    saveWorkbook();
+    return changedOthers;
+  }
+
   // Week planning's Date/Day is stored as "Thu, 09/24/2026" (weekday +
   // date) rather than a plain date, so it needs its own calendar-picker
   // cell: the picker itself only understands the MM/DD/YYYY part, and
   // the weekday abbreviation is recomputed from whatever date is picked
-  // rather than trusted as stored text.
+  // rather than trusted as stored text. The field shows "MM/DD" and, in
+  // the same box, the optional time ("6 PM"): tap the date part for the
+  // calendar, the time part to type a time.
   function buildWeekDateDayCell(sheet, row, sourceIdx, col) {
     var wrap = document.createElement("div");
     wrap.className = "week-date-wrap";
@@ -3104,14 +3157,28 @@
     var source = findWeekSource(row);
     var locked = !!(source && source.recurring);
 
+    var box = document.createElement("div");
+    box.className = "week-dt";
+    wrap.appendChild(box);
+
     var input = document.createElement("input");
     input.type = "text";
-    input.className = "due-date-input";
+    input.className = "week-dt-date";
     input.readOnly = true;
-    input.value = weekDateOnly(row[col]);
+    input.value = weekDateShort(row[col]);
     input.placeholder = "";
+    input.setAttribute("aria-label", "Defined time on (date)");
     if (locked) input.title = "Recurring task (Demand 99): its dates stay the same";
-    wrap.appendChild(input);
+    box.appendChild(input);
+
+    var timeInput = document.createElement("input");
+    timeInput.type = "text";
+    timeInput.className = "week-dt-time";
+    timeInput.placeholder = "time";
+    timeInput.maxLength = 40;
+    timeInput.value = String(row["Time at"] || "");
+    timeInput.setAttribute("aria-label", "Time (for example 6 pm)");
+    box.appendChild(timeInput);
 
     function mmddyyyyToIso(v) { return mmddyyyyToIsoStr(v); }
     function isoToDateDay(v) {
@@ -3131,6 +3198,7 @@
       if (input.type === "date") return;
       input.readOnly = false;
       input.type = "date";
+      box.classList.add("week-dt-editing");
       var iso = mmddyyyyToIso(row[col] || "");
       input.value = iso;
       // Cannot go past the project's Life Ends on Spaces.
@@ -3170,7 +3238,18 @@
     input.addEventListener("blur", function () {
       input.type = "text";
       input.readOnly = true;
-      input.value = weekDateOnly(row[col]);
+      box.classList.remove("week-dt-editing");
+      input.value = weekDateShort(row[col]);
+    });
+
+    // Time part: type e.g. "6 am" / "11pm" / "18:30"; empty removes it.
+    timeInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); timeInput.blur(); }
+    });
+    timeInput.addEventListener("blur", function () {
+      var val = normalizeTimeAt(sanitizeTyped(timeInput.value));
+      timeInput.value = val;
+      if (setWeekRowTime(sheet, row, val)) renderTable(); // other days of a daily task followed
     });
 
     return wrap;

@@ -413,11 +413,11 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
   await ta('TimesX7: Defined time on shows only the date (stored value keeps weekday); date col fixed, Times col takes the rest', async () => {
     const w = await weekBoot([blankTask({ Space: 'A', 'Timeframe/Meeting': 'x', 'Time Zero on': todayStr })]);
     clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
-    const inp = w.document.querySelector('td[data-col="Date/Day"] input'); if (inp.value !== todayStr) throw new Error('shown "' + inp.value + '"');
+    const inp = w.document.querySelector('td[data-col="Date/Day"] input'); if (inp.value !== todayStr.slice(0, 5)) throw new Error('shown "' + inp.value + '"');
     if (!/^[A-Z][a-z]{2}, /.test(sheetOf(wbOf(w), 'Week planning').rows[0]['Date/Day'])) throw new Error('stored format changed');
     const cols = [...w.document.querySelectorAll('#colgroup col')]; if (cols[0].style.width !== '160px' || cols[1].style.width !== '') throw new Error(cols.map(c => c.style.width).join('|'));
     const opt = [...w.document.querySelectorAll('.filter-select')][0].options; if ([...opt].some(o => /^[A-Z][a-z]{2},/.test(o.textContent))) throw new Error('filter dropdown shows day names');
-    inp.dispatchEvent(new w.Event('blur')); if (inp.value !== todayStr) throw new Error('after blur: ' + inp.value);
+    inp.dispatchEvent(new w.Event('blur')); if (inp.value !== todayStr.slice(0, 5)) throw new Error('after blur: ' + inp.value);
   });
   t('TimesX7 phone layout keeps Date and Times on one line (no-wrap, Times flex-basis 0)', () =>
     /tr\.week-row\{flex-wrap:nowrap/.test(css.replace(/\s+/g, '')) && /td\[data-col="Timeframes"\]\{flex:1 1 0;/.test(css.replace(/\s+/g, ' ')) && !/week-row > td\[data-col="Transforms"\]/.test(css));
@@ -855,23 +855,22 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     if (w.document.querySelector('#tableBody .summary-task-link')) throw new Error('did not collapse');
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
-  await ta('TimesX7: exactly 7 date tiles (today .. +6), repeated for the scroll loop, no weekday merging', async () => {
+  await ta('TimesX7: exactly 7 date tiles (yesterday, today, +5), today 2nd, no weekday merging', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T0', 'Time Zero on': dayStr(0) }), blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': dayStr(1) }), blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T3', 'Time Zero on': dayStr(3) })]);
     clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
     const all = [...w.document.querySelectorAll('tr.week-day-header-row')].map(e => e.dataset.date);
-    const want = []; for (let n = 0; n < 7; n++) want.push(dayStr(n));
-    if (all.length % 7 !== 0 || all.length < 21) throw new Error('block is not repeated for looping: ' + all.length);
-    for (let i = 0; i < all.length; i++) if (all[i] !== want[i % 7]) throw new Error('tile ' + i + ': ' + all[i]);
-    const today = w.document.querySelector('tr.week-day-today'); if (!today || today.dataset.date !== dayStr(0)) throw new Error('today tile');
-    if (all.includes(dayStr(7)) || all.includes(dayStr(-1))) throw new Error('only 7 days may be shown');
+    const want = []; for (let n = -1; n <= 5; n++) want.push(dayStr(n));
+    if (all.join() !== want.join()) throw new Error(all.join() + ' != ' + want.join());
+    const today = w.document.querySelector('tr.week-day-today'); if (!today || today.dataset.date !== dayStr(0) || all[1] !== dayStr(0)) throw new Error('today must be the 2nd tile');
+    if (all.includes(dayStr(6)) || all.includes(dayStr(-2))) throw new Error('only 7 days may be shown');
   });
-  await ta('TimesX7: Demand 99 task shows once per day for the 7 days; next week\'s same weekday is not mixed into today\'s tile', async () => {
+  await ta('TimesX7: Demand 99 task shows once per day; next week\'s same weekday is not mixed into today\'s tile', async () => {
     const w = await weekBoot([blankTask({ Date: dayStr(0), Space: 'AA', Demand: '99', 'Timeframe/Meeting': 'Daily', 'Time Zero on': dayStr(40) })]);
     clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
     const perTile = {}; let cur = null, seen = {};
     [...w.document.querySelectorAll('#tableBody tr')].forEach(tr => { if (tr.classList.contains('week-day-header-row')) { cur = tr.dataset.date; if (seen[cur]) cur = null; else { seen[cur] = true; perTile[cur] = 0; } } else if (cur && tr.classList.contains('week-row')) perTile[cur]++; });
-    for (let n = 0; n < 7; n++) if (perTile[dayStr(n)] !== 1) throw new Error('day ' + n + ' count ' + perTile[dayStr(n)]);
-    if (dayStr(7) in perTile) throw new Error('+7 day must not be shown');
+    for (let n = 0; n <= 5; n++) if (perTile[dayStr(n)] !== 1) throw new Error('day ' + n + ' count ' + perTile[dayStr(n)]);
+    if (dayStr(6) in perTile) throw new Error('+6 day must not be shown');
   });
   await ta('TimeX0: replaces NextIn; old "All future Tasks" page in a backup is dropped; Timex0 sits after TimesX7', async () => {
     const w = await boot(); const g = wbOf(w);
@@ -895,7 +894,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     const stored = sheetOf(wbOf(w), 'TimeX0').rows;
     if (stored.length !== 2 || stored.some(r => r['Date/Day'] !== todayStr)) throw new Error(JSON.stringify(stored));
     const shownAll = [...w.document.querySelectorAll('tr.timex0-row')].map(r => r.querySelector('.timex0-time').textContent + '=' + r.querySelectorAll('.cell-editable')[1].textContent);
-    if (shownAll.length % 2 !== 0 || shownAll.slice(0, 2).join('|') !== '10 AM=Standup|6 PM=Dinner') throw new Error(shownAll.join('|'));
+    if (shownAll.slice(0, 2).join('|') !== '10 AM=Standup|6 PM=Dinner' || shownAll.length !== 2) throw new Error(shownAll.join('|'));
     // the + on a day's header adds to that day
     const hdr = [...w.document.querySelectorAll('tr.week-day-header-row')].find(h => h.dataset.date === dayStr(1)); hdr.querySelector('.day-add-btn').click(); await sleep(120);
     if (sheetOf(wbOf(w), 'TimeX0').rows.filter(r => r['Date/Day'] === dayStr(1)).length !== 1) throw new Error('header + did not add to that day');
@@ -917,6 +916,44 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     if (r.rows[0]['Date/Day'] !== '' || r.rows[0]['Time at'].length > 40 || r.rows[1]['Date/Day'] !== '10/05/2026') throw new Error(JSON.stringify(r.rows));
     if (protoNames(w) !== before) throw new Error('prototype changed');
     clickNav(w, /^TimeX0$/); if (w.document.querySelector('#tableBody img')) throw new Error('markup injected');
+  });
+  await ta('TimesX7: time typed in the date field ("11pm" -> "11 PM"), shown beside MM/DD, saved, kept on import/Refresh, cleared when emptied', async () => {
+    const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'x', 'Time Zero on': todayStr })]);
+    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    const tin = () => w.document.querySelector('tr.week-row .week-dt-time');
+    tin().value = '11pm'; tin().dispatchEvent(new w.Event('blur'));
+    if (tin().value !== '11 PM') throw new Error('shown ' + tin().value);
+    if (sheetOf(wbOf(w), 'Week planning').rows[0]['Time at'] !== '11 PM') throw new Error('not saved');
+    if (w.document.querySelector('tr.week-row .week-dt-date').value !== todayStr.slice(0, 5)) throw new Error('date part');
+    if (JSON.stringify(sheetOf(wbOf(w), 'Week planning').columns) !== '["Date/Day","Timeframes"]') throw new Error('columns changed');
+    const cap = captureBlobs(w); w.document.getElementById('btnExportJson').click(); await sleep(30);
+    await doImport(w, cap[0]); clickNav(w, /^TimesX7$/);
+    if (tin().value !== '11 PM') throw new Error('lost on import');
+    w.document.getElementById('btnRefreshWeek').click();
+    if (tin().value !== '11 PM') throw new Error('lost on Refresh');
+    tin().value = ''; tin().dispatchEvent(new w.Event('blur'));
+    if ('Time at' in sheetOf(wbOf(w), 'Week planning').rows[0]) throw new Error('not cleared');
+    if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
+  await ta('TimesX7: Demand 99 - a first time is given to all its days; later edits change one day only', async () => {
+    const w = await weekBoot([blankTask({ Date: dayStr(0), Space: 'AA', Demand: '99', 'Timeframe/Meeting': 'D', 'Time Zero on': dayStr(40) })]);
+    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    const ins = () => [...w.document.querySelectorAll('tr.week-row .week-dt-time')];
+    const set = (i, v) => { ins()[i].value = v; ins()[i].dispatchEvent(new w.Event('blur')); };
+    set(0, '9 am');
+    if (ins().length < 3 || ins().some(i => i.value !== '9 AM')) throw new Error(ins().map(i => i.value).join('|'));
+    set(2, '10 am'); set(0, '8 am');
+    const v = ins().map(i => i.value);
+    if (v[0] !== '8 AM' || v[1] !== '9 AM' || v[2] !== '10 AM') throw new Error(v.join('|'));
+    if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
+  await ta('TimesX7: tampered "Time at" in an import is cleaned (length, type; markup stays text)', async () => {
+    const w = await weekBoot([]); const g = wbOf(w); const wk = sheetOf(g, 'Week planning');
+    wk.rows = [{ 'Date/Day': 'Mon, ' + todayStr, Timeframes: 'q', 'Time at': 'x'.repeat(500) }, { 'Date/Day': 'Mon, ' + todayStr, Timeframes: 'r', 'Time at': { a: 1 } }, { 'Date/Day': 'Mon, ' + todayStr, Timeframes: 's', 'Time at': '<img src=x>' }];
+    await doImport(w, JSON.stringify(g));
+    const r = sheetOf(wbOf(w), 'Week planning').rows;
+    if ((r[0]['Time at'] || '').length > 40 || (r[1]['Time at'] && typeof r[1]['Time at'] !== 'string')) throw new Error(JSON.stringify(r));
+    clickNav(w, /^TimesX7$/); if (w.document.querySelector('#tableBody img')) throw new Error('markup injected');
   });
   await ta('Spacetime: Began/Ends dates under the Space name; Order handle on each Space line moves the Space (Spaces page order, saved)', async () => {
     const lr = (n, b, e) => ({ Space: n, 'Key milestones': 'k', 'Life began': b, 'Life Ends': e, 'Life span': '' });

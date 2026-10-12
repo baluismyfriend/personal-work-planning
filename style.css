@@ -920,30 +920,7 @@ div.summary-task-link{
   }
   .data-table tr.summary-task-row:last-child{margin-bottom:2px !important;}
   .data-table tr.summary-task-link{cursor:pointer;}
-  .data-table tr.summary-task-link:active .summary-task-cell,
-  .data-table tr.summary-task-link:focus .summary-task-cell{
-    background:rgba(251,113,133,.14) !important;
-    outline:none;
-  }
   .summary-task-text{text-decoration:underline;text-decoration-color:rgba(251,113,133,.35);text-underline-offset:2px;}
-  .summary-task-cell{
-    display:flex !important;
-    align-items:baseline;
-    gap:6px;
-    width:auto !important;
-    border:none !important;
-    border-bottom:1px solid rgba(100,116,139,.12) !important;
-    padding:7px 2px !important;
-  }
-  .summary-task-cell::before{content:none !important;}
-  .data-table tr.summary-task-row:last-child .summary-task-cell{border-bottom:none !important;}
-  .summary-task-num{
-    flex:0 0 auto;
-    font-size:12px;
-    font-weight:800;
-    color:#be123c;
-    white-space:nowrap;
-  }
   .summary-task-text{
     flex:1 1 auto;
     min-width:0;
@@ -1014,7 +991,6 @@ div.summary-task-link{
   .clear-filters-btn{display:none;}
 }
 
-
 /* TimesX7 weekday group titles */
 .data-table tr.week-day-header-row > td.week-day-header{
   background:rgba(251,113,133,.12);
@@ -1074,7 +1050,6 @@ div.summary-task-link{
   pointer-events:none;
 }
 
-
 /* TimesX7: small delete radio before the "Defined time on" date */
 .week-date-wrap{display:flex;align-items:center;gap:6px;}
 .week-date-wrap .due-date-input{flex:1 1 auto;min-width:0;}
@@ -1118,8 +1093,6 @@ div.week-times-link,
   color:#be123c;
   background:rgba(251,113,133,.08);
 }
-.summary-time-wrap{display:flex;align-items:center;gap:8px;}
-.summary-time-wrap .summary-task-link{flex:1 1 auto;min-width:0;}
 .summary-date-input{flex:0 0 auto;width:112px !important;min-width:112px;}
 @media (max-width:680px){
   .data-table tr.summary-status-row{
@@ -1136,7 +1109,6 @@ div.week-times-link,
     background:transparent !important;
   }
   .summary-status-cell::before{content:none !important;}
-  .summary-task-cell .summary-date-input{font-size:12.5px;padding:3px 6px;}
 }
 
 /* Spaces: collapsible Key milestones text box */
@@ -1175,8 +1147,6 @@ div.week-times-link,
     box-shadow:0 8px 18px rgba(15,23,42,.05), inset 0 1px 0 rgba(255,255,255,.75) !important;
   }
   .data-table tr.summary-task-row:last-child{margin-bottom:3px !important;}
-  .summary-task-cell{align-items:flex-start;padding:2px 0 !important;border-bottom:none !important;gap:8px;}
-  .summary-task-cell .summary-date-input{width:112px !important;min-width:0 !important;font-size:12.5px;padding:4px 6px;}
   .summary-task-text{
     font-size:12.5px;
     line-height:1.25;
@@ -1201,7 +1171,6 @@ div.week-times-link,
   border-radius:8px;
 }
 @media (max-width:680px){
-  .summary-task-cell .summary-date-input{width:96px !important;min-width:0 !important;flex:0 0 auto;}
   .summary-task-text{
     flex:1 1 0;
     background:rgba(255,255,255,.65);
@@ -1677,4 +1646,43 @@ body.order-mode .drag-handle:active{cursor:grabbing;color:var(--text);}
 .summary-space-head-row .space-dates{margin:3px 0 1px 70px;}
 @media (max-width:680px){
   .summary-space-head-row .space-dates{margin-left:70px;}
+}
+
+/* Empty space under the last day tile, so today's tile can be scrolled to the top */
+.data-table tr.day-spacer,.data-table tr.day-spacer > td{display:block;padding:0;border:0;background:none;box-shadow:none;}
+
+/* TimesX7: one box holding the date ("10/12") and the optional time ("6 PM") */
+.week-dt{
+  flex:1 1 auto;
+  min-width:0;
+  display:flex;
+  align-items:center;
+  background:rgba(255,255,255,.65);
+  border:1px solid rgba(100,116,139,.20);
+  border-radius:8px;
+  overflow:hidden;
+}
+.week-dt:focus-within{box-shadow:0 0 0 3px rgba(251,113,133,.28);border-color:var(--primary);}
+.week-dt input{
+  border:0;
+  background:transparent;
+  box-shadow:none;
+  outline:none;
+  border-radius:0;
+  color:var(--text);
+  color-scheme:light;
+  font-size:12px;
+  padding:5px 0 5px 6px;
+  min-width:0;
+}
+.week-dt .week-dt-date{flex:0 0 auto;width:42px;cursor:pointer;}
+.week-dt .week-dt-time{flex:1 1 auto;width:100%;padding-left:4px;}
+.week-dt .week-dt-time::placeholder{color:rgba(100,116,139,.5);}
+.week-dt.week-dt-editing .week-dt-date{flex:1 1 auto;width:100%;}
+.week-dt.week-dt-editing .week-dt-time{display:none;}
+@media (max-width:680px){
+  .data-table tr.week-row > td[data-col="Date/Day"] .week-dt{flex:0 0 auto;width:108px;}
+  .data-table tr.week-row .week-dt input{font-size:12.5px;padding-top:4px;padding-bottom:4px;}
+  /* iOS zooms in on focused fields under 16px */
+  .data-table tr.week-row .week-dt input:focus{font-size:16px;}
 }

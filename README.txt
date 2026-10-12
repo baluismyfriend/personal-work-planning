@@ -591,13 +591,14 @@ you need to scroll:
 ------------------------------------------------------------
 24. DAY TILES (TIMESX7), TIMEX0, SPACETIME ORDER
 ------------------------------------------------------------
-- TimesX7 and TimeX0 show exactly 7 days: today and the next 6, one tile per
-  real date ("Monday, 10/12/2026"). A daily (Demand 99) task therefore
-  shows once in today's tile; next week's same weekday is not mixed in.
-- When you open the page (or tap Refresh) today's tile is at the top. Scroll
-  down and after the last day comes today again; scroll up from today and
-  you reach the last day - the 7 days loop endlessly. Entries dated outside
-  these 7 days (past days, or later than +6) are kept but not shown.
+- TimesX7 and TimeX0 show exactly 7 days: yesterday, today (2nd tile) and
+  the next 5, one tile per real date ("Monday, 10/12/2026"). A daily
+  (Demand 99) task shows once in each day's tile; next week's same weekday
+  is not mixed in.
+- When you open the page (or tap Refresh) the view is scrolled so today's
+  tile is at the top; yesterday is just above it and the rest below, so you
+  scroll up or down from there. Entries dated outside these 7 days are kept
+  but not shown.
 - NextIn is replaced by TimeX0 (same place in the page bar). It has the
   same 7-day looping tiles but shows NO tasks from other pages: you add
   entries yourself. "+ Add" (top) adds to today; the "+" on a day's title
@@ -612,3 +613,34 @@ you need to scroll:
   The Order button now also puts a handle on every Space line; dragging
   it moves that Space on the Spaces page, and Spacetime lists Spaces in
   the Spaces-page order. Task handles (inside an opened Space) still work.
+
+
+------------------------------------------------------------
+25. SPEED CLEAN-UP
+------------------------------------------------------------
+- The TimesX7 sync (every few seconds) now skips all its work when the
+  Times rows and today's date are unchanged, and runs every 10 s (only
+  while the app is visible) instead of every 3 s. Picking a date triggers
+  it at once, so nothing feels slower.
+- A phone "resize" (keyboard opening, address bar) no longer rebuilds the
+  page; it is rebuilt only when switching between phone and wide layout.
+- Day pages build their rows in one go, and show 7 tiles instead of
+  repeated copies. Unused code and unused style rules were removed.
+- 10style.css in the upload was an old unused copy; it is not needed.
+
+------------------------------------------------------------
+26. TIME ON TIMESX7
+------------------------------------------------------------
+- The "Defined time on" box now shows the date as MM/DD followed, in the
+  same box, by an optional time, e.g. "10/12  6 PM". The page layout is
+  unchanged.
+- Tap the date part to pick a date (as before); tap the time part and type
+  a time such as 6 am, 11pm or 18:30 - it is tidied to "6 AM" / "11 PM".
+  Empty the time part to remove the time.
+- The time stays with the task when you tap Refresh (matched by date + text,
+  or by text alone if you changed the task's date on Times) and is included
+  in Export / Import.
+- Daily (Demand 99) tasks: giving a time to one day that has none gives it
+  to all that task's days that have none (new days inherit it too). After
+  that each day is edited on its own.
+- Tasks are not re-sorted by time; the order you set with Order is kept.

@@ -142,3 +142,9 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: 7-day loop, rename to TimeX0 (145 tests)
 - TimesX7 / TimeX0 show only today..+6; the block is drawn several times and the scroll position silently jumps one block to loop. Page renamed TimeX0; a saved/imported page called "Timex0" is renamed on load. No security-relevant code changed.
+
+## Update: 7 tiles (yesterday..+5), speed clean-up (145 tests)
+- TimesX7 / TimeX0 show exactly 7 date tiles, today second, scrolled to today on open/Refresh (no repeated copies). Sync skipped when inputs unchanged; timer 10 s while visible; resize rebuilds only on layout change; dead function/variable/CSS rules removed. No security-relevant code changed.
+
+## Update: time on TimesX7 (148 tests)
+- TimesX7 rows may carry an optional `Time at` (not a column). On load/import it is read with an own-property check, length-capped (40), sanitised and tidied; it is shown via `value`/`textContent` only. Refresh preserves it. 3 tests added (typing, export/import/Refresh, Demand 99 behaviour, tampered values). No innerHTML / network APIs / inline styles added.
