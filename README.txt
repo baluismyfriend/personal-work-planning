@@ -661,4 +661,4 @@ you need to scroll:
   which opens the Stars page exactly as the old Stars page button did.
 - Section 24's TimeX0 bullets no longer apply; TimesX7's 7-day view stays.
 
-- Title font is 28px.
+- Title font is 24px (22px on the phone).
