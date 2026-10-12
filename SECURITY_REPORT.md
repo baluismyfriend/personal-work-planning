@@ -148,3 +148,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: time on TimesX7 (148 tests)
 - TimesX7 rows may carry an optional `Time at` (not a column). On load/import it is read with an own-property check, length-capped (40), sanitised and tidied; it is shown via `value`/`textContent` only. Refresh preserves it. 3 tests added (typing, export/import/Refresh, Demand 99 behaviour, tampered values). No innerHTML / network APIs / inline styles added.
+
+## Update: header, nav, TimeX0 removed (148 tests)
+- TimeX0 code, storage handling and styles removed; "TimeX0"/"Timex0"/"All future Tasks" in a backup are dropped on import. Page bar is built in a fixed order (extra pages from old backups follow NoSpace); "+Stars" opens the Stars page. Layout/markup only; no innerHTML / network APIs / inline styles added.

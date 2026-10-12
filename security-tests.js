@@ -57,7 +57,7 @@ function doImport(w, text, waitMs) {
 const wbOf = w => JSON.parse(w.localStorage.getItem(DK));
 const sheetOf = (g, n) => g.find(x => x.name === n);
 const navBtns = w => [...w.document.querySelectorAll('.nav-btn')];
-const clickNav = (w, re) => { const b = navBtns(w).find(x => re.test(x.textContent.trim())); if (!b) throw new Error('nav not found ' + re); b.click(); return b; };
+const clickNav = (w, re) => { const b = navBtns(w).find(x => re.test(x.textContent.trim())); if (!b && (re.test('Stars') || re.test('Quick list'))) { const sb = w.document.getElementById('btnStars'); sb.click(); return sb; } if (!b) throw new Error('nav not found ' + re); b.click(); return b; };
 const protoNames = w => JSON.stringify(w.eval('Object.getOwnPropertyNames(Object.prototype).sort()'));
 function captureBlobs(w) { const cap = []; w.Blob = class { constructor(p) { cap.push(p.join('')); } }; w.URL.createObjectURL = () => 'blob:x'; w.URL.revokeObjectURL = () => {}; w.HTMLAnchorElement.prototype.click = function () {}; return cap; }
 function defineKey(o, k, v) { Object.defineProperty(o, k, { value: v, enumerable: true, configurable: true, writable: true }); }
@@ -872,50 +872,31 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     for (let n = 0; n <= 5; n++) if (perTile[dayStr(n)] !== 1) throw new Error('day ' + n + ' count ' + perTile[dayStr(n)]);
     if (dayStr(6) in perTile) throw new Error('+6 day must not be shown');
   });
-  await ta('TimeX0: replaces NextIn; old "All future Tasks" page in a backup is dropped; Timex0 sits after TimesX7', async () => {
+  await ta('TimeX0 / NextIn are gone: a backup containing them imports, those pages are dropped, no button, no extra page', async () => {
     const w = await boot(); const g = wbOf(w);
     g.push({ name: 'All future Tasks', columns: ['Space'], rows: [{ Space: 'x' }] });
+    g.push({ name: 'TimeX0', columns: ['Time at', 'Happened'], rows: [{ 'Date/Day': todayStr, 'Time at': '1 PM', Happened: 'z' }] });
+    g.push({ name: 'Timex0', columns: ['Time at', 'Happened'], rows: [] });
     await doImport(w, JSON.stringify(g));
     const names = wbOf(w).map(x => x.name);
-    if (names.includes('All future Tasks')) throw new Error('old page kept');
-    if (names.indexOf('TimeX0') !== names.indexOf('Week planning') + 1) throw new Error(names.join());
-    if (navBtns(w).some(b => /NextIn/.test(b.textContent))) throw new Error('NextIn button still there');
-    clickNav(w, /^TimeX0$/);
-    const heads = [...w.document.querySelectorAll('#tableHead th span')].map(e => e.textContent.trim()).filter(Boolean).join();
-    if (!/Time at/.test(heads) || !/Happened/.test(heads)) throw new Error(heads);
+    if (names.some(n => /future|timex0/i.test(n))) throw new Error(names.join());
+    if (navBtns(w).some(b => /NextIn|TimeX0/i.test(b.textContent))) throw new Error('button still there');
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
-  await ta('TimeX0: + Add puts an entry in today\'s tile; "10am" becomes "10 AM"; text saved; entries sort by time; delete radio; round trip', async () => {
-    const w = await boot(); clickNav(w, /^TimeX0$/);
-    const edit = (el, text) => { el.focus(); el.textContent = text; el.dispatchEvent(new w.Event('blur')); };
-    const addAndFill = async (t, h) => { w.document.getElementById('btnAddRow').click(); await sleep(120); const rows = w.document.querySelectorAll('tr.timex0-row'); const tr = [...rows].find(r => !r.querySelector('.timex0-time').textContent && !r.querySelectorAll('.cell-editable')[1].textContent); edit(tr.querySelector('.timex0-time'), t); const tr2 = [...w.document.querySelectorAll('tr.timex0-row')].find(r => r.querySelector('.timex0-time').textContent === normT(t)); edit(tr2.querySelectorAll('.cell-editable')[1], h); };
-    const normT = t => ({ '6pm': '6 PM', '10am': '10 AM', 'zzz': 'zzz' }[t]);
-    await addAndFill('6pm', 'Dinner'); await addAndFill('10am', 'Standup');
-    const stored = sheetOf(wbOf(w), 'TimeX0').rows;
-    if (stored.length !== 2 || stored.some(r => r['Date/Day'] !== todayStr)) throw new Error(JSON.stringify(stored));
-    const shownAll = [...w.document.querySelectorAll('tr.timex0-row')].map(r => r.querySelector('.timex0-time').textContent + '=' + r.querySelectorAll('.cell-editable')[1].textContent);
-    if (shownAll.slice(0, 2).join('|') !== '10 AM=Standup|6 PM=Dinner' || shownAll.length !== 2) throw new Error(shownAll.join('|'));
-    // the + on a day's header adds to that day
-    const hdr = [...w.document.querySelectorAll('tr.week-day-header-row')].find(h => h.dataset.date === dayStr(1)); hdr.querySelector('.day-add-btn').click(); await sleep(120);
-    if (sheetOf(wbOf(w), 'TimeX0').rows.filter(r => r['Date/Day'] === dayStr(1)).length !== 1) throw new Error('header + did not add to that day');
-    // export -> import keeps everything
-    const cap = captureBlobs(w); w.document.getElementById('btnExportJson').click(); await sleep(30);
-    await doImport(w, cap[0]);
-    if (sheetOf(wbOf(w), 'TimeX0').rows.length !== 3) throw new Error('round trip lost rows');
-    // delete radio
-    clickNav(w, /^TimeX0$/); w.document.querySelector('tr.timex0-row .week-radio').click();
-    if (sheetOf(wbOf(w), 'TimeX0').rows.length !== 2) throw new Error('radio did not delete');
-    if (w.__errs.length) throw new Error(w.__errs[0]);
+  await ta('Header: title row has only the title; page bar order is Spaces, Spacetime, Times, TimesX7, NoSpace (no Stars, no TimeX0)', async () => {
+    const w = await boot();
+    if (w.document.querySelector('.header-row .nav-btn')) throw new Error('page buttons still in the title row');
+    const labels = navBtns(w).map(b => b.textContent.trim()).join();
+    if (labels !== 'Spaces,Spacetime,Times,TimesX7,NoSpace') throw new Error(labels);
+    if (w.document.getElementById('nav').querySelectorAll('.nav-btn').length !== 5) throw new Error('nav count');
   });
-  await ta('TimeX0: tampered import (bad dates, __proto__ keys, long time) is cleaned; no pollution', async () => {
-    const w = await boot(); const before = protoNames(w); const g = wbOf(w);
-    const bad = { name: 'TimeX0', columns: ['x'], rows: [{ 'Date/Day': '13/45/2026', 'Time at': 't'.repeat(500), Happened: 'ok' }, { 'Date/Day': '10/5/2026', 'Time at': '1pm', Happened: '<img src=x>' }, null] };
-    defineKey(bad.rows[0], '__proto__', { polluted: 1 });
-    g.splice(g.findIndex(x => x.name === 'TimeX0'), 1, bad); await doImport(w, JSON.stringify(g));
-    const r = sheetOf(wbOf(w), 'TimeX0'); if (r.columns.join() !== 'Time at,Happened') throw new Error(r.columns.join());
-    if (r.rows[0]['Date/Day'] !== '' || r.rows[0]['Time at'].length > 40 || r.rows[1]['Date/Day'] !== '10/05/2026') throw new Error(JSON.stringify(r.rows));
-    if (protoNames(w) !== before) throw new Error('prototype changed');
-    clickNav(w, /^TimeX0$/); if (w.document.querySelector('#tableBody img')) throw new Error('markup injected');
+  await ta('Actions row: no "+ Add" button; "+Stars" comes first and opens the Stars page', async () => {
+    const w = await boot();
+    if (w.document.getElementById('btnAddRow')) throw new Error('+ Add button still exists');
+    const first = w.document.querySelector('.actions .btn'); if (first.id !== 'btnStars' || first.textContent.trim() !== '+Stars') throw new Error(first.id + ' ' + first.textContent);
+    first.click();
+    if (w.document.getElementById('pageTitle').textContent !== 'Stars') throw new Error('title ' + w.document.getElementById('pageTitle').textContent);
+    if (w.__errs.length) throw new Error(w.__errs[0]);
   });
   await ta('TimesX7: time typed in the date field ("11pm" -> "11 PM"), shown beside MM/DD, saved, kept on import/Refresh, cleared when emptied', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'x', 'Time Zero on': todayStr })]);

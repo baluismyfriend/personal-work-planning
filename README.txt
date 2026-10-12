@@ -644,3 +644,17 @@ you need to scroll:
   to all that task's days that have none (new days inherit it too). After
   that each day is edited on its own.
 - Tasks are not re-sorted by time; the order you set with Order is kept.
+
+------------------------------------------------------------
+27. HEADER / BUTTON CHANGES  (this section replaces the TimeX0 notes above)
+------------------------------------------------------------
+- TimeX0 (and the old NextIn page) is removed completely: no button, no
+  page, no code. If a backup still contains it, it is ignored on import
+  (the rest of the backup imports normally).
+- Title: the app name sits a little higher and is larger.
+- Second line (page bar), in this order: Spaces, Spacetime, Times, TimesX7,
+  NoSpace. Spaces and NoSpace are no longer next to the title.
+- The "+ Add" button before Export is gone (the round "+ Add Space" button
+  at the bottom of the screen still adds rows). In its place is "+Stars",
+  which opens the Stars page exactly as the old Stars page button did.
+- Section 24's TimeX0 bullets no longer apply; TimesX7's 7-day view stays.

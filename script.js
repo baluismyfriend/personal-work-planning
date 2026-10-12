@@ -32,7 +32,6 @@
 
   var TASK_COLUMNS = ["Date", "Space", "Demand", "Timeframe/Meeting", "Next Timeframes", "Time Zero on", "Timing"];
   var TASK_SHEET_NAMES = ["Daily planning - All tasks", "Completed tasks"];
-  var TIMEX0_COLUMNS = ["Time at", "Happened"]; // rows also carry a hidden "Date/Day" (MM/DD/YYYY)
   var STATUS_OPTIONS = ["", "Complete", "In-Progress", "Not started", "Hold"];
   var MAX_ROWS = 5000;
   var MAX_CELL_LEN = 5000;
@@ -43,7 +42,7 @@
   var MAX_COL_WIDTH = 2000;
   var RESERVED_KEYS = ["__proto__", "constructor", "prototype"];
   var KNOWN_SHEET_NAMES = ["Daily planning - All tasks", "Completed tasks",
-    "Week planning", "TimeX0", "Road Map - Pending", "Quick list", "Summary"];
+    "Week planning", "Road Map - Pending", "Quick list", "Summary"];
 
   // Own-property helpers. Page names and column names can come from an
   // imported file, so they must never be used as keys on a plain object
@@ -94,8 +93,6 @@
     // 2. Week planning
     sheets.push(buildWeekPlanningSheet());
 
-    // 3. TimeX0 (what actually happened, day by day; replaces NextIn)
-    sheets.push(buildTimex0Sheet());
 
     // 4. Road Map - Pending
     var roadCols = ["Space", "Key milestones", "Life began", "Life Ends", "Life span"];
@@ -306,7 +303,7 @@
   // since been removed. Any older saved workbook that still has them is
   // silently dropped down to the current page set on the next load,
   // rather than showing stale pages that no longer have UI support.
-  var REMOVED_PAGE_NAMES = ["Important TimeLines", "Rough Notes", "All future Tasks"];
+  var REMOVED_PAGE_NAMES = ["Important TimeLines", "Rough Notes", "All future Tasks", "Timex0", "TimeX0"];
 
   // True when a saved sheet's columns already match the current Week
   // planning schema, so its rows (the user's actual typed task text)
@@ -368,25 +365,6 @@
     return { name: "Quick list", columns: ["Small Times"], rows: newRows };
   }
 
-  function buildTimex0Sheet() {
-    return { name: "TimeX0", columns: TIMEX0_COLUMNS.slice(), rows: [] };
-  }
-
-  function normalizeTimex0Sheet(rawSheet) {
-    var rows = Array.isArray(rawSheet.rows) ? rawSheet.rows : [];
-    if (rows.length > MAX_ROWS) rows = rows.slice(0, MAX_ROWS);
-    var outRows = rows.map(function (r) {
-      if (!r || typeof r !== "object") r = {};
-      var d = hasOwn(r, "Date/Day") ? dayKeyOf(r["Date/Day"]) : "";
-      return {
-        "Date/Day": d,
-        "Time at": sanitizeCell(hasOwn(r, "Time at") ? r["Time at"] : "", 40),
-        "Happened": sanitizeCell(hasOwn(r, "Happened") ? r["Happened"] : "", MAX_CELL_LEN)
-      };
-    });
-    return { name: "TimeX0", columns: TIMEX0_COLUMNS.slice(), rows: outRows };
-  }
-
   // "10/5/2026", "Thu, 10/05/2026" -> "10/05/2026" (a real date) or "".
   function dayKeyOf(v) {
     var m = /(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(String(v === undefined || v === null ? "" : v));
@@ -407,7 +385,6 @@
       if (!name) throw new Error("each sheet must have a name");
       if (REMOVED_PAGE_NAMES.indexOf(name) !== -1) continue;
       if (name === "Summary") continue; // always recomputed fresh below
-      if (name === "Timex0") name = "TimeX0";
       if (seenNames[name]) continue;    // duplicate page name: first copy wins
       if (KNOWN_SHEET_NAMES.indexOf(name) === -1) {
         // Unknown pages are tolerated for old backups but capped, so a
@@ -422,9 +399,7 @@
         else sheets.push(buildWeekPlanningSheet());
         continue;
       }
-      if (name === "TimeX0" || name === "Timex0") { // "Timex0" = earlier spelling
-        sheets.push(normalizeTimex0Sheet(s));
-      } else if (TASK_SHEET_NAMES.indexOf(name) !== -1) {
+      if (TASK_SHEET_NAMES.indexOf(name) !== -1) {
         sheets.push(normalizeTaskSheet(name, s));
       } else if (name === "Quick list") {
         sheets.push(migrateLegacyQuickListSheet(s));
@@ -446,11 +421,6 @@
     // Ensure Week planning always present
     var hasWeekPlanning = sheets.some(function (s) { return s.name === "Week planning"; });
     if (!hasWeekPlanning) sheets.splice(1, 0, buildWeekPlanningSheet());
-    // Ensure Timex0 always present (right after Week planning / TimesX7)
-    if (!sheets.some(function (s) { return s.name === "TimeX0"; })) {
-      var wkAt = sheets.findIndex(function (s) { return s.name === "Week planning"; });
-      sheets.splice(wkAt + 1, 0, buildTimex0Sheet());
-    }
     // Ensure Road Map - Pending always present
     var hasRoadMap = sheets.some(function (s) { return s.name === "Road Map - Pending"; });
     if (!hasRoadMap) sheets.push(migrateRoadMapSheet({ rows: [] }));
@@ -672,7 +642,7 @@
   function hasActionsColumn(sheet) {
     // Quick list deletes a row via tapping its radio button instead of a
     // Copy/Move/Delete actions column (see buildQuickListRow).
-    return !isComputedSheet(sheet) && sheet.name !== "Quick list" && sheet.name !== "Week planning" && sheet.name !== "TimeX0";
+    return !isComputedSheet(sheet) && sheet.name !== "Quick list" && sheet.name !== "Week planning";
   }
 
   // Pages that have a "Move" row action, and where that action sends the
@@ -687,7 +657,6 @@
     "Summary": "Spacetime",
     "Daily planning - All tasks": "Times",
     "Week planning": "TimesX7",
-    "TimeX0": "TimeX0",
     "Road Map - Pending": "Spaces",
     "Quick list": "Stars",
     "Completed tasks": "NoSpace"
@@ -965,13 +934,10 @@
      RENDERING
      ============================================================ */
   var navEl, pageTitleEl, colgroupEl, tableHeadEl, tableBodyEl, tableScrollerEl;
-  var navSpacesBtn, navNoSpaceBtn;
   var backupPromptEl, backupPromptExportBtn, backupPromptDismissBtn;
 
   function init() {
     navEl = document.getElementById("nav");
-    navSpacesBtn = document.getElementById("navSpacesBtn");
-    navNoSpaceBtn = document.getElementById("navNoSpaceBtn");
     pageTitleEl = document.getElementById("pageTitle");
     colgroupEl = document.getElementById("colgroup");
     tableHeadEl = document.getElementById("tableHead");
@@ -1035,7 +1001,7 @@
       if (document.visibilityState === "visible") autoAddToWeekPlanning();
     });
 
-    document.getElementById("btnAddRow").addEventListener("click", handleAddRow);
+    document.getElementById("btnStars").addEventListener("click", openStarsPage);
     document.getElementById("btnRefreshWeek").addEventListener("click", handleRefreshWeek);
     document.getElementById("btnAddRowFloating").addEventListener("click", handleAddRow);
     document.getElementById("btnExportJson").addEventListener("click", handleExportJson);
@@ -1375,35 +1341,34 @@
     renderTable();
   }
 
-  // The Spaces (Road Map) and NoSpace (Completed) page buttons are
-  // rendered separately, pinned to the title row - Spaces leftmost,
-  // NoSpace rightmost (see #navSpacesBtn/#navNoSpaceBtn in index.html) -
-  // rather than mixed in with the rest of the page pills below. Every
-  // other sheet still gets its normal pill in #nav.
+  // The page bar: Spaces, Spacetime, Times, TimesX7, NoSpace - in that
+  // order. (The Stars page is opened from the "+Stars" button instead.)
+  var NAV_ORDER = ["Road Map - Pending", "Summary", "Daily planning - All tasks", "Week planning", "Completed tasks"];
+
   function renderNav() {
-    navEl.replaceChildren();
-    workbook.forEach(function (sheet, idx) {
-      if (sheet.name === "Road Map - Pending" || sheet.name === "Completed tasks") {
-        var pinnedBtn = sheet.name === "Road Map - Pending" ? navSpacesBtn : navNoSpaceBtn;
-        var pinnedClass = sheet.name === "Road Map - Pending" ? "nav-btn-spaces" : "nav-btn-nospace";
-        if (pinnedBtn) {
-          pinnedBtn.className = "nav-btn " + pinnedClass + (idx === selectedSheetIndex ? " active" : "");
-          pinnedBtn.textContent = shortSheetName(sheet);
-          pinnedBtn.title = shortSheetName(sheet);
-          pinnedBtn.onclick = function () { goToSheetIndex(idx); };
-        }
-        return;
-      }
+    var frag = document.createDocumentFragment();
+    // Any extra page from an old backup goes after NoSpace so it stays reachable.
+    var names = NAV_ORDER.concat(workbook.map(function (sh) { return sh.name; }).filter(function (n) {
+      return NAV_ORDER.indexOf(n) === -1 && n !== "Quick list";
+    }));
+    names.forEach(function (name) {
+      var idx = workbook.findIndex(function (sh) { return sh.name === name; });
+      if (idx === -1) return;
       var btn = document.createElement("button");
       btn.type = "button";
       btn.className = "nav-btn" + (idx === selectedSheetIndex ? " active" : "");
-      btn.textContent = shortSheetName(sheet);
-      btn.title = shortSheetName(sheet);
-      btn.addEventListener("click", function () {
-        goToSheetIndex(idx);
-      });
-      navEl.appendChild(btn);
+      btn.textContent = shortSheetName(workbook[idx]);
+      btn.title = shortSheetName(workbook[idx]);
+      btn.addEventListener("click", function () { goToSheetIndex(idx); });
+      frag.appendChild(btn);
     });
+    navEl.replaceChildren(frag);
+  }
+
+  // "+Stars": opens the Stars page (the old Stars pill, moved here).
+  function openStarsPage() {
+    var idx = workbook.findIndex(function (sh) { return sh.name === "Quick list"; });
+    if (idx !== -1) goToSheetIndex(idx);
   }
 
   function renderTable() {
@@ -1411,12 +1376,12 @@
     var sheet = currentSheet();
     pageTitleEl.textContent = shortSheetName(sheet);
 
-    // TimesX7 only: swap the "+ Add" button for a Refresh button.
+    // TimesX7 only: show the Refresh button. "+Stars" is highlighted on the Stars page.
     var isWeek = sheet.name === "Week planning";
-    var addBtnEl = document.getElementById("btnAddRow");
     var refreshBtnEl = document.getElementById("btnRefreshWeek");
-    if (addBtnEl) addBtnEl.hidden = isWeek;
     if (refreshBtnEl) refreshBtnEl.hidden = !isWeek;
+    var starsBtnEl = document.getElementById("btnStars");
+    if (starsBtnEl) starsBtnEl.classList.toggle("btn-primary", sheet.name === "Quick list");
 
     // colgroup
     colgroupEl.replaceChildren();
@@ -1426,10 +1391,10 @@
       var savedW = manualWidths[widthKey(sheet.name, col)];
       if (savedW) {
         c.style.width = savedW + "px";
-      } else if (sheet.name === "Week planning" || sheet.name === "TimeX0") {
+      } else if (sheet.name === "Week planning") {
         // Date / time column is only as wide as it needs; the Times column
         // gets no width so the fixed-layout table gives it all the rest.
-        if (col === "Date/Day" || col === "Time at") c.style.width = "160px";
+        if (col === "Date/Day") c.style.width = "160px";
       } else {
         c.style.width = pct + "%";
       }
@@ -1662,7 +1627,7 @@
     // one at a time with a "1 of N" counter. Road Map - Pending is a
     // short list of projects the user wants to scroll through all at
     // once too, rather than flipping through one project per screen.
-    if (sheet.name === "Week planning" || sheet.name === "TimeX0" || sheet.name === "Quick list" || sheet.name === "Road Map - Pending" || sheet.name === "Summary") return false;
+    if (sheet.name === "Week planning" || sheet.name === "Quick list" || sheet.name === "Road Map - Pending" || sheet.name === "Summary") return false;
     return isMobileWidth();
   }
 
@@ -1911,7 +1876,7 @@
   }
 
   /* ---------------------------------------------------------
-     Day tiles (TimesX7 and Timex0)
+     Day tiles (TimesX7)
      ---------------------------------------------------------
      One tile per real DATE (so next Sunday is its own tile, not mixed
      into today's). The list is endless in both directions: today is put
@@ -1922,7 +1887,7 @@
   var dayScrollPending = true;   // put today's tile at the top after the next render
 
   function isDaySheet(sheet) {
-    return !!sheet && (sheet.name === "Week planning" || sheet.name === "TimeX0");
+    return !!sheet && sheet.name === "Week planning";
   }
 
   function resetDayView() {
@@ -1982,25 +1947,15 @@
   }
 
   function buildDayBody(sheet, items) {
-    var isT0 = sheet.name === "TimeX0";
     var userSorted = !!sortState[sheet.name];
     var groups = buildDayGroups(items, function (row) { return dayKeyOf(row["Date/Day"]); });
     var frag = document.createDocumentFragment();
     groups.forEach(function (g) {
-      frag.appendChild(buildDayHeaderRow(sheet, g, isT0));
+      frag.appendChild(buildDayHeaderRow(sheet, g));
       var list = g.items.slice();
-      if (!userSorted) {
-        if (isT0) {
-          list.sort(function (a, b) {
-            var ta = timeAtMinutes(a.row["Time at"]), tb = timeAtMinutes(b.row["Time at"]);
-            return ((ta === null ? 1e9 : ta) - (tb === null ? 1e9 : tb)) || (a.idx - b.idx);
-          });
-        } else {
-          list.sort(function (a, b) { return a.idx - b.idx; });
-        }
-      }
+      if (!userSorted) list.sort(function (a, b) { return a.idx - b.idx; });
       list.forEach(function (item) {
-        frag.appendChild(isT0 ? buildTimex0Row(sheet, item.row, item.idx) : buildRowElement(sheet, item.row, item.idx, false));
+        frag.appendChild(buildRowElement(sheet, item.row, item.idx, false));
       });
     });
     // Empty space after the last tile so today's tile can always be scrolled to the top.
@@ -2013,7 +1968,7 @@
     tableBodyEl.replaceChildren(frag);
   }
 
-  function buildDayHeaderRow(sheet, g, withAdd) {
+  function buildDayHeaderRow(sheet, g) {
     var tr = document.createElement("tr");
     tr.className = "week-day-header-row" + (g.isToday ? " week-day-today" : "");
     tr.dataset.date = g.date;
@@ -2026,16 +1981,6 @@
     text.className = "day-header-text";
     text.textContent = g.date ? (g.isToday ? (g.label + " - Today") : (g.label + ", " + g.date)) : g.label;
     line.appendChild(text);
-    if (withAdd) {
-      var add = document.createElement("button");
-      add.type = "button";
-      add.className = "day-add-btn";
-      add.textContent = "+";
-      add.title = "Add an entry for " + g.date;
-      add.setAttribute("aria-label", "Add an entry for " + g.date);
-      add.addEventListener("click", function () { addTimex0Row(g.date); });
-      line.appendChild(add);
-    }
     td.appendChild(line);
     tr.appendChild(td);
     return tr;
@@ -2060,77 +2005,6 @@
       dayScrollPending = false;
       sc.scrollTop = Math.max(0, hdr.getBoundingClientRect().top - scTop + sc.scrollTop - headH - 4);
     }
-  }
-
-  // Timex0: add an entry (Time at + Happened) to one day.
-  function addTimex0Row(dateStr) {
-    var sheet = workbook.find(function (s) { return s.name === "TimeX0"; });
-    if (!sheet) return;
-    if (sheet.rows.length >= MAX_ROWS) { window.alert("Row limit reached for this sheet."); return; }
-    // iOS only raises the keyboard for focus() made inside the tap itself.
-    var kbHelper = document.createElement("input");
-    kbHelper.type = "text";
-    kbHelper.setAttribute("aria-hidden", "true");
-    kbHelper.tabIndex = -1;
-    kbHelper.className = "kb-helper";
-    document.body.appendChild(kbHelper);
-    kbHelper.focus({ preventScroll: true });
-    sheet.rows.push({ "Date/Day": dayKeyOf(dateStr) || todayLocalMMDDYYYY(), "Time at": "", "Happened": "" });
-    saveWorkbook();
-    var newIdx = sheet.rows.length - 1;
-    renderTable();
-    setTimeout(function () {
-      var tr = tableBodyEl.querySelector('tr[data-source-idx="' + newIdx + '"]');
-      if (tr) {
-        tr.scrollIntoView({ behavior: "smooth", block: "center" });
-        tr.classList.add("row-highlight");
-        setTimeout(function () { tr.classList.remove("row-highlight"); }, 1800);
-        var f = tr.querySelector(".cell-editable");
-        if (f) f.focus({ preventScroll: true });
-      }
-      if (kbHelper.parentNode) kbHelper.parentNode.removeChild(kbHelper);
-    }, 80);
-  }
-
-  // Timex0 row: [radio] Time at | Happened. The cells reuse TimesX7's
-  // column hooks so the layout (also on the phone) is identical.
-  function buildTimex0Row(sheet, row, sourceIdx) {
-    var tr = document.createElement("tr");
-    tr.className = "week-row timex0-row";
-    tr.dataset.sourceIdx = String(sourceIdx);
-
-    var tdTime = document.createElement("td");
-    tdTime.dataset.col = "Date/Day";
-    tdTime.dataset.label = "Time at";
-    var wrap = document.createElement("div");
-    wrap.className = "week-date-wrap";
-    var radio = document.createElement("button");
-    radio.type = "button";
-    radio.className = "week-radio";
-    radio.setAttribute("aria-label", "Delete this entry");
-    radio.title = "Tap to delete this entry";
-    radio.addEventListener("click", function () {
-      var i = sheet.rows.indexOf(row);
-      if (i === -1) return;
-      if (!window.confirm("Delete this entry?")) return;
-      sheet.rows.splice(i, 1);
-      saveWorkbook();
-      renderTable();
-    });
-    wrap.appendChild(radio);
-    var timeCell = buildEditableCell(sheet, row, sourceIdx, "Time at");
-    timeCell.classList.add("timex0-time");
-    wrap.appendChild(timeCell);
-    tdTime.appendChild(wrap);
-
-    var tdHap = document.createElement("td");
-    tdHap.dataset.col = "Timeframes";
-    tdHap.dataset.label = "Happened";
-    tdHap.appendChild(buildEditableCell(sheet, row, sourceIdx, "Happened"));
-
-    tr.appendChild(tdTime);
-    tr.appendChild(tdHap);
-    return tr;
   }
 
   // TimesX7 Refresh: discard the rows on this page and rebuild them from
@@ -2951,7 +2825,6 @@
 
     div.addEventListener("blur", function () {
       var text = sanitizeTyped(extractPlainText(div)).trim();
-      if (sheet.name === "TimeX0" && col === "Time at") text = normalizeTimeAt(text);
       row[col] = text;
       rawVal = text;
       saveWorkbook();
@@ -3603,7 +3476,6 @@
 
   function handleAddRow() {
     var sheet = currentSheet();
-    if (sheet.name === "TimeX0") { addTimex0Row(todayLocalMMDDYYYY()); return; }
     if (isComputedSheet(sheet)) {
       window.alert(shortSheetName(sheet) + " is generated automatically from Daily planning and can't be added to directly.");
       return;
