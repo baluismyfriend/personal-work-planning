@@ -398,9 +398,9 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
     const hdrs = [...w.document.querySelectorAll('tr.week-day-header-row')];
     const today = hdrs.filter(h => h.classList.contains('week-day-today')).slice(0, 1); const others = hdrs.filter(h => !h.classList.contains('week-day-today')).slice(0, 6);
-    if (today.length !== 1 || today[0].textContent !== todayName + ' - Today') throw new Error(JSON.stringify(hdrs.map(h => h.textContent)));
+    if (today.length !== 1 || today[0].textContent.replace(/ \(\d+\)$/, '') !== todayName + ' - Today' || !/ \(1\)$/.test(today[0].textContent)) throw new Error(JSON.stringify(hdrs.map(h => h.textContent)));
     if (!others.length || others.some(h => / - Today/.test(h.textContent))) throw new Error('other header changed');
-    if (!others.some(h => h.textContent === tomorrowName + ', ' + tomorrowStr)) throw new Error('tomorrow header should be "Day, MM/DD/YYYY"');
+    if (!others.some(h => h.textContent.replace(/ \(\d+\)$/, '') === tomorrowName + ', ' + tomorrowStr)) throw new Error('tomorrow header should be "Day, MM/DD/YYYY"');
   });
   await ta('TimesX7: no Transforms/actions column, no row buttons', async () => {
     const w = await weekBoot([blankTask({ Space: 'A', 'Timeframe/Meeting': 'x', 'Time Zero on': todayStr })]);
@@ -905,7 +905,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     tin().value = '11pm'; tin().dispatchEvent(new w.Event('blur'));
     if (tin().value !== '11 PM') throw new Error('shown ' + tin().value);
     if (sheetOf(wbOf(w), 'Week planning').rows[0]['Time at'] !== '11 PM') throw new Error('not saved');
-    if (w.document.querySelector('tr.week-row .week-dt-date').value !== todayStr.slice(0, 5)) throw new Error('date part');
+    if (w.document.querySelector('tr.week-row .week-dt-date').value !== todayStr.slice(0, 5) + ',') throw new Error('date part: ' + w.document.querySelector('tr.week-row .week-dt-date').value);
     if (JSON.stringify(sheetOf(wbOf(w), 'Week planning').columns) !== '["Date/Day","Timeframes"]') throw new Error('columns changed');
     const cap = captureBlobs(w); w.document.getElementById('btnExportJson').click(); await sleep(30);
     await doImport(w, cap[0]); clickNav(w, /^TimesX7$/);
@@ -913,6 +913,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     w.document.getElementById('btnRefreshWeek').click();
     if (tin().value !== '11 PM') throw new Error('lost on Refresh');
     tin().value = ''; tin().dispatchEvent(new w.Event('blur'));
+    if (w.document.querySelector('tr.week-row .week-dt-date').value !== todayStr.slice(0, 5)) throw new Error('comma should go with the time');
     if ('Time at' in sheetOf(wbOf(w), 'Week planning').rows[0]) throw new Error('not cleared');
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });

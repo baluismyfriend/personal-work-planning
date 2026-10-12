@@ -1026,7 +1026,11 @@
       if (resizeDebounceTimer) clearTimeout(resizeDebounceTimer);
       resizeDebounceTimer = setTimeout(function () {
         var nowPhone = isMobileWidth();
-        if (nowPhone === lastPhoneLayout) return;
+        if (nowPhone === lastPhoneLayout) {
+          // Same layout (e.g. the date picker or keyboard closed): only re-measure the day pages.
+          if (isDaySheet(currentSheet())) finishDayView();
+          return;
+        }
         lastPhoneLayout = nowPhone;
         renderTable();
       }, 150);
@@ -1989,7 +1993,7 @@
     line.className = "day-header-line";
     var text = document.createElement("span");
     text.className = "day-header-text";
-    text.textContent = g.date ? (g.isToday ? (g.label + " - Today") : (g.label + ", " + g.date)) : g.label;
+    text.textContent = (g.date ? (g.isToday ? (g.label + " - Today") : (g.label + ", " + g.date)) : g.label) + " (" + g.items.length + ")";
     line.appendChild(text);
     td.appendChild(line);
     tr.appendChild(td);
@@ -2007,9 +2011,14 @@
     if (!hdr || !sp) return;
     var headH = tableHeadEl.offsetHeight || 0;
     var scTop = sc.getBoundingClientRect().top;
+    // The area's full height comes from its CSS max-height - NOT from its
+    // current clientHeight, which shrinks to fit short content and would
+    // make the page end part-way down the screen.
+    var avail = parseFloat(window.getComputedStyle(sc).maxHeight);
+    if (!(avail > 0)) avail = Math.max(sc.clientHeight, (window.innerHeight || 0) - sc.getBoundingClientRect().top);
     sp.style.height = "0px";
     var below = sp.getBoundingClientRect().top - hdr.getBoundingClientRect().top; // today's tile down to the end
-    var room = sc.clientHeight - headH - below;
+    var room = avail - headH - below;
     sp.style.height = Math.max(0, Math.ceil(room)) + "px";
     if (dayScrollPending) {
       dayScrollPending = false;
@@ -2992,6 +3001,12 @@
     return m ? m[1] : String(v || "");
   }
 
+  // What the date part of the field shows: "10/12", or "10/12," when the row
+  // has a time (so the box reads "10/12, 6 AM").
+  function weekDateLabel(row) {
+    return weekDateShort(row["Date/Day"]) + (row["Time at"] ? "," : "");
+  }
+
   // Sets (or clears) a TimesX7 row's time. For a recurring (Demand 99)
   // task, giving a time to a day that had none gives it to all of the
   // task's days that have none; after that each day is edited on its own.
@@ -3048,7 +3063,7 @@
     input.type = "text";
     input.className = "week-dt-date";
     input.readOnly = true;
-    input.value = weekDateShort(row[col]);
+    input.value = weekDateLabel(row);
     input.placeholder = "";
     input.setAttribute("aria-label", "Defined time on (date)");
     if (locked) input.title = "Recurring task (Demand 99): its dates stay the same";
@@ -3122,7 +3137,7 @@
       input.type = "text";
       input.readOnly = true;
       box.classList.remove("week-dt-editing");
-      input.value = weekDateShort(row[col]);
+      input.value = weekDateLabel(row);
     });
 
     // Time part: type e.g. "6 am" / "11pm" / "18:30"; empty removes it.
@@ -3132,6 +3147,7 @@
     timeInput.addEventListener("blur", function () {
       var val = normalizeTimeAt(sanitizeTyped(timeInput.value));
       timeInput.value = val;
+      input.value = weekDateLabel(Object.assign({}, row, val ? { "Time at": val } : { "Time at": "" }));
       if (setWeekRowTime(sheet, row, val)) renderTable(); // re-sort the day (and show days that followed)
     });
 

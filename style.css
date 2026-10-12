@@ -296,6 +296,7 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
 .table-scroller{
   overflow:auto;
   max-height:calc(100vh - 135px);
+  max-height:calc(100dvh - 135px);
   padding:0 4px 8px;
 }
 
@@ -593,7 +594,7 @@ div.summary-task-link{
 @media (max-width:980px){
   .nav{flex-wrap:wrap;overflow-x:visible;}
   .top-row{flex-direction:column;align-items:stretch;}
-  .table-scroller{max-height:calc(100vh - 210px);}
+  .table-scroller{max-height:calc(100vh - 210px);max-height:calc(100dvh - 210px);}
 }
 
 /* Phone-width layout: compact header, and the data table collapses from
@@ -663,6 +664,7 @@ div.summary-task-link{
      than the whole page. */
   .table-scroller{
     max-height:calc(100vh - 190px - env(safe-area-inset-top, 0px));
+    max-height:calc(100dvh - 190px - env(safe-area-inset-top, 0px));
     overflow-y:auto;
     padding:0;
   }
@@ -1636,8 +1638,8 @@ body.order-mode .drag-handle:active{cursor:grabbing;color:var(--text);}
   padding:5px 0 5px 6px;
   min-width:0;
 }
-.week-dt .week-dt-date{flex:0 0 auto;width:42px;cursor:pointer;}
-.week-dt .week-dt-time{flex:1 1 auto;width:100%;padding-left:4px;}
+.week-dt .week-dt-date{flex:0 0 auto;width:46px;cursor:pointer;}
+.week-dt .week-dt-time{flex:1 1 auto;width:100%;padding-left:1px;}
 .week-dt .week-dt-time::placeholder{color:rgba(100,116,139,.5);}
 .week-dt.week-dt-editing .week-dt-date{flex:1 1 auto;width:100%;}
 .week-dt.week-dt-editing .week-dt-time{display:none;}

@@ -662,3 +662,11 @@ you need to scroll:
 - Section 24's TimeX0 bullets no longer apply; TimesX7's 7-day view stays.
 
 - Title font is 24px (22px on the phone).
+
+- TimesX7: each day's title ends with its task count, e.g. "Monday - Today (10)".
+- Fixed: the TimesX7 page sometimes ended part-way down the screen after scrolling or
+  changing a date (the empty space under the last day was measured from the shrunken
+  area). It is now sized from the screen height and re-measured when the screen size
+  changes (date picker/keyboard closing).
+
+- TimesX7: the field reads "10/12, 6 AM" (comma only when a time is set; width unchanged).
