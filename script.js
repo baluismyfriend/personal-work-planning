@@ -338,6 +338,8 @@
 
   // TimesX7 rows may carry an optional "Time at" (e.g. "6 PM") next to the
   // date. It is not a column; it is kept here, own-property reads only.
+  var WEEK_DONE_MAX = 500;
+
   function normalizeWeekSheet(rawSheet) {
     var out = normalizeGenericSheet(rawSheet);
     var raw = Array.isArray(rawSheet.rows) ? rawSheet.rows : [];
@@ -348,6 +350,19 @@
         if (t) r["Time at"] = t;
       }
     });
+    // Days of a daily (Demand 99) task that were completed here: "T|MM/DD/YYYY|text".
+    if (Array.isArray(rawSheet.done)) {
+      var done = [], seen = newMap();
+      for (var i = 0; i < rawSheet.done.length && done.length < WEEK_DONE_MAX; i++) {
+        var k = rawSheet.done[i];
+        if (typeof k !== "string" || !/^T\|\d{2}\/\d{2}\/\d{4}\|/.test(k)) continue;
+        k = k.slice(0, MAX_CELL_LEN + 20);
+        if (hasOwn(seen, k)) continue;
+        seen[k] = true;
+        done.push(k);
+      }
+      if (done.length) out.done = done;
+    }
     return out;
   }
 
@@ -1185,6 +1200,20 @@
     } else {
       lastWeekSyncSig = "";
     }
+    // Completed days of daily tasks: skip them; forget the ones already in the past.
+    var doneSet = newMap();
+    if (Array.isArray(week.done)) {
+      var keepDone = week.done.filter(function (k) {
+        var dm = /^T\|(\d{2}\/\d{2}\/\d{4})\|/.exec(k);
+        var dms = dm ? dateToUtcMs(dm[1]) : null;
+        return dms !== null && dms >= todayMs;
+      });
+      if (keepDone.length !== week.done.length) {
+        if (keepDone.length) week.done = keepDone; else delete week.done;
+        saveWorkbook();
+      }
+      keepDone.forEach(function (k) { doneSet[k] = true; });
+    }
     var synced = loadWeekAutoAdded();
     var added = 0, changedKeys = false;
     var liveKeys = Object.create(null); // keys the source rows currently produce
@@ -1199,6 +1228,7 @@
       if (!text) return;
       var key = tag + "|" + dateStr + "|" + text;
       liveKeys[key] = true;
+      if (hasOwn(doneSet, key)) return;
       if (synced[key]) return;
       var parts = dateStr.split("/");
       var dateDay = formatDateDay(new Date(Number(parts[2]), Number(parts[0]) - 1, Number(parts[1])));
@@ -3236,6 +3266,13 @@
       currentTaskIndexBySheet = newMap();
       refreshSummarySheet(workbook);
     }
+    if (src && src.recurring) {
+      // Completed for this day: remember it so neither Refresh nor the daily
+      // sync brings the day back (the task itself stays on Times).
+      var doneKey = "T|" + dateOnlyOf(row["Date/Day"]) + "|" + String(row["Timeframes"] || "").trim();
+      if (!Array.isArray(sheet.done)) sheet.done = [];
+      if (sheet.done.indexOf(doneKey) === -1 && sheet.done.length < WEEK_DONE_MAX) sheet.done.push(doneKey);
+    }
     sheet.rows.splice(idx, 1);
     saveWorkbook();
     renderAll();
@@ -3613,6 +3650,7 @@
     }
     if (!window.confirm("Clear all rows from this sheet?")) return;
     sheet.rows = [];
+    if (sheet.name === "Week planning") delete sheet.done; // forget completed days too
     saveWorkbook();
     clearSheetFilters(sheet.name);
     delete sortState[sheet.name];

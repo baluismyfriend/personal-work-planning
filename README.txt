@@ -672,3 +672,10 @@ you need to scroll:
 - TimesX7: the field reads "10/12, 6 AM" (comma only when a time is set; width unchanged).
 
 - Fixed: after picking a date in a TimesX7 (or Times / Spacetime) date box, tapping it again now opens the calendar again.
+
+- TimesX7: tapping the round button on a daily (Demand 99) task completes it for that day
+  only - Refresh and the daily sync no longer bring that day back; the task keeps showing on
+  its other days and stays on Times. The completed days are saved with your data (Export /
+  Import), forgotten automatically once the day is past, and matched by the task's text +
+  date (renaming the task on Times makes it reappear). Reset on TimesX7 also forgets them,
+  so Reset then Refresh rebuilds everything.

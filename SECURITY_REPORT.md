@@ -154,3 +154,9 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: time sort on TimesX7, title 28px (149 tests)
 - Tasks in a day are ordered by their time; display order only, nothing stored changed. No security-relevant code changed.
+
+## Update: TimesX7 day counts, short-display fix (149 tests)
+- Day titles show a count; the spacer under the last day is sized from the CSS max-height (dvh-aware) and re-measured on resize. Layout only; no security-relevant code changed.
+
+## Update: completed days of daily tasks on TimesX7 (152 tests)
+- The Week planning sheet may carry `done`: a list of "T|MM/DD/YYYY|text" keys. On load/import each entry must be a string matching that pattern, is length-capped, de-duplicated, and the list is capped at 500; own-property map for lookups. Past days are pruned automatically. 2 tests added. No innerHTML / network APIs / inline styles added.

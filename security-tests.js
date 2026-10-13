@@ -572,6 +572,35 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     await sleep(30); if (sheetOf(wbOf(w), 'Week planning').rows.length !== 1) throw new Error('deleted row came back');
     for (const b of navBtns(w)) b.click(); if (w.__errs.length) throw new Error(w.__errs[0]);
   });
+  await ta('TimesX7: a Demand 99 task completed for a day stays gone through Refresh and Export/Import; other days and the Times row stay; Reset brings it back', async () => {
+    const w = await weekBoot([blankTask({ Space: 'AA', Demand: '99', 'Timeframe/Meeting': 'Daily', Date: todayStr, 'Time Zero on': dayStr(40) })]);
+    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    const dates = () => sheetOf(wbOf(w), 'Week planning').rows.map(r => r['Date/Day'].slice(-10));
+    if (!dates().includes(todayStr)) throw new Error('today missing at start');
+    const todayRow = [...w.document.querySelectorAll('tr.week-row')][0]; todayRow.querySelector('.week-radio').click();
+    if (dates().includes(todayStr)) throw new Error('not removed');
+    w.document.getElementById('btnRefreshWeek').click();
+    if (dates().includes(todayStr)) throw new Error('today came back after Refresh');
+    if (!dates().includes(dayStr(1)) || !dates().includes(dayStr(5))) throw new Error('other days must stay: ' + dates().join());
+    if (sheetOf(wbOf(w), 'Daily planning - All tasks').rows.length !== 1) throw new Error('Times row lost');
+    const cap = captureBlobs(w); w.document.getElementById('btnExportJson').click(); await sleep(30);
+    await doImport(w, cap[0]); clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    if (dates().includes(todayStr)) throw new Error('came back after Export/Import');
+    w.confirm = () => true; w.document.getElementById('btnResetSheet').click(); w.document.getElementById('btnRefreshWeek').click();
+    if (!dates().includes(todayStr)) throw new Error('Reset should bring completed days back');
+    if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
+  await ta('TimesX7: completed-days list is cleaned on import (bad keys dropped, past days forgotten, capped)', async () => {
+    const w = await weekBoot([]); const g = wbOf(w); const wk = sheetOf(g, 'Week planning');
+    wk.done = ['T|' + dayStr(2) + '|ok', 'T|01/01/2020|old', 'junk', 5, { a: 1 }, 'T|' + dayStr(2) + '|ok'].concat(Array.from({ length: 800 }, (_, i) => 'T|' + dayStr(3) + '|x' + i));
+    await doImport(w, JSON.stringify(g));
+    const d = sheetOf(wbOf(w), 'Week planning').done || [];
+    if (d.length > 500 || d.some(k => typeof k !== 'string' || !/^T\|\d{2}\/\d{2}\/\d{4}\|/.test(k))) throw new Error('bad list ' + d.length);
+    w.document.dispatchEvent(new w.Event('visibilitychange')); clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    const after = sheetOf(wbOf(w), 'Week planning').done || [];
+    if (after.some(k => k.includes('01/01/2020'))) throw new Error('past day kept');
+    if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
   await ta('TimesX7: radio on a Demand 99 task deletes only that day here; the Times row stays and the day does not come back', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', Demand: '99', 'Timeframe/Meeting': 'Daily', Date: todayStr, 'Time Zero on': dayStr(3) })]);
     clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();

@@ -107,6 +107,8 @@ PASS  Times: Time Zero on cannot go past the Space's Life Ends (rejected, old va
 PASS  Times: no limit when the Space is blank, unknown, or has no Life Ends
 PASS  TimesX7: Defined time on cannot go past the Space's Life Ends; a valid date also updates Time Zero on on Times
 PASS  TimesX7: radio sits before the date; clicking it deletes the row here AND its source on Times (Demand not 99)
+PASS  TimesX7: a Demand 99 task completed for a day stays gone through Refresh and Export/Import; other days and the Times row stay; Reset brings it back
+PASS  TimesX7: completed-days list is cleaned on import (bad keys dropped, past days forgotten, capped)
 PASS  TimesX7: radio on a Demand 99 task deletes only that day here; the Times row stays and the day does not come back
 PASS  TimesX7: radio -> Cancel deletes nothing
 PASS  TimesX7: a hand-made row with no source on Times is deleted on its own (nothing else touched)
@@ -147,7 +149,7 @@ PASS  BackIn/NextIn wrap on NoSpace: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> 
 PASS  BackIn/NextIn wrap: the item shown actually changes (last item shown after BackIn from first)
 PASS  BackIn/NextIn disabled only when there is nothing to move to (0 or 1 items)
 PASS  Finger swipes still stop at the ends (no wraparound); only the buttons wrap
-      (fuzz: 62 imports accepted, 88 rejected)
+      (fuzz: 56 imports accepted, 94 rejected)
 PASS  Fuzz: 150 randomly type-confused/poisoned imports -> no crash, no pollution, storage always reloadable
 
-150 passed, 0 failed
+152 passed, 0 failed
