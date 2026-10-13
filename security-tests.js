@@ -898,6 +898,16 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     if (w.document.getElementById('pageTitle').textContent !== 'Stars') throw new Error('title ' + w.document.getElementById('pageTitle').textContent);
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
+  await ta('TimesX7: after a date was picked, tapping the date again opens the calendar again (not only the first time)', async () => {
+    const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'x', 'Time Zero on': todayStr })]);
+    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    const inp = w.document.querySelector('tr.week-row .week-dt-date'); let opened = 0; inp.showPicker = () => { opened++; };
+    inp.dispatchEvent(new w.Event('focus')); inp.dispatchEvent(new w.Event('click'));
+    if (opened !== 1) throw new Error('first tap opened ' + opened);
+    inp.value = isoOf(dayStr(2)); inp.dispatchEvent(new w.Event('change'));   // a date is picked; the box stays focused
+    await sleep(450); inp.dispatchEvent(new w.Event('click'));
+    if (opened !== 2) throw new Error('second tap opened ' + opened + ' (calendar did not reopen)');
+  });
   await ta('TimesX7: time typed in the date field ("11pm" -> "11 PM"), shown beside MM/DD, saved, kept on import/Refresh, cleared when emptied', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'x', 'Time Zero on': todayStr })]);
     clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();

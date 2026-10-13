@@ -2253,8 +2253,19 @@
     input.addEventListener("click", function (e) { e.stopPropagation(); });
     input.addEventListener("keydown", function (e) { e.stopPropagation(); });
 
+    var pickerOpenedAt = 0;
+    function openPicker() {
+      pickerOpenedAt = Date.now();
+      if (typeof input.showPicker === "function") {
+        try { input.showPicker(); } catch (e) { /* ignore */ }
+      }
+    }
+
     function activate() {
-      if (input.type === "date") return;
+      // Once a date was picked the box stays focused as a date input, so a
+      // LATER tap must open the calendar again (a double call within one
+      // tap, focus + click, must not).
+      if (input.type === "date") { if (Date.now() - pickerOpenedAt > 400) openPicker(); return; }
       var dr = dailyRow();
       if (!dr) { input.blur(); return; }
       input.readOnly = false;
@@ -2262,9 +2273,7 @@
       input.value = mmddyyyyToIsoStr(dr["Time Zero on"] || "");
       var limit = lifeEndFor(dr.Space);
       if (limit) input.max = mmddyyyyToIsoStr(limit.str);
-      if (typeof input.showPicker === "function") {
-        try { input.showPicker(); } catch (e) { /* ignore */ }
-      }
+      openPicker();
     }
     input.addEventListener("focus", activate);
     input.addEventListener("click", activate);
@@ -2934,10 +2943,21 @@
       return m[2] + "/" + m[3] + "/" + m[1];
     }
 
+    var pickerOpenedAt = 0;
+    function openPicker() {
+      pickerOpenedAt = Date.now();
+      if (typeof input.showPicker === "function") {
+        try { input.showPicker(); } catch (e) { /* ignore */ }
+      }
+    }
+
     function activate() {
       // focus and click both call this; re-running it while the picker
       // is already open resets the control and closes the calendar.
-      if (input.type === "date") return;
+      // Once a date was picked the box stays focused as a date input, so a
+      // LATER tap must open the calendar again (a double call within one
+      // tap, focus + click, must not).
+      if (input.type === "date") { if (Date.now() - pickerOpenedAt > 400) openPicker(); return; }
       input.readOnly = false;
       input.type = "date";
       var iso = mmddyyyyToIso(row[col] || "");
@@ -2945,9 +2965,7 @@
       // Time Zero on cannot be later than the project's Life Ends.
       var limit = (sheet.name === "Daily planning - All tasks" && col === "Time Zero on") ? lifeEndFor(row.Space) : null;
       if (limit) input.max = mmddyyyyToIsoStr(limit.str);
-      if (typeof input.showPicker === "function") {
-        try { input.showPicker(); } catch (e) { /* ignore */ }
-      }
+      openPicker();
     }
 
     input.addEventListener("focus", activate);
@@ -3089,11 +3107,22 @@
       return formatDateDay(d);
     }
 
+    var pickerOpenedAt = 0;
+    function openPicker() {
+      pickerOpenedAt = Date.now();
+      if (typeof input.showPicker === "function") {
+        try { input.showPicker(); } catch (e) { /* ignore */ }
+      }
+    }
+
     function activate() {
       if (locked) { input.blur(); return; }
       // focus and click both call this; re-running it while the picker
       // is already open resets the control and closes the calendar.
-      if (input.type === "date") return;
+      // Once a date was picked the box stays focused as a date input, so a
+      // LATER tap must open the calendar again (a double call within one
+      // tap, focus + click, must not).
+      if (input.type === "date") { if (Date.now() - pickerOpenedAt > 400) openPicker(); return; }
       input.readOnly = false;
       input.type = "date";
       box.classList.add("week-dt-editing");
@@ -3102,9 +3131,7 @@
       // Cannot go past the project's Life Ends on Spaces.
       var limit = lifeEndFor(weekRowSpace(row));
       if (limit) input.max = mmddyyyyToIsoStr(limit.str);
-      if (typeof input.showPicker === "function") {
-        try { input.showPicker(); } catch (e) { /* ignore */ }
-      }
+      openPicker();
     }
 
     input.addEventListener("focus", activate);

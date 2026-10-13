@@ -670,3 +670,5 @@ you need to scroll:
   changes (date picker/keyboard closing).
 
 - TimesX7: the field reads "10/12, 6 AM" (comma only when a time is set; width unchanged).
+
+- Fixed: after picking a date in a TimesX7 (or Times / Spacetime) date box, tapping it again now opens the calendar again.
