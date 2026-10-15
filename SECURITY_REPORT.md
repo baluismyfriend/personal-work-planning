@@ -160,3 +160,9 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: completed days of daily tasks on TimesX7 (152 tests)
 - The Week planning sheet may carry `done`: a list of "T|MM/DD/YYYY|text" keys. On load/import each entry must be a string matching that pattern, is length-capped, de-duplicated, and the list is capped at 500; own-property map for lookups. Past days are pruned automatically. 2 tests added. No innerHTML / network APIs / inline styles added.
+
+## Update: roll-over of pending tasks to today, TimesX7 today..+6 (153 tests)
+- The TimesX7 sync moves overdue non-Demand-99 tasks to today (updates `Time Zero on`, relocates the TimesX7 row and its time), respecting Life Ends. Data-only logic using existing validated date helpers; no innerHTML / network APIs / inline styles added. 2 tests added.
+
+## Update: undated tasks excluded from TimesX7 (155 tests)
+- Rows whose Times task has no Time Zero on are not added/moved, and stale TimesX7 rows of such tasks are removed. Data logic only.

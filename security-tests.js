@@ -520,7 +520,8 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
 
   /* ---- TimesX7: Times-only rows, Life Ends limit, radio delete, date sync ---- */
   const dayStr = n => mmddyyyy(new Date(now.getFullYear(), now.getMonth(), now.getDate() + n));
-  const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m[3] + '-' + m[1] + '-' + m[2]; };
+  const dayName = n => DAYNAMES[new Date(now.getFullYear(), now.getMonth(), now.getDate() + n).getDay()].slice(0, 3);
+const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m[3] + '-' + m[1] + '-' + m[2]; };
   const dateOnly = v => { const m = /\d{2}\/\d{2}\/\d{4}/.exec(v); return m ? m[0] : ''; };
   const formatDD = n => { const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + n); return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()] + ', ' + mmddyyyy(d); };
   const lifeRow = (space, ends) => ({ Space: space, 'Key milestones': 'k', 'Life began': '', 'Life Ends': ends, 'Life span': '' });
@@ -571,6 +572,51 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     if (JSON.stringify(sheetOf(g, 'Daily planning - All tasks').rows.map(r => r['Timeframe/Meeting'])) !== '["T2"]') throw new Error('times: ' + JSON.stringify(sheetOf(g, 'Daily planning - All tasks').rows));
     await sleep(30); if (sheetOf(wbOf(w), 'Week planning').rows.length !== 1) throw new Error('deleted row came back');
     for (const b of navBtns(w)) b.click(); if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
+  await ta('TimesX7 roll-over: pending (non-99) tasks dated before today move to today (Times "Time Zero on" + TimesX7 row, time kept); Demand 99 and future tasks untouched; no previous-day tile', async () => {
+    const w = await weekBoot([
+      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'late1', 'Time Zero on': dayStr(-1) }),
+      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'late3', 'Time Zero on': dayStr(-3) }),
+      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'future', 'Time Zero on': dayStr(2) }),
+      blankTask({ Space: 'AA', Demand: '99', 'Timeframe/Meeting': 'daily', Date: dayStr(-5), 'Time Zero on': dayStr(-1) })]);
+    const wk = () => sheetOf(wbOf(w), 'Week planning'), dl = () => sheetOf(wbOf(w), 'Daily planning - All tasks');
+    const g0 = wbOf(w); const pastDD = dayName(-1) + ', ' + dayStr(-1);
+    sheetOf(g0, 'Week planning').rows = [{ 'Date/Day': pastDD, Timeframes: 'AA || late1', 'Time at': '5 PM' }];
+    await doImport(w, JSON.stringify(g0));
+    w.document.dispatchEvent(new w.Event('visibilitychange')); clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    const tz = n => dl().rows.find(r => r['Timeframe/Meeting'] === n)['Time Zero on'];
+    if (tz('late1') !== todayStr || tz('late3') !== todayStr) throw new Error('not moved: ' + tz('late1') + ' ' + tz('late3'));
+    if (tz('future') !== dayStr(2)) throw new Error('future task changed');
+    if (tz('daily') !== dayStr(-1)) throw new Error('Demand 99 task changed');
+    const mine = n => wk().rows.filter(r => r.Timeframes === 'AA || ' + n);
+    if (mine('late1').length !== 1 || mine('late1')[0]['Date/Day'].slice(-10) !== todayStr) throw new Error('late1 row: ' + JSON.stringify(mine('late1')));
+    if (mine('late1')[0]['Time at'] !== '5 PM') throw new Error('time lost on move');
+    if (mine('late3').length !== 1 || mine('late3')[0]['Date/Day'].slice(-10) !== todayStr) throw new Error('late3 row');
+    if ([...w.document.querySelectorAll('tr.week-day-header-row')].some(h => h.dataset.date === dayStr(-1))) throw new Error('previous-day tile shown');
+    const todayCount = wk().rows.filter(r => r['Date/Day'].slice(-10) === todayStr && /late/.test(r.Timeframes)).length;
+    if (todayCount !== 2) throw new Error('today should hold both late tasks, has ' + todayCount);
+    if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
+  await ta('TimesX7: tasks with no "Time Zero on" date are never shown or moved (also Demand 99 without an end date); a row left from when the date existed is removed', async () => {
+    const w = await weekBoot([
+      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'nodate' }),
+      blankTask({ Space: 'AA', Demand: '99', 'Timeframe/Meeting': 'dailynodate', Date: dayStr(-2) }),
+      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'cleared' }),
+      blankTask({ Space: 'AA', 'Timeframe/Meeting': 'dated', 'Time Zero on': dayStr(1) })]);
+    const g0 = wbOf(w); sheetOf(g0, 'Week planning').rows = [{ 'Date/Day': dayName(1) + ', ' + dayStr(1), Timeframes: 'AA || cleared' }, { 'Date/Day': dayName(1) + ', ' + dayStr(1), Timeframes: 'AA || dated' }];
+    await doImport(w, JSON.stringify(g0));
+    w.document.dispatchEvent(new w.Event('visibilitychange')); clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    const texts = sheetOf(wbOf(w), 'Week planning').rows.map(r => r.Timeframes).join('|');
+    if (texts !== 'AA || dated') throw new Error('week rows: ' + texts);
+    const d = sheetOf(wbOf(w), 'Daily planning - All tasks').rows;
+    if (d.filter(r => !/dated$/.test(r['Timeframe/Meeting']) || r['Timeframe/Meeting'] === 'nodate').some(r => r['Time Zero on'] !== '')) throw new Error('an undated task got a date');
+    if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
+  await ta('TimesX7 roll-over: a task is not moved past its Space\'s Life Ends', async () => {
+    const lr = { Space: 'AA', 'Key milestones': '', 'Life began': '', 'Life Ends': dayStr(-2), 'Life span': '' };
+    const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'stuck', 'Time Zero on': dayStr(-3) })], [lr]);
+    w.document.dispatchEvent(new w.Event('visibilitychange')); clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    if (sheetOf(wbOf(w), 'Daily planning - All tasks').rows[0]['Time Zero on'] !== dayStr(-3)) throw new Error('moved past Life Ends');
   });
   await ta('TimesX7: a Demand 99 task completed for a day stays gone through Refresh and Export/Import; other days and the Times row stay; Reset brings it back', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', Demand: '99', 'Timeframe/Meeting': 'Daily', Date: todayStr, 'Time Zero on': dayStr(40) })]);
@@ -884,22 +930,22 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     if (w.document.querySelector('#tableBody .summary-task-link')) throw new Error('did not collapse');
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
-  await ta('TimesX7: exactly 7 date tiles (yesterday, today, +5), today 2nd, no weekday merging', async () => {
+  await ta('TimesX7: exactly 7 date tiles (today .. +6), no previous-day tile, no weekday merging', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T0', 'Time Zero on': dayStr(0) }), blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': dayStr(1) }), blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T3', 'Time Zero on': dayStr(3) })]);
     clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
     const all = [...w.document.querySelectorAll('tr.week-day-header-row')].map(e => e.dataset.date);
-    const want = []; for (let n = -1; n <= 5; n++) want.push(dayStr(n));
+    const want = []; for (let n = 0; n <= 6; n++) want.push(dayStr(n));
     if (all.join() !== want.join()) throw new Error(all.join() + ' != ' + want.join());
-    const today = w.document.querySelector('tr.week-day-today'); if (!today || today.dataset.date !== dayStr(0) || all[1] !== dayStr(0)) throw new Error('today must be the 2nd tile');
-    if (all.includes(dayStr(6)) || all.includes(dayStr(-2))) throw new Error('only 7 days may be shown');
+    const today = w.document.querySelector('tr.week-day-today'); if (!today || today.dataset.date !== dayStr(0) || all[0] !== dayStr(0)) throw new Error('today must be the first tile');
+    if (all.includes(dayStr(7)) || all.includes(dayStr(-1))) throw new Error('only today + 6 days may be shown (no previous day)');
   });
   await ta('TimesX7: Demand 99 task shows once per day; next week\'s same weekday is not mixed into today\'s tile', async () => {
     const w = await weekBoot([blankTask({ Date: dayStr(0), Space: 'AA', Demand: '99', 'Timeframe/Meeting': 'Daily', 'Time Zero on': dayStr(40) })]);
     clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
     const perTile = {}; let cur = null, seen = {};
     [...w.document.querySelectorAll('#tableBody tr')].forEach(tr => { if (tr.classList.contains('week-day-header-row')) { cur = tr.dataset.date; if (seen[cur]) cur = null; else { seen[cur] = true; perTile[cur] = 0; } } else if (cur && tr.classList.contains('week-row')) perTile[cur]++; });
-    for (let n = 0; n <= 5; n++) if (perTile[dayStr(n)] !== 1) throw new Error('day ' + n + ' count ' + perTile[dayStr(n)]);
-    if (dayStr(6) in perTile) throw new Error('+6 day must not be shown');
+    for (let n = 0; n <= 6; n++) if (perTile[dayStr(n)] !== 1) throw new Error('day ' + n + ' count ' + perTile[dayStr(n)]);
+    if (dayStr(7) in perTile) throw new Error('+7 day must not be shown');
   });
   await ta('TimeX0 / NextIn are gone: a backup containing them imports, those pages are dropped, no button, no extra page', async () => {
     const w = await boot(); const g = wbOf(w);

@@ -1215,7 +1215,42 @@
       keepDone.forEach(function (k) { doneSet[k] = true; });
     }
     var synced = loadWeekAutoAdded();
-    var added = 0, changedKeys = false;
+    var added = 0, changedKeys = false, moved = 0, staleRemoved = 0;
+
+    // Roll-over: a task that is not Demand 99 and is still on Times with a
+    // date before today was not completed, so it moves to today - its
+    // "Time Zero on" becomes today's date and its TimesX7 row (with its
+    // time) moves to today's tile. Demand 99 tasks are left alone, and a
+    // task is not pushed past its Space's Life Ends.
+    if (daily && Array.isArray(daily.rows)) {
+      var todayStrNow = formatLocalMMDDYYYY(now);
+      var todayDateDay = formatDateDay(new Date(now.getFullYear(), now.getMonth(), now.getDate()));
+      daily.rows.forEach(function (r) {
+        if (!r || String(r.Demand || "").trim() === "99" || String(r.Timing || "").trim() === "Complete") return;
+        var oldKey = dayKeyOf(r["Time Zero on"]);
+        var oldMs = oldKey ? dateToUtcMs(oldKey) : null;
+        if (oldMs === null || oldMs >= todayMs) return;
+        var tText = String(r["Timeframe/Meeting"] || "").trim();
+        var sText = String(r.Space || "").trim();
+        var mText = sanitizeCell((sText && tText) ? (sText + " || " + tText) : (tText || sText), MAX_CELL_LEN).trim();
+        if (!mText) return;
+        var lim = lifeEndFor(sText);
+        if (lim && todayMs > lim.ms) return;
+        var op = oldKey.split("/");
+        var oldDateDay = formatDateDay(new Date(Number(op[2]), Number(op[0]) - 1, Number(op[1])));
+        function weekRowFor(dd) {
+          return week.rows.find(function (w) { return w && w["Date/Day"] === dd && String(w["Timeframes"] || "").trim() === mText; });
+        }
+        var oldWeekRow = weekRowFor(oldDateDay);
+        var todayWeekRow = weekRowFor(todayDateDay);
+        r["Time Zero on"] = todayStrNow;
+        if (oldWeekRow) {
+          if (todayWeekRow) week.rows.splice(week.rows.indexOf(oldWeekRow), 1);
+          else oldWeekRow["Date/Day"] = todayDateDay;
+        }
+        moved++;
+      });
+    }
     var liveKeys = Object.create(null); // keys the source rows currently produce
 
     function consider(tag, dateStr, text, legacyText, recurring) {
@@ -1256,6 +1291,30 @@
       }
       synced[key] = true;
       changedKeys = true;
+    }
+
+    // Tasks with no "Time Zero on" date are not part of TimesX7 at all: they
+    // are never added or moved, and a TimesX7 row left behind from when the
+    // task still had a date is removed (unless another Times task with the
+    // same text does have a date).
+    if (daily && Array.isArray(daily.rows)) {
+      var datedTexts = newMap(), undatedTexts = newMap();
+      daily.rows.forEach(function (r) {
+        if (!r) return;
+        var tt = String(r["Timeframe/Meeting"] || "").trim();
+        var st = String(r.Space || "").trim();
+        var full = sanitizeCell((st && tt) ? (st + " || " + tt) : (tt || st), MAX_CELL_LEN).trim();
+        if (!full) return;
+        var target = dayKeyOf(r["Time Zero on"]) !== "" ? datedTexts : undatedTexts;
+        target[full] = true;
+        if (tt) target[tt] = true;
+      });
+      var beforeCount = week.rows.length;
+      week.rows = week.rows.filter(function (w) {
+        var t = String((w && w["Timeframes"]) || "").trim();
+        return !(hasOwn(undatedTexts, t) && !hasOwn(datedTexts, t));
+      });
+      staleRemoved = beforeCount - week.rows.length;
     }
 
     // TimesX7 is built from the Times page only (Spaces rows are no
@@ -1299,10 +1358,13 @@
       if (!liveKeys[k]) { delete synced[k]; changedKeys = true; }
     });
     if (changedKeys) saveWeekAutoAdded(synced);
-    if (added > 0) {
+    if (added > 0 || moved > 0 || staleRemoved > 0) {
+      if (moved > 0) refreshSummarySheet(workbook);
       saveWorkbook();
       var cur = currentSheet();
-      if (cur && cur.name === "Week planning") renderAll();
+      var ae = document.activeElement;
+      var typing = ae && tableBodyEl.contains(ae) && (ae.isContentEditable || ae.tagName === "INPUT");
+      if (cur && !typing && (cur.name === "Week planning" || (moved > 0 && (cur.name === "Daily planning - All tasks" || cur.name === "Summary")))) renderAll();
     }
     return added;
   }
@@ -1917,7 +1979,7 @@
      at the top when you open the page or tap Refresh, scrolling down
      shows the following days and scrolling up shows the days before. */
   var DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  var DAY_FROM = -1, DAY_TO = 5; // the page shows 7 days: yesterday, today (2nd) and the next 5
+  var DAY_FROM = 0, DAY_TO = 6; // the page shows 7 days: today and the next 6
   var dayScrollPending = true;   // put today's tile at the top after the next render
 
   function isDaySheet(sheet) {

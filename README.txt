@@ -679,3 +679,14 @@ you need to scroll:
   Import), forgotten automatically once the day is past, and matched by the task's text +
   date (renaming the task on Times makes it reappear). Reset on TimesX7 also forgets them,
   so Reset then Refresh rebuilds everything.
+
+- TimesX7 roll-over: a task that is NOT Demand 99 and is still on Times with a date before
+  today (not completed) moves to today automatically - its "Time Zero on" on Times becomes
+  today's date and its TimesX7 row (with its time) moves into today's tile. This also catches
+  older days if the app was not opened for a while. Demand 99 tasks are not changed. A task is
+  not pushed past its Space's "Life Ends" (it stays where it is). The page now shows today and
+  the next 6 days; there is no previous-day tile.
+
+- TimesX7: tasks whose "Time Zero on" is empty are left out completely - never shown, never
+  moved to today (this includes Demand 99 tasks with no end date). If a task's date is
+  cleared on Times, its old TimesX7 row is removed on the next sync.

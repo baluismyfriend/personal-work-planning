@@ -107,6 +107,9 @@ PASS  Times: Time Zero on cannot go past the Space's Life Ends (rejected, old va
 PASS  Times: no limit when the Space is blank, unknown, or has no Life Ends
 PASS  TimesX7: Defined time on cannot go past the Space's Life Ends; a valid date also updates Time Zero on on Times
 PASS  TimesX7: radio sits before the date; clicking it deletes the row here AND its source on Times (Demand not 99)
+PASS  TimesX7 roll-over: pending (non-99) tasks dated before today move to today (Times "Time Zero on" + TimesX7 row, time kept); Demand 99 and future tasks untouched; no previous-day tile
+PASS  TimesX7: tasks with no "Time Zero on" date are never shown or moved (also Demand 99 without an end date); a row left from when the date existed is removed
+PASS  TimesX7 roll-over: a task is not moved past its Space's Life Ends
 PASS  TimesX7: a Demand 99 task completed for a day stays gone through Refresh and Export/Import; other days and the Times row stay; Reset brings it back
 PASS  TimesX7: completed-days list is cleaned on import (bad keys dropped, past days forgotten, capped)
 PASS  TimesX7: radio on a Demand 99 task deletes only that day here; the Times row stays and the day does not come back
@@ -132,7 +135,7 @@ PASS  TimesX7: drag only inside the same day (a task never lands on another day)
 PASS  Stars: rows can be dragged to a new place and the order is saved
 PASS  Drag: first run keeps the old date order as the starting order of Spaces (once)
 PASS  Spacetime: each Space is one collapsed line (+, "Times", Space box in its colour); + opens its tasks, + again closes them
-PASS  TimesX7: exactly 7 date tiles (yesterday, today, +5), today 2nd, no weekday merging
+PASS  TimesX7: exactly 7 date tiles (today .. +6), no previous-day tile, no weekday merging
 PASS  TimesX7: Demand 99 task shows once per day; next week's same weekday is not mixed into today's tile
 PASS  TimeX0 / NextIn are gone: a backup containing them imports, those pages are dropped, no button, no extra page
 PASS  Header: title row has only the title; page bar order is Spaces, Spacetime, Times, TimesX7, NoSpace (no Stars, no TimeX0)
@@ -149,7 +152,7 @@ PASS  BackIn/NextIn wrap on NoSpace: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> 
 PASS  BackIn/NextIn wrap: the item shown actually changes (last item shown after BackIn from first)
 PASS  BackIn/NextIn disabled only when there is nothing to move to (0 or 1 items)
 PASS  Finger swipes still stop at the ends (no wraparound); only the buttons wrap
-      (fuzz: 56 imports accepted, 94 rejected)
+      (fuzz: 58 imports accepted, 92 rejected)
 PASS  Fuzz: 150 randomly type-confused/poisoned imports -> no crash, no pollution, storage always reloadable
 
-152 passed, 0 failed
+155 passed, 0 failed
