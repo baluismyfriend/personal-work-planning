@@ -643,8 +643,9 @@ you need to scroll:
 - Daily (Demand 99) tasks: giving a time to one day that has none gives it
   to all that task's days that have none (new days inherit it too). After
   that each day is edited on its own.
-- Within each day, tasks are sorted by time (7 AM, 7 PM, 11 PM ...); a time that is
-  not a clear clock time comes after them and tasks with no time stay at the bottom.
+- Within each day, tasks are grouped by Space (A-Z; tasks without a Space last) and, inside
+  each Space, sorted by time (7 AM, 7 PM, 11 PM ...); a time that is not a clear clock time
+  comes after them and tasks with no time stay at the bottom of their Space.
   Order/drag still sets the order among tasks with the same time (or no time).
 
 ------------------------------------------------------------

@@ -2042,6 +2042,13 @@
     return h12 + (mi ? ":" + String(mi).padStart(2, "0") : "") + " " + (h24 >= 12 ? "PM" : "AM");
   }
 
+  // The Space name of a TimesX7 row ("Space || Time"), lower-cased for sorting.
+  function weekSpaceKey(row) {
+    var t = String((row && row["Timeframes"]) || "");
+    var i = t.indexOf(" || ");
+    return i === -1 ? "" : t.slice(0, i).trim().toLowerCase();
+  }
+
   function weekTimeRank(row) {
     var t = String((row && row["Time at"]) || "").trim();
     if (!t) return 2e6;
@@ -2056,10 +2063,20 @@
     groups.forEach(function (g) {
       frag.appendChild(buildDayHeaderRow(sheet, g));
       var list = g.items.slice();
-      // Within a day: timed tasks in time order (7 AM, 7 PM, 11 PM ...), a
-      // time that is not a clear clock time next, tasks with no time last;
-      // ties keep the order set with Order / drag.
-      if (!userSorted) list.sort(function (a, b) { return weekTimeRank(a.row) - weekTimeRank(b.row) || (a.idx - b.idx); });
+      // Within a day: Space by Space (A-Z, rows with no Space last), and inside
+      // each Space by time (7 AM, 7 PM, 11 PM ...; a time that is not a clear
+      // clock time next, no time last); ties keep the order set with Order / drag.
+      if (!userSorted) {
+        list.forEach(function (it) { it.spaceKey = weekSpaceKey(it.row); it.timeRank = weekTimeRank(it.row); });
+        list.sort(function (a, b) {
+          if (a.spaceKey !== b.spaceKey) {
+            if (a.spaceKey === "") return 1;
+            if (b.spaceKey === "") return -1;
+            return a.spaceKey < b.spaceKey ? -1 : 1;
+          }
+          return (a.timeRank - b.timeRank) || (a.idx - b.idx);
+        });
+      }
       list.forEach(function (item) {
         frag.appendChild(buildRowElement(sheet, item.row, item.idx, false));
       });

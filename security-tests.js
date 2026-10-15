@@ -986,6 +986,20 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     if ('Time at' in sheetOf(wbOf(w), 'Week planning').rows[0]) throw new Error('not cleared');
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
+  await ta('TimesX7: within a day tasks are grouped by Space (A-Z, no Space last) and, inside each Space, sorted by time (no time last)', async () => {
+    const w = await weekBoot([
+      blankTask({ Space: 'Zed', 'Timeframe/Meeting': 'z1', 'Time Zero on': todayStr }), blankTask({ Space: 'alpha', 'Timeframe/Meeting': 'a1', 'Time Zero on': todayStr }),
+      blankTask({ Space: 'Zed', 'Timeframe/Meeting': 'z2', 'Time Zero on': todayStr }), blankTask({ Space: 'alpha', 'Timeframe/Meeting': 'a2', 'Time Zero on': todayStr }),
+      blankTask({ Space: 'Mid', 'Timeframe/Meeting': 'm1', 'Time Zero on': todayStr }), blankTask({ Space: '', 'Timeframe/Meeting': 'none', 'Time Zero on': todayStr })]);
+    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    const order = () => [...w.document.querySelectorAll('tr.week-row')].slice(0, 6).map(r => r.querySelector('.week-times-link').textContent).join(' ; ');
+    const setT = (name, v) => { const r = [...w.document.querySelectorAll('tr.week-row')].find(x => x.querySelector('.week-times-link').textContent.endsWith(name)); const i = r.querySelector('.week-dt-time'); i.value = v; i.dispatchEvent(new w.Event('blur')); };
+    setT('z1', '9 pm'); setT('z2', '8 am'); setT('a2', '7 am'); setT('a1', '7 pm');
+    const got = order(); const want = 'alpha || a2 ; alpha || a1 ; Mid || m1 ; Zed || z2 ; Zed || z1 ; none';
+    if (got !== want) throw new Error(got);
+    if (!/none$/.test(got)) throw new Error('task without a Space must be last: ' + got);
+    if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
   await ta('TimesX7: within a day tasks sort by time ascending (7 AM, 7 PM, 11 PM), odd text after, no time last; re-sorts when a time is set', async () => {
     const w = await weekBoot([1, 2, 3, 4, 5].map(n => blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T' + n, 'Time Zero on': todayStr })));
     clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();

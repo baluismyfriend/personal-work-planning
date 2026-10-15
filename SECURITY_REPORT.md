@@ -169,3 +169,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: TimesX7 "Defined time at" (154 tests)
 - First column shows only the time box (no date input); column narrowed. Date picking on TimesX7 removed (Times page keeps its own date boxes and the Life Ends limit). Layout/UI only.
+
+## Update: TimesX7 sorted by Space then time (155 tests)
+- Display order only; nothing stored changed.
