@@ -769,7 +769,7 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     clickNav(w, /^Times$/); if (w.document.querySelector('td[data-col="Space"] .space-box').className !== aaCls) throw new Error('AA colour changed');
     const colourOf = el => (/space-color-\d+/.exec(el.className) || [''])[0];
     clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
-    const x7 = w.document.querySelector('td[data-col="Timeframes"] .week-times-link'); if (!x7 || colourOf(x7) !== colourOf({ className: aaCls }) || x7.querySelector('.space-color') || x7.textContent !== 'AA || T1') throw new Error('TimesX7 colour (whole box): ' + (x7 && x7.className));
+    const x7 = w.document.querySelector('td[data-col="Timeframes"] .week-times-link'); if (!x7 || colourOf(x7) !== colourOf({ className: aaCls }) || x7.querySelector('.space-color') || x7.textContent !== 'T1') throw new Error('TimesX7 colour (whole box, task text only): ' + (x7 && x7.className));
     clickNav(w, /^Spacetime$/); const title = w.document.querySelector('tr.summary-space-title .space-box'); if (!title || colourOf(title) !== colourOf({ className: aaCls })) throw new Error('Spacetime Space box colour: ' + (title && title.className)); expandSpacetime(w);
     const box = w.document.querySelector('td[data-col="Time"] .week-times-link'); if (!box || colourOf(box) !== colourOf({ className: aaCls })) throw new Error('Spacetime task box colour: ' + (box && box.className));
     clickNav(w, /^Spaces$|^Projects$/); const sc = w.document.querySelector('td[data-col="Space"] .space-box'); if (colourOf(sc) !== colourOf({ className: aaCls })) throw new Error('Spaces page colour');
@@ -986,6 +986,14 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     if ('Time at' in sheetOf(wbOf(w), 'Week planning').rows[0]) throw new Error('not cleared');
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
+  await ta('TimesX7: the Times column shows only the task text (Space is in the group title); stored "Space || Time" and tap-to-open unchanged', async () => {
+    const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': todayStr })]);
+    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    const link = w.document.querySelector('tr.week-row .week-times-link');
+    if (link.textContent !== 'T1' || /\|\|/.test(link.textContent)) throw new Error('shown: ' + link.textContent);
+    if (sheetOf(wbOf(w), 'Week planning').rows[0].Timeframes !== 'AA || T1') throw new Error('stored value changed');
+    link.click(); if (w.document.getElementById('pageTitle').textContent.indexOf('Times') === -1) throw new Error('did not open Times');
+  });
   await ta('TimesX7: within a day tasks are grouped by Space (A-Z, no Space last) and, inside each Space, sorted by time (no time last)', async () => {
     const w = await weekBoot([
       blankTask({ Space: 'Zed', 'Timeframe/Meeting': 'z1', 'Time Zero on': todayStr }), blankTask({ Space: 'alpha', 'Timeframe/Meeting': 'a1', 'Time Zero on': todayStr }),
@@ -995,9 +1003,13 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     const order = () => [...w.document.querySelectorAll('tr.week-row')].slice(0, 6).map(r => r.querySelector('.week-times-link').textContent).join(' ; ');
     const setT = (name, v) => { const r = [...w.document.querySelectorAll('tr.week-row')].find(x => x.querySelector('.week-times-link').textContent.endsWith(name)); const i = r.querySelector('.week-dt-time'); i.value = v; i.dispatchEvent(new w.Event('blur')); };
     setT('z1', '9 pm'); setT('z2', '8 am'); setT('a2', '7 am'); setT('a1', '7 pm');
-    const got = order(); const want = 'alpha || a2 ; alpha || a1 ; Mid || m1 ; Zed || z2 ; Zed || z1 ; none';
+    const got = order(); const want = 'a2 ; a1 ; m1 ; z2 ; z1 ; none';
     if (got !== want) throw new Error(got);
     if (!/none$/.test(got)) throw new Error('task without a Space must be last: ' + got);
+    const heads = [...w.document.querySelectorAll('tr.week-space-heading')].map(h => h.textContent).join(',');
+    if (heads !== 'alpha,Mid,Zed,No space') throw new Error('Space headings: ' + heads);
+    const trs = [...w.document.querySelectorAll('#tableBody tr')]; const hi = trs.findIndex(x => x.classList.contains('week-space-heading'));
+    if (!trs[hi + 1].classList.contains('week-row')) throw new Error('a task must follow its heading');
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
   await ta('TimesX7: within a day tasks sort by time ascending (7 AM, 7 PM, 11 PM), odd text after, no time last; re-sorts when a time is set', async () => {

@@ -1646,3 +1646,21 @@ body.order-mode .drag-handle:active{cursor:grabbing;color:var(--text);}
   /* iOS zooms in on focused fields under 16px */
   .data-table tr.week-row .week-dt input:focus{font-size:16px;}
 }
+
+/* TimesX7: small Space title (as typed) above each Space's tasks inside a day */
+.data-table tr.week-space-heading,
+.data-table tr.week-space-heading > td{
+  display:block;
+  padding:0;
+  border:0;
+  background:none;
+  box-shadow:none;
+}
+.data-table tr.week-space-heading > td{
+  margin:2px 0 -4px 4px;
+  font-size:10px;
+  font-weight:800;
+  line-height:1.2;
+  letter-spacing:.02em;
+  color:var(--muted, #64748b);
+}

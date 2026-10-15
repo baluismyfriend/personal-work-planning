@@ -2049,6 +2049,20 @@
     return i === -1 ? "" : t.slice(0, i).trim().toLowerCase();
   }
 
+  // Small group title: the Space name as typed (or "No space").
+  function buildWeekSpaceHeading(sheet, row) {
+    var t = String((row && row["Timeframes"]) || "");
+    var i = t.indexOf(" || ");
+    var name = i === -1 ? "" : t.slice(0, i).trim();
+    var tr = document.createElement("tr");
+    tr.className = "week-space-heading";
+    var td = document.createElement("td");
+    td.colSpan = sheet.columns.length;
+    td.textContent = name || "No space";
+    tr.appendChild(td);
+    return tr;
+  }
+
   function weekTimeRank(row) {
     var t = String((row && row["Time at"]) || "").trim();
     if (!t) return 2e6;
@@ -2077,7 +2091,14 @@
           return (a.timeRank - b.timeRank) || (a.idx - b.idx);
         });
       }
+      // A small heading for each Space's group of tasks in the day.
+      var lastSpaceKey = null;
       list.forEach(function (item) {
+        var spaceKey = weekSpaceKey(item.row);
+        if (spaceKey !== lastSpaceKey) {
+          lastSpaceKey = spaceKey;
+          frag.appendChild(buildWeekSpaceHeading(sheet, item.row));
+        }
         frag.appendChild(buildRowElement(sheet, item.row, item.idx, false));
       });
     });
@@ -3200,7 +3221,8 @@
     // The Space's colour is the background of the whole "Space || Time" box.
     var wcls = spaceColorClass(sepAt === -1 ? wtext : wtext.slice(0, sepAt));
     if (wcls) div.classList.add(wcls);
-    div.textContent = wtext;
+    // Only the task text: its Space is the small group title above it.
+    div.textContent = sepAt === -1 ? wtext : wtext.slice(sepAt + 4);
     div.title = "Tap to open this task on the Times page";
     var weekWrap = null;
     if (!sortState["Week planning"]) {

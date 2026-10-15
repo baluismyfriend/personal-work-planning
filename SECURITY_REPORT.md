@@ -172,3 +172,9 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: TimesX7 sorted by Space then time (155 tests)
 - Display order only; nothing stored changed.
+
+## Update: Space group titles on TimesX7 (155 tests)
+- Display only (textContent); nothing stored changed.
+
+## Update: Times column without Space, group title as typed (156 tests)
+- Display only (textContent); stored "Space || Time" unchanged.

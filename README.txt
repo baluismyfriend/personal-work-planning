@@ -697,3 +697,7 @@ you need to scroll:
   Times column gets more room. Type a time (6 am, 11pm, 18:30); empty it to remove it.
   A task's date can no longer be changed on TimesX7 - change "Time Zero on" on the Times page
   (the TimesX7 row follows on the next Refresh/sync).
+
+- TimesX7: inside each day, every Space has a small title (Space name in small capitals) above its tasks; tasks with no Space are under "No space".
+
+- TimesX7: the Space group title keeps the Space name exactly as typed (no capitals), and the Times column now shows only the task text (the Space is in the group title). Stored data is unchanged.
