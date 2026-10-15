@@ -88,7 +88,7 @@ PASS  TimesX7 Refresh: Times rows appear as "Space || Time"; Spaces (Life Ends) 
 PASS  TimesX7 sync: an older row showing only the Time text is upgraded in place (no duplicate)
 PASS  TimesX7: today's group reads "<Day> - Today" with the highlight class; other groups unchanged
 PASS  TimesX7: no Transforms/actions column, no row buttons
-PASS  TimesX7: Defined time on shows only the date (stored value keeps weekday); date col fixed, Times col takes the rest
+PASS  TimesX7: first column is "Defined time at": shows only the time (no date), is narrow, Times column takes the rest; stored date format unchanged
 PASS  TimesX7 phone layout keeps Date and Times on one line (no-wrap, Times flex-basis 0)
 PASS  Times page: "time on" (Date) is a calendar input; picking a date saves MM/DD/YYYY
 PASS  Times page: "+ Add" fills today's date and does not pop the calendar (focus goes to a text cell)
@@ -105,7 +105,7 @@ PASS  Delete on other pages still deletes just that row
 PASS  TimesX7: Spaces rows are not shown, also through the automatic sync
 PASS  Times: Time Zero on cannot go past the Space's Life Ends (rejected, old value kept, picker max set)
 PASS  Times: no limit when the Space is blank, unknown, or has no Life Ends
-PASS  TimesX7: Defined time on cannot go past the Space's Life Ends; a valid date also updates Time Zero on on Times
+PASS  Times: Time Zero on cannot go past the Space's Life Ends even for a task shown on TimesX7 (date is edited on Times only)
 PASS  TimesX7: radio sits before the date; clicking it deletes the row here AND its source on Times (Demand not 99)
 PASS  TimesX7 roll-over: pending (non-99) tasks dated before today move to today (Times "Time Zero on" + TimesX7 row, time kept); Demand 99 and future tasks untouched; no previous-day tile
 PASS  TimesX7: tasks with no "Time Zero on" date are never shown or moved (also Demand 99 without an end date); a row left from when the date existed is removed
@@ -115,7 +115,7 @@ PASS  TimesX7: completed-days list is cleaned on import (bad keys dropped, past 
 PASS  TimesX7: radio on a Demand 99 task deletes only that day here; the Times row stays and the day does not come back
 PASS  TimesX7: radio -> Cancel deletes nothing
 PASS  TimesX7: a hand-made row with no source on Times is deleted on its own (nothing else touched)
-PASS  TimesX7: dates of Demand 99 (recurring) tasks cannot be edited; others stay editable
+PASS  TimesX7: the date cannot be edited here (only the time); the time box works for recurring and normal tasks
 PASS  Date sync: changing Time Zero on on Times moves the TimesX7 row on Refresh (one row, new date)
 PASS  TimesX7: Times column is display-only (not editable) and tapping it opens that task on Times
 PASS  TimesX7: Times link on a row with no source just opens the Times page
@@ -140,8 +140,7 @@ PASS  TimesX7: Demand 99 task shows once per day; next week's same weekday is no
 PASS  TimeX0 / NextIn are gone: a backup containing them imports, those pages are dropped, no button, no extra page
 PASS  Header: title row has only the title; page bar order is Spaces, Spacetime, Times, TimesX7, NoSpace (no Stars, no TimeX0)
 PASS  Actions row: no "+ Add" button; "+Stars" comes first and opens the Stars page
-PASS  TimesX7: after a date was picked, tapping the date again opens the calendar again (not only the first time)
-PASS  TimesX7: time typed in the date field ("11pm" -> "11 PM"), shown beside MM/DD, saved, kept on import/Refresh, cleared when emptied
+PASS  TimesX7: time typed in the Defined time at box ("11pm" -> "11 PM"), saved, kept on import/Refresh, cleared when emptied
 PASS  TimesX7: within a day tasks sort by time ascending (7 AM, 7 PM, 11 PM), odd text after, no time last; re-sorts when a time is set
 PASS  TimesX7: Demand 99 - a first time is given to all its days; later edits change one day only
 PASS  TimesX7: tampered "Time at" in an import is cleaned (length, type; markup stays text)
@@ -152,7 +151,7 @@ PASS  BackIn/NextIn wrap on NoSpace: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> 
 PASS  BackIn/NextIn wrap: the item shown actually changes (last item shown after BackIn from first)
 PASS  BackIn/NextIn disabled only when there is nothing to move to (0 or 1 items)
 PASS  Finger swipes still stop at the ends (no wraparound); only the buttons wrap
-      (fuzz: 58 imports accepted, 92 rejected)
+      (fuzz: 61 imports accepted, 89 rejected)
 PASS  Fuzz: 150 randomly type-confused/poisoned imports -> no crash, no pollution, storage always reloadable
 
-155 passed, 0 failed
+154 passed, 0 failed

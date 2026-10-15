@@ -1490,7 +1490,7 @@
       } else if (sheet.name === "Week planning") {
         // Date / time column is only as wide as it needs; the Times column
         // gets no width so the fixed-layout table gives it all the rest.
-        if (col === "Date/Day") c.style.width = "160px";
+        if (col === "Date/Day") c.style.width = "112px"; // only a time + the radio
       } else {
         c.style.width = pct + "%";
       }
@@ -1524,7 +1524,7 @@
     if ((sheet.name === "Daily planning - All tasks" || sheet.name === "Completed tasks") && col === "Next Timeframes") return "Next in Time";
     if (sheet.name === "Road Map - Pending" && col === "Key milestones") return "Time";
     if (sheet.name === "Week planning" && col === "Timeframes") return "Times";
-    if (sheet.name === "Week planning" && col === "Date/Day") return "Defined time on";
+    if (sheet.name === "Week planning" && col === "Date/Day") return "Defined time at";
     if (sheet.name === "Summary" && col === "Date") return "Defined time on";
     if (sheet.name === "Summary" && col === "Time") return "Times";
     if (sheet.name === "Quick list" && col === "Small Times") return "Small Stars";
@@ -3105,18 +3105,6 @@
     return m ? m[0] : String(v || "");
   }
 
-  // The short form shown in the field: "10/12".
-  function weekDateShort(v) {
-    var m = /(\d{1,2}\/\d{1,2})\/\d{4}/.exec(String(v || ""));
-    return m ? m[1] : String(v || "");
-  }
-
-  // What the date part of the field shows: "10/12", or "10/12," when the row
-  // has a time (so the box reads "10/12, 6 AM").
-  function weekDateLabel(row) {
-    return weekDateShort(row["Date/Day"]) + (row["Time at"] ? "," : "");
-  }
-
   // Sets (or clears) a TimesX7 row's time. For a recurring (Demand 99)
   // task, giving a time to a day that had none gives it to all of the
   // task's days that have none; after that each day is edited on its own.
@@ -3140,19 +3128,17 @@
     return true; // the order within the day may change, so the page is redrawn
   }
 
-  // Week planning's Date/Day is stored as "Thu, 09/24/2026" (weekday +
-  // date) rather than a plain date, so it needs its own calendar-picker
-  // cell: the picker itself only understands the MM/DD/YYYY part, and
-  // the weekday abbreviation is recomputed from whatever date is picked
-  // rather than trusted as stored text. The field shows "MM/DD" and, in
-  // the same box, the optional time ("6 PM"): tap the date part for the
-  // calendar, the time part to type a time.
+  // TimesX7's first column shows only the task's TIME (e.g. "6 PM"); the
+  // date is the day tile the task sits under. The row's Date/Day is still
+  // stored (weekday + date) and a task's date is changed on the Times page
+  // ("Time Zero on"). Type a time such as 6 am, 11pm or 18:30; empty it to
+  // remove the time. The small round button before it deletes the task.
   function buildWeekDateDayCell(sheet, row, sourceIdx, col) {
     var wrap = document.createElement("div");
     wrap.className = "week-date-wrap";
 
-    // Small radio button before the date: deletes this TimesX7 row and,
-    // unless it is a recurring (Demand 99) task, its source row on Times.
+    // Small radio button: deletes this TimesX7 row and, unless it is a
+    // recurring (Demand 99) task, its source row on Times.
     var radio = document.createElement("button");
     radio.type = "button";
     radio.className = "week-radio";
@@ -3161,23 +3147,9 @@
     radio.addEventListener("click", function () { deleteWeekRowAndSource(sheet, row); });
     wrap.appendChild(radio);
 
-    // Recurring (Demand 99) tasks keep their dates: no editing here.
-    var source = findWeekSource(row);
-    var locked = !!(source && source.recurring);
-
     var box = document.createElement("div");
     box.className = "week-dt";
     wrap.appendChild(box);
-
-    var input = document.createElement("input");
-    input.type = "text";
-    input.className = "week-dt-date";
-    input.readOnly = true;
-    input.value = weekDateLabel(row);
-    input.placeholder = "";
-    input.setAttribute("aria-label", "Defined time on (date)");
-    if (locked) input.title = "Recurring task (Demand 99): its dates stay the same";
-    box.appendChild(input);
 
     var timeInput = document.createElement("input");
     timeInput.type = "text";
@@ -3185,88 +3157,15 @@
     timeInput.placeholder = "time";
     timeInput.maxLength = 40;
     timeInput.value = String(row["Time at"] || "");
-    timeInput.setAttribute("aria-label", "Time (for example 6 pm)");
+    timeInput.setAttribute("aria-label", "Defined time at (for example 6 pm)");
     box.appendChild(timeInput);
 
-    function mmddyyyyToIso(v) { return mmddyyyyToIsoStr(v); }
-    function isoToDateDay(v) {
-      var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
-      if (!m) return "";
-      // Built from the picked year/month/day parts directly (rather than
-      // parsed from the ISO string as UTC) so the weekday can't shift by
-      // a day in timezones behind UTC.
-      var d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-      return formatDateDay(d);
-    }
-
-    var pickerOpenedAt = 0;
-    function openPicker() {
-      pickerOpenedAt = Date.now();
-      if (typeof input.showPicker === "function") {
-        try { input.showPicker(); } catch (e) { /* ignore */ }
-      }
-    }
-
-    function activate() {
-      if (locked) { input.blur(); return; }
-      // focus and click both call this; re-running it while the picker
-      // is already open resets the control and closes the calendar.
-      // Once a date was picked the box stays focused as a date input, so a
-      // LATER tap must open the calendar again (a double call within one
-      // tap, focus + click, must not).
-      if (input.type === "date") { if (Date.now() - pickerOpenedAt > 400) openPicker(); return; }
-      input.readOnly = false;
-      input.type = "date";
-      box.classList.add("week-dt-editing");
-      var iso = mmddyyyyToIso(row[col] || "");
-      input.value = iso;
-      // Cannot go past the project's Life Ends on Spaces.
-      var limit = lifeEndFor(weekRowSpace(row));
-      if (limit) input.max = mmddyyyyToIsoStr(limit.str);
-      openPicker();
-    }
-
-    input.addEventListener("focus", activate);
-    input.addEventListener("click", activate);
-
-    input.addEventListener("change", function () {
-      if (locked) return;
-      var formatted = isoToDateDay(input.value);
-      if (!formatted) return;
-      var space = weekRowSpace(row);
-      var limit = lifeEndFor(space);
-      var newDate = dateOnlyOf(formatted);
-      if (limit) {
-        var ms = dateToUtcMs(newDate);
-        if (ms !== null && ms > limit.ms) {
-          input.value = mmddyyyyToIso(row[col] || "");
-          warnPastLifeEnd(space, limit);
-          return;
-        }
-      }
-      // Find the Times row BEFORE changing the date (it is matched by it),
-      // then keep its "Time Zero on" in sync with the new date.
-      var src = findWeekSource(row);
-      row[col] = formatted;
-      if (src && !src.recurring) src.row["Time Zero on"] = newDate;
-      saveWorkbook();
-    });
-
-    input.addEventListener("blur", function () {
-      input.type = "text";
-      input.readOnly = true;
-      box.classList.remove("week-dt-editing");
-      input.value = weekDateLabel(row);
-    });
-
-    // Time part: type e.g. "6 am" / "11pm" / "18:30"; empty removes it.
     timeInput.addEventListener("keydown", function (e) {
       if (e.key === "Enter") { e.preventDefault(); timeInput.blur(); }
     });
     timeInput.addEventListener("blur", function () {
       var val = normalizeTimeAt(sanitizeTyped(timeInput.value));
       timeInput.value = val;
-      input.value = weekDateLabel(Object.assign({}, row, val ? { "Time at": val } : { "Time at": "" }));
       if (setWeekRowTime(sheet, row, val)) renderTable(); // re-sort the day (and show days that followed)
     });
 

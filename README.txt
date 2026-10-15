@@ -690,3 +690,9 @@ you need to scroll:
 - TimesX7: tasks whose "Time Zero on" is empty are left out completely - never shown, never
   moved to today (this includes Demand 99 tasks with no end date). If a task's date is
   cleared on Times, its old TimesX7 row is removed on the next sync.
+
+- TimesX7: the first column is now "Defined time at" and shows only the task's time (e.g.
+  "6 PM") - the date is the day tile the task sits under. The column is narrower, so the
+  Times column gets more room. Type a time (6 am, 11pm, 18:30); empty it to remove it.
+  A task's date can no longer be changed on TimesX7 - change "Time Zero on" on the Times page
+  (the TimesX7 row follows on the next Refresh/sync).

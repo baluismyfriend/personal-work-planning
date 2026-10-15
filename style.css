@@ -1614,7 +1614,7 @@ body.order-mode .drag-handle:active{cursor:grabbing;color:var(--text);}
 /* Empty space under the last day tile, so today's tile can be scrolled to the top */
 .data-table tr.day-spacer,.data-table tr.day-spacer > td{display:block;padding:0;border:0;background:none;box-shadow:none;}
 
-/* TimesX7: one box holding the date ("10/12") and the optional time ("6 PM") */
+/* TimesX7: one small box holding the time ("6 PM") */
 .week-dt{
   flex:1 1 auto;
   min-width:0;
@@ -1638,13 +1638,10 @@ body.order-mode .drag-handle:active{cursor:grabbing;color:var(--text);}
   padding:5px 0 5px 6px;
   min-width:0;
 }
-.week-dt .week-dt-date{flex:0 0 auto;width:46px;cursor:pointer;}
-.week-dt .week-dt-time{flex:1 1 auto;width:100%;padding-left:1px;}
+.week-dt .week-dt-time{flex:1 1 auto;width:100%;padding-left:6px;}
 .week-dt .week-dt-time::placeholder{color:rgba(100,116,139,.5);}
-.week-dt.week-dt-editing .week-dt-date{flex:1 1 auto;width:100%;}
-.week-dt.week-dt-editing .week-dt-time{display:none;}
 @media (max-width:680px){
-  .data-table tr.week-row > td[data-col="Date/Day"] .week-dt{flex:0 0 auto;width:108px;}
+  .data-table tr.week-row > td[data-col="Date/Day"] .week-dt{flex:0 0 auto;width:74px;}
   .data-table tr.week-row .week-dt input{font-size:12.5px;padding-top:4px;padding-bottom:4px;}
   /* iOS zooms in on focused fields under 16px */
   .data-table tr.week-row .week-dt input:focus{font-size:16px;}
