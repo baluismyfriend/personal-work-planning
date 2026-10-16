@@ -184,3 +184,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: header rendering on newer iOS (157 tests)
 - CSS only: removed backdrop-filter from the header and the gradient-clipped title text.
+
+## Update: status bar style (157 tests)
+- index.html: status-bar-style black instead of black-translucent. No script changes.

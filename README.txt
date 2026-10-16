@@ -705,3 +705,5 @@ you need to scroll:
 - TimesX7: the Space group title uses the Space's own colour (muted gray if the Space has none). The page width is now fixed: the scroll area no longer scrolls or drags sideways on this page (other pages keep their own behaviour).
 
 - Header: solid (not see-through/blurred) background and a plain solid-colour title, to avoid the fuzzy title seen on newer iOS; a little more room under the status bar.
+
+- iOS 26/27: the status bar is now a solid black bar (apple-mobile-web-app-status-bar-style = black) so iOS no longer draws its blurred shade over the app title. iOS reads this setting only when the app is added to the Home Screen: delete the Home Screen icon and add it again (Safari > Share > Add to Home Screen).
