@@ -45,10 +45,10 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
   z-index:20;
   display:flex;
   flex-direction:column;
-  padding:calc(6px + env(safe-area-inset-top)) 22px 14px;
-  background:linear-gradient(112deg,rgba(15,23,42,.92),rgba(51,65,85,.84));
-  backdrop-filter:blur(22px) saturate(150%);
-  -webkit-backdrop-filter:blur(22px) saturate(150%);
+  padding:calc(10px + env(safe-area-inset-top)) 22px 14px;
+  /* Solid colours, no backdrop blur: newer iOS versions render text inside a
+     blurred, see-through header fuzzy. */
+  background:linear-gradient(112deg,#0f172a,#334155);
   border-bottom:1px solid rgba(148,163,184,.28);
   box-shadow:0 18px 46px rgba(15,23,42,.30), inset 0 -1px 0 rgba(255,255,255,.08);
   color:#fff;
@@ -85,11 +85,9 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
-  background:linear-gradient(100deg,#e2e8f0 0%,#f8fafc 35%,#fda4af 65%,#fb7185 100%);
-  -webkit-background-clip:text;
-  background-clip:text;
-  -webkit-text-fill-color:transparent;
-  color:#fff;
+  /* Plain solid text (a gradient-clipped title looks blurry on new iOS). */
+  color:#f8fafc;
+  -webkit-font-smoothing:antialiased;
 }
 .brand-subtitle{font-size:11px;color:#fda4af;}
 
@@ -603,7 +601,7 @@ div.summary-task-link{
    sideways or squinted at on a narrow screen. */
 @media (max-width:680px){
   .site-header{
-    padding:calc(1px + env(safe-area-inset-top, 0px)) 14px 8px;
+    padding:calc(6px + env(safe-area-inset-top, 0px)) 14px 8px;
     gap:6px;
   }
   .header-row{margin-bottom:6px;}
@@ -1662,5 +1660,16 @@ body.order-mode .drag-handle:active{cursor:grabbing;color:var(--text);}
   font-weight:800;
   line-height:1.2;
   letter-spacing:.02em;
-  color:var(--muted, #64748b);
+  color:var(--sc, #64748b); /* the Space's own colour (muted gray when it has none) */
 }
+
+/* TimesX7: the page width is fixed - nothing moves left/right */
+html{overflow-x:hidden;max-width:100%;}
+.table-scroller.no-hscroll{
+  overflow-x:hidden;
+  overscroll-behavior-x:none;
+  touch-action:pan-y;
+}
+.table-scroller.no-hscroll .data-table{width:100%;max-width:100%;}
+.table-scroller.no-hscroll .data-table tr{max-width:100%;box-sizing:border-box;}
+.table-scroller.no-hscroll .week-times-link{min-width:0;overflow-wrap:anywhere;word-break:break-word;}

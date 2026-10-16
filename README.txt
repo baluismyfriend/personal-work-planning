@@ -701,3 +701,7 @@ you need to scroll:
 - TimesX7: inside each day, every Space has a small title (Space name in small capitals) above its tasks; tasks with no Space are under "No space".
 
 - TimesX7: the Space group title keeps the Space name exactly as typed (no capitals), and the Times column now shows only the task text (the Space is in the group title). Stored data is unchanged.
+
+- TimesX7: the Space group title uses the Space's own colour (muted gray if the Space has none). The page width is now fixed: the scroll area no longer scrolls or drags sideways on this page (other pages keep their own behaviour).
+
+- Header: solid (not see-through/blurred) background and a plain solid-colour title, to avoid the fuzzy title seen on newer iOS; a little more room under the status bar.

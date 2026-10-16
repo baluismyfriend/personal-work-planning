@@ -178,3 +178,9 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: Times column without Space, group title as typed (156 tests)
 - Display only (textContent); stored "Space || Time" unchanged.
+
+## Update: Space-coloured group titles, fixed width on TimesX7 (157 tests)
+- CSS class names come from the code-owned colour list only; layout/CSS change (overflow-x hidden, touch-action pan-y) on TimesX7.
+
+## Update: header rendering on newer iOS (157 tests)
+- CSS only: removed backdrop-filter from the header and the gradient-clipped title text.

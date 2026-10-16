@@ -994,6 +994,15 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     if (sheetOf(wbOf(w), 'Week planning').rows[0].Timeframes !== 'AA || T1') throw new Error('stored value changed');
     link.click(); if (w.document.getElementById('pageTitle').textContent.indexOf('Times') === -1) throw new Error('did not open Times');
   });
+  await ta('TimesX7: fixed width (scroll area has no sideways scrolling; other pages keep theirs); group title uses the Space colour class', async () => {
+    const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': todayStr })], [lifeRow('AA', '')]);
+    const sc = w.document.getElementById('tableScroller');
+    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    if (!sc.classList.contains('no-hscroll')) throw new Error('TimesX7 must be fixed width');
+    const head = w.document.querySelector('tr.week-space-heading > td');
+    if (!/space-color-\d+/.test(head.className)) throw new Error('group title has no Space colour: ' + head.className);
+    clickNav(w, /^Times$/); if (sc.classList.contains('no-hscroll')) throw new Error('other pages must not be locked');
+  });
   await ta('TimesX7: within a day tasks are grouped by Space (A-Z, no Space last) and, inside each Space, sorted by time (no time last)', async () => {
     const w = await weekBoot([
       blankTask({ Space: 'Zed', 'Timeframe/Meeting': 'z1', 'Time Zero on': todayStr }), blankTask({ Space: 'alpha', 'Timeframe/Meeting': 'a1', 'Time Zero on': todayStr }),

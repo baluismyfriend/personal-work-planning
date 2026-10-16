@@ -1474,6 +1474,8 @@
 
     // TimesX7 only: show the Refresh button. "+Stars" is highlighted on the Stars page.
     var isWeek = sheet.name === "Week planning";
+    // TimesX7 is a fixed-width page: no sideways scrolling or dragging.
+    if (tableScrollerEl) tableScrollerEl.classList.toggle("no-hscroll", isWeek);
     var refreshBtnEl = document.getElementById("btnRefreshWeek");
     if (refreshBtnEl) refreshBtnEl.hidden = !isWeek;
     var starsBtnEl = document.getElementById("btnStars");
@@ -2059,6 +2061,8 @@
     var td = document.createElement("td");
     td.colSpan = sheet.columns.length;
     td.textContent = name || "No space";
+    var colorClass = spaceColorClass(name); // same colour as the Space everywhere else
+    if (colorClass) td.classList.add(colorClass);
     tr.appendChild(td);
     return tr;
   }
