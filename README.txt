@@ -709,3 +709,5 @@ you need to scroll:
 - iOS 26/27: the status bar is now a solid black bar (apple-mobile-web-app-status-bar-style = black) so iOS no longer draws its blurred shade over the app title. iOS reads this setting only when the app is added to the Home Screen: delete the Home Screen icon and add it again (Safari > Share > Add to Home Screen).
 
 - Status bar area: the page edge colour (html background) is now the header's dark colour so iOS shows a dark strip above the header instead of white.
+
+- Header blend: the header's top edge is exactly the dark page-edge colour (fades into the diagonal shade), and the page bar no longer clips the active pill's shadow.

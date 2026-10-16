@@ -53,7 +53,11 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
   padding:calc(10px + env(safe-area-inset-top)) 22px 14px;
   /* Solid colours, no backdrop blur: newer iOS versions render text inside a
      blurred, see-through header fuzzy. */
-  background:linear-gradient(112deg,#0f172a,#334155);
+  /* The top edge is exactly the page-edge colour (#0f172a, see html{}) so the
+     status bar strip and the header read as one; the diagonal shade fades in below it. */
+  background:
+    linear-gradient(180deg,#0f172a 0,rgba(15,23,42,0) 90px),
+    linear-gradient(112deg,#0f172a,#334155);
   border-bottom:1px solid rgba(148,163,184,.28);
   box-shadow:0 18px 46px rgba(15,23,42,.30), inset 0 -1px 0 rgba(255,255,255,.08);
   color:#fff;
@@ -99,7 +103,8 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
 .nav{
   display:flex;
   gap:8px;
-  overflow-x:auto;
+  /* visible: the 5 pills always fit, and clipping cut off the active pill's shadow (a faint box under it) */
+  overflow:visible;
   padding-bottom:2px;
 }
 .nav-btn{
