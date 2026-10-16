@@ -707,3 +707,5 @@ you need to scroll:
 - Header: solid (not see-through/blurred) background and a plain solid-colour title, to avoid the fuzzy title seen on newer iOS; a little more room under the status bar.
 
 - iOS 26/27: the status bar is now a solid black bar (apple-mobile-web-app-status-bar-style = black) so iOS no longer draws its blurred shade over the app title. iOS reads this setting only when the app is added to the Home Screen: delete the Home Screen icon and add it again (Safari > Share > Add to Home Screen).
+
+- Status bar area: the page edge colour (html background) is now the header's dark colour so iOS shows a dark strip above the header instead of white.

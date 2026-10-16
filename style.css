@@ -14,11 +14,16 @@
 
 html,body{margin:0;padding:0;}
 
+/* The page edge colour (what iOS shows around the page, e.g. behind the status bar)
+   is the same dark as the header, so the two blend instead of showing a white strip. */
+html{background-color:#0f172a;}
+
 body{
   font-family:"Segoe UI", Arial, sans-serif;
   color:var(--text);
   background:linear-gradient(135deg,#f9fafb 0%,#fef2f2 45%,#ffffff 100%);
   overflow-x:hidden;
+  min-height:100vh;
 }
 
 .app{min-height:100vh;display:flex;flex-direction:column;position:relative;z-index:1;}
