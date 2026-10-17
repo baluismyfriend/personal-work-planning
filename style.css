@@ -1684,3 +1684,10 @@ html{overflow-x:hidden;max-width:100%;}
 .table-scroller.no-hscroll .data-table{width:100%;max-width:100%;}
 .table-scroller.no-hscroll .data-table tr{max-width:100%;box-sizing:border-box;}
 .table-scroller.no-hscroll .week-times-link{min-width:0;overflow-wrap:anywhere;word-break:break-word;}
+
+/* Title: the Lotus logo (rose-coloured brush lettering) instead of text */
+.brand-text h1{line-height:0;margin:0;}
+.brand-logo{display:block;height:80px;width:auto;max-width:100%;margin:0 auto;}
+@media (max-width:680px){
+  .brand-logo{height:64px;}
+}

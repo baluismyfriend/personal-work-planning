@@ -138,7 +138,7 @@ PASS  Spacetime: each Space is one collapsed line (+, "Times", Space box in its 
 PASS  TimesX7: exactly 7 date tiles (today .. +6), no previous-day tile, no weekday merging
 PASS  TimesX7: Demand 99 task shows once per day; next week's same weekday is not mixed into today's tile
 PASS  TimeX0 / NextIn are gone: a backup containing them imports, those pages are dropped, no button, no extra page
-PASS  App title is "Lotus"; page names: Spaces, Times (summary), Time (daily), Spacetime (week), NoSpace; nav buttons use the same 12px rounded shape as the action buttons
+PASS  App title is the Lotus logo (PNG, no metadata); page names: Spaces, Times (summary), Time (daily), Spacetime (week), NoSpace; nav buttons use the same 12px rounded shape as the action buttons
 PASS  Header: title row has only the title; page bar order is Spaces, Times, Time, Spacetime, NoSpace (no Stars, no TimeX0)
 PASS  Actions row: no "+ Add" button; "+Stars" comes first and opens the Stars page
 PASS  TimesX7: time typed in the Defined time at box ("11pm" -> "11 PM"), saved, kept on import/Refresh, cleared when emptied
@@ -155,7 +155,7 @@ PASS  BackIn/NextIn wrap on NoSpace: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> 
 PASS  BackIn/NextIn wrap: the item shown actually changes (last item shown after BackIn from first)
 PASS  BackIn/NextIn disabled only when there is nothing to move to (0 or 1 items)
 PASS  Finger swipes still stop at the ends (no wraparound); only the buttons wrap
-      (fuzz: 64 imports accepted, 86 rejected)
+      (fuzz: 62 imports accepted, 88 rejected)
 PASS  Fuzz: 150 randomly type-confused/poisoned imports -> no crash, no pollution, storage always reloadable
 
 158 passed, 0 failed

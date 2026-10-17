@@ -731,3 +731,8 @@ you need to scroll:
 - Page bar on the phone: 11px text on one line (no wrapping) so all five buttons have the same, lower height.
 
 - Title colour: the theme's soft rose accent (#fda4af), solid.
+
+- Title: the "Lotus" lettering is now your brush-painted lotus logo (logo.png), in the theme's
+  soft rose (#fda4af) on a transparent background, 64px high on the phone and 80px on wide
+  screens (change .brand-logo in style.css to resize). logo.png is a NEW file: upload it next to
+  index.html with the other app files (8 files in all, plus the icons).

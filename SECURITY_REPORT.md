@@ -190,3 +190,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: renames, nav button shape (158 tests)
 - Labels/CSS only (page titles come from a code-owned map); no storage or security-relevant code changed.
+
+## Update: logo title (158 tests)
+- logo.png (16 KB) is a plain PNG with no metadata chunks (checked by a test), loaded from the same folder (CSP img-src self). No script changes.
