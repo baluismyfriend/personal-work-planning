@@ -88,7 +88,7 @@ PASS  TimesX7 Refresh: Times rows appear as "Space || Time"; Spaces (Life Ends) 
 PASS  TimesX7 sync: an older row showing only the Time text is upgraded in place (no duplicate)
 PASS  TimesX7: today's group reads "<Day> - Today" with the highlight class; other groups unchanged
 PASS  TimesX7: no Transforms/actions column, no row buttons
-PASS  TimesX7: first column is "Defined time at": shows only the time (no date), is narrow, Times column takes the rest; stored date format unchanged
+PASS  TimesX7: first column is "Time at" (second "Time"): shows only the time (no date), is narrow, Times column takes the rest; stored date format unchanged
 PASS  TimesX7 phone layout keeps Date and Times on one line (no-wrap, Times flex-basis 0)
 PASS  Times page: "time on" (Date) is a calendar input; picking a date saves MM/DD/YYYY
 PASS  Times page: "+ Add" fills today's date and does not pop the calendar (focus goes to a text cell)
@@ -138,7 +138,8 @@ PASS  Spacetime: each Space is one collapsed line (+, "Times", Space box in its 
 PASS  TimesX7: exactly 7 date tiles (today .. +6), no previous-day tile, no weekday merging
 PASS  TimesX7: Demand 99 task shows once per day; next week's same weekday is not mixed into today's tile
 PASS  TimeX0 / NextIn are gone: a backup containing them imports, those pages are dropped, no button, no extra page
-PASS  Header: title row has only the title; page bar order is Spaces, Spacetime, Times, TimesX7, NoSpace (no Stars, no TimeX0)
+PASS  App title is "Lotus"; page names: Spaces, Times (summary), Time (daily), Spacetime (week), NoSpace; nav buttons use the same 12px rounded shape as the action buttons
+PASS  Header: title row has only the title; page bar order is Spaces, Times, Time, Spacetime, NoSpace (no Stars, no TimeX0)
 PASS  Actions row: no "+ Add" button; "+Stars" comes first and opens the Stars page
 PASS  TimesX7: time typed in the Defined time at box ("11pm" -> "11 PM"), saved, kept on import/Refresh, cleared when emptied
 PASS  TimesX7: the Times column shows only the task text (Space is in the group title); stored "Space || Time" and tap-to-open unchanged
@@ -154,7 +155,7 @@ PASS  BackIn/NextIn wrap on NoSpace: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> 
 PASS  BackIn/NextIn wrap: the item shown actually changes (last item shown after BackIn from first)
 PASS  BackIn/NextIn disabled only when there is nothing to move to (0 or 1 items)
 PASS  Finger swipes still stop at the ends (no wraparound); only the buttons wrap
-      (fuzz: 57 imports accepted, 93 rejected)
+      (fuzz: 64 imports accepted, 86 rejected)
 PASS  Fuzz: 150 randomly type-confused/poisoned imports -> no crash, no pollution, storage always reloadable
 
-157 passed, 0 failed
+158 passed, 0 failed

@@ -187,3 +187,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: status bar style (157 tests)
 - index.html: status-bar-style black instead of black-translucent. No script changes.
+
+## Update: renames, nav button shape (158 tests)
+- Labels/CSS only (page titles come from a code-owned map); no storage or security-relevant code changed.

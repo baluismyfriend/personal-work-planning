@@ -112,7 +112,7 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
   min-width:0;
   text-align:center;
   flex-shrink:0;
-  border-radius:999px;
+  border-radius:12px; /* same rounded-rectangle shape as the Export / Import / Order buttons */
   padding:10px 15px;
   background:rgba(255,255,255,.08);
   backdrop-filter:blur(10px);
@@ -626,7 +626,7 @@ div.summary-task-link{
   /* All remaining page pills fit in a single non-scrolling row: short
      names (see NAV_SHORT_NAMES in script.js) plus equal-width flex
      segments. */
-  .nav{gap:3px;flex-wrap:nowrap;overflow-x:hidden;}
+  .nav{gap:4px;flex-wrap:nowrap;overflow:visible;}
   .nav-btn{
     flex:1 1 0;
     min-width:0;

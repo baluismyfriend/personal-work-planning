@@ -314,7 +314,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
   await ta('Summary page survives Space names like __proto__/constructor/toString', async () => {
     const w = await boot(); const g = wbOf(w); const d = sheetOf(g, 'Daily planning - All tasks');
     d.rows = ['__proto__', 'constructor', 'toString', 'hasOwnProperty', 'normal'].map(sp => Object.assign(Object.fromEntries(d.columns.map(c => [c, ''])), { Space: sp, 'Timeframe/Meeting': 'task ' + sp }));
-    await doImport(w, JSON.stringify(g)); clickNav(w, /Spacetime/);
+    await doImport(w, JSON.stringify(g)); clickNav(w, /^Times$/);
     if (w.__errs.length) throw new Error(w.__errs.join(';'));
     if (w.document.querySelectorAll('#tableBody tr').length < 5) throw new Error('summary did not render all spaces');
   });
@@ -322,7 +322,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
   await ta('Labels: Times page counter reads "Time N of M"', async () => {
     const w = await boot(); w.matchMedia = () => ({ matches: true, addListener() {}, removeListener() {}, addEventListener() {} });
     const g = wbOf(w); const d = sheetOf(g, 'Daily planning - All tasks'); d.rows = [0, 1].map(i => Object.assign(Object.fromEntries(d.columns.map(c => [c, ''])), { Space: 'S', 'Timeframe/Meeting': 't' + i }));
-    await doImport(w, JSON.stringify(g)); clickNav(w, /^Times$/);
+    await doImport(w, JSON.stringify(g)); clickNav(w, /^Time$/);
     const lbl = w.document.getElementById('taskPositionLabel').textContent; if (!/^Time 1 of 2$/.test(lbl)) throw new Error('got "' + lbl + '"');
   });
   await ta('Milestone splitter is not catastrophically slow on pathological input (ReDoS)', async () => {
@@ -342,7 +342,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
   });
   await ta('Functional: Times -> status "Complete" moves row to Completed tasks', async () => {
     const w = await boot(); const g = wbOf(w); const d = sheetOf(g, 'Daily planning - All tasks'); d.rows = [Object.assign(Object.fromEntries(d.columns.map(c => [c, ''])), { Space: 'AA', 'Timeframe/Meeting': 'finish me' })];
-    await doImport(w, JSON.stringify(g)); clickNav(w, /^Times$/);
+    await doImport(w, JSON.stringify(g)); clickNav(w, /^Time$/);
     const sel = w.document.querySelector('select.status-select'); sel.value = 'Complete'; sel.dispatchEvent(new w.Event('change'));
     const g2 = wbOf(w); if (sheetOf(g2, 'Daily planning - All tasks').rows.length !== 0) throw new Error('still on Daily'); const c = sheetOf(g2, 'Completed tasks').rows; if (c.length !== 1 || c[0].Timing !== 'Complete') throw new Error('not completed');
   });
@@ -377,7 +377,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
   await ta('TimesX7 Refresh: Times rows appear as "Space || Time"; Spaces (Life Ends) rows are NOT shown', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'Call Bob', 'Time Zero on': todayStr }), blankTask({ 'Timeframe/Meeting': 'Only time', 'Time Zero on': todayStr }), blankTask({ Space: 'OnlySpace', 'Time Zero on': todayStr })],
       [{ Space: 'RR', 'Key milestones': 'k', 'Life began': '', 'Life Ends': todayStr, 'Life span': '' }]);
-    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
     const texts = sheetOf(wbOf(w), 'Week planning').rows.map(r => r.Timeframes).sort();
     const want = ['AA || Call Bob', 'OnlySpace', 'Only time'].sort(); // Spaces row RR must not appear
     if (JSON.stringify(texts) !== JSON.stringify(want)) throw new Error(JSON.stringify(texts));
@@ -386,7 +386,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'Call Bob', 'Time Zero on': todayStr })]);
     const g = wbOf(w); sheetOf(g, 'Week planning').rows = [{ 'Date/Day': 'Xxx, ' + todayStr, Timeframes: 'Call Bob' }];
     const dd = sheetOf(g, 'Week planning'); dd.rows[0]['Date/Day'] = (['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][now.getDay()]) + ', ' + todayStr;
-    await doImport(w, JSON.stringify(g)); clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click(); // rebuild path
+    await doImport(w, JSON.stringify(g)); clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click(); // rebuild path
     const rows1 = sheetOf(wbOf(w), 'Week planning').rows; if (rows1.length !== 1 || rows1[0].Timeframes !== 'AA || Call Bob') throw new Error('refresh: ' + JSON.stringify(rows1));
     // automatic (non-refresh) path: seed an old-style row, then let the sync run
     const g2 = wbOf(w); sheetOf(g2, 'Week planning').rows = [{ 'Date/Day': dd.rows[0]['Date/Day'], Timeframes: 'Call Bob' }];
@@ -395,7 +395,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
   });
   await ta('TimesX7: today\'s group reads "<Day> - Today" with the highlight class; other groups unchanged', async () => {
     const w = await weekBoot([blankTask({ Space: 'A', 'Timeframe/Meeting': 'x', 'Time Zero on': todayStr }), blankTask({ Space: 'B', 'Timeframe/Meeting': 'y', 'Time Zero on': tomorrowStr })]);
-    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
     const hdrs = [...w.document.querySelectorAll('tr.week-day-header-row')];
     const today = hdrs.filter(h => h.classList.contains('week-day-today')).slice(0, 1); const others = hdrs.filter(h => !h.classList.contains('week-day-today')).slice(0, 6);
     if (today.length !== 1 || today[0].textContent.replace(/ \(\d+\)$/, '') !== todayName + ' - Today' || !/ \(1\)$/.test(today[0].textContent)) throw new Error(JSON.stringify(hdrs.map(h => h.textContent)));
@@ -404,18 +404,18 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
   });
   await ta('TimesX7: no Transforms/actions column, no row buttons', async () => {
     const w = await weekBoot([blankTask({ Space: 'A', 'Timeframe/Meeting': 'x', 'Time Zero on': todayStr })]);
-    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
     if (w.document.querySelectorAll('#tableHead tr:first-child th').length !== 2) throw new Error('header cells != 2');
     if (w.document.querySelector('.col-actions, .row-btn, td[data-col="Transforms"]')) throw new Error('actions still present');
     if (w.document.querySelectorAll('#colgroup col').length !== 2) throw new Error('colgroup != 2');
     const hdr = w.document.querySelector('td.week-day-header'); if (hdr.colSpan !== 2) throw new Error('group header colSpan ' + hdr.colSpan);
   });
-  await ta('TimesX7: first column is "Defined time at": shows only the time (no date), is narrow, Times column takes the rest; stored date format unchanged', async () => {
+  await ta('TimesX7: first column is "Time at" (second "Time"): shows only the time (no date), is narrow, Times column takes the rest; stored date format unchanged', async () => {
     const w = await weekBoot([blankTask({ Space: 'A', 'Timeframe/Meeting': 'x', 'Time Zero on': todayStr })]);
-    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
     const heads = [...w.document.querySelectorAll('#tableHead tr:first-child th')].map(th => th.textContent.trim().replace(/[\u25B2\u25BC]/g, ''));
-    if (!/^Defined time at/.test(heads[0])) throw new Error(heads.join('|'));
-    const cell = w.document.querySelector('td[data-col="Date/Day"]'); if (cell.dataset.label !== 'Defined time at') throw new Error('phone label ' + cell.dataset.label);
+    if (!/^Time at/.test(heads[0]) || !/^Time\b/.test(heads[1]) || /Times/.test(heads[1])) throw new Error(heads.join('|'));
+    const cell = w.document.querySelector('td[data-col="Date/Day"]'); if (cell.dataset.label !== 'Time at') throw new Error('phone label ' + cell.dataset.label);
     if (cell.querySelectorAll('input').length !== 1 || cell.querySelector('input[type=date]')) throw new Error('only the time box may be there');
     if (cell.textContent.includes('/') || cell.querySelector('input').value.includes('/')) throw new Error('date is displayed');
     if (!/^[A-Z][a-z]{2}, /.test(sheetOf(wbOf(w), 'Week planning').rows[0]['Date/Day'])) throw new Error('stored format changed');
@@ -432,7 +432,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
   const weekDates = w => sheetOf(wbOf(w), 'Week planning').rows.map(r => /\d{2}\/\d{2}\/\d{4}/.exec(r['Date/Day'])[0]).sort();
   await ta('Times page: "time on" (Date) is a calendar input; picking a date saves MM/DD/YYYY', async () => {
     const w = await weekBoot([blankTask({ Date: '01/02/2026', Space: 'A', 'Timeframe/Meeting': 'x' })]);
-    clickNav(w, /^Times$/);
+    clickNav(w, /^Time$/);
     const inp = w.document.querySelector('td[data-col="Date"] input.due-date-input'); if (!inp) throw new Error('Date is not a calendar input');
     if (inp.value !== '01/02/2026') throw new Error('shows ' + inp.value);
     inp.dispatchEvent(new w.Event('focus')); if (inp.type !== 'date') throw new Error('did not switch to a date control: ' + inp.type);
@@ -442,7 +442,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     inp.dispatchEvent(new w.Event('blur')); if (inp.type !== 'text' || inp.value !== '10/12/2026') throw new Error('after blur ' + inp.type + ' ' + inp.value);
   });
   await ta('Times page: "+ Add" fills today\'s date and does not pop the calendar (focus goes to a text cell)', async () => {
-    const w = await boot(); clickNav(w, /^Times$/); const focused = []; const of = w.HTMLElement.prototype.focus; w.HTMLElement.prototype.focus = function () { focused.push(this.className + '|' + this.type); return of.apply(this, arguments); };
+    const w = await boot(); clickNav(w, /^Time$/); const focused = []; const of = w.HTMLElement.prototype.focus; w.HTMLElement.prototype.focus = function () { focused.push(this.className + '|' + this.type); return of.apply(this, arguments); };
     w.document.getElementById('btnAddRowFloating').click(); await sleep(200);
     const rows = sheetOf(wbOf(w), 'Daily planning - All tasks').rows; if (rows[rows.length - 1].Date !== todayStr) throw new Error('date ' + rows[rows.length - 1].Date);
     const dateInp = w.document.querySelector('tr[data-source-idx="' + (rows.length - 1) + '"] td[data-col="Date"] input'); if (!dateInp || dateInp.type !== 'text') throw new Error('calendar opened on add');
@@ -450,7 +450,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
   });
   async function repeatCase(demand, startOff, endOff, extra) {
     const w = await weekBoot([blankTask(Object.assign({ Demand: demand, Space: 'AA', 'Timeframe/Meeting': 'Standup', Date: startOff === null ? '' : dayStrOf(startOff), 'Time Zero on': endOff === null ? '' : dayStrOf(endOff) }, extra || {}))]);
-    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click(); return w;
+    clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click(); return w;
   }
   await ta('Demand 99: one TimesX7 row per day (all 7 days of the week, weekends included) from time-on to Time Zero on, within the next 7 days', async () => {
     const w = await repeatCase('99', -3, 20); const got = weekDates(w), want = expectedWeekdays(0, 7);
@@ -474,7 +474,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     w = await repeatCase('990', 0, 5); if (JSON.stringify(weekDates(w)) !== JSON.stringify([dayStrOf(5)])) throw new Error('"990" treated as 99: ' + weekDates(w));
   });
   await ta('Demand 99: repeat rows are not duplicated by a second Refresh or the automatic sync', async () => {
-    const w = await repeatCase('99', 0, 7); const n = weekDates(w).length; w.document.getElementById('btnRefreshWeek').click(); clickNav(w, /^Times$/); clickNav(w, /^TimesX7$/); await sleep(30);
+    const w = await repeatCase('99', 0, 7); const n = weekDates(w).length; w.document.getElementById('btnRefreshWeek').click(); clickNav(w, /^Time$/); clickNav(w, /^Spacetime$/); await sleep(30);
     if (weekDates(w).length !== n) throw new Error(n + ' -> ' + weekDates(w).length);
   });
 
@@ -497,7 +497,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     if (JSON.stringify(texts(w, 'Daily planning - All tasks')) !== JSON.stringify(['keep-AAB', 'keep-lower', 'keep-nospace'])) throw new Error('Times: ' + texts(w, 'Daily planning - All tasks'));
     if (JSON.stringify(texts(w, 'Completed tasks')) !== '["keep-c"]') throw new Error('NoSpace: ' + texts(w, 'Completed tasks'));
     const sum = sheetOf(g, 'Summary').rows.map(r => r.Space + ':' + r.Time); if (sum.some(x => /^AA:/.test(x))) throw new Error('Spacetime still has AA: ' + sum);
-    if (!/"AA"/.test(msg) || !/2 row\(s\) on Times/.test(msg) || !/1 row\(s\) on NoSpace/.test(msg)) throw new Error('confirm text: ' + msg);
+    if (!/"AA"/.test(msg) || !/2 row\(s\) on Time/.test(msg) || !/1 row\(s\) on NoSpace/.test(msg)) throw new Error('confirm text: ' + msg);
     for (const b of navBtns(w)) b.click(); if (w.__errs.length) throw new Error(w.__errs[0]);
   });
   await ta('Spaces Delete: Cancel deletes nothing', async () => {
@@ -531,13 +531,13 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
   function pickDate(w, input, str) { input.dispatchEvent(new w.Event('focus')); input.value = isoOf(str); input.dispatchEvent(new w.Event('change')); }
   await ta('TimesX7: Spaces rows are not shown, also through the automatic sync', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': todayStr })], [lifeRow('RR', todayStr)]);
-    clickNav(w, /^TimesX7$/); await sleep(30); const texts1 = sheetOf(wbOf(w), 'Week planning').rows.map(r => r.Timeframes);
+    clickNav(w, /^Spacetime$/); await sleep(30); const texts1 = sheetOf(wbOf(w), 'Week planning').rows.map(r => r.Timeframes);
     if (JSON.stringify(texts1) !== '["AA || T1"]') throw new Error(JSON.stringify(texts1));
   });
   await ta("Times: Time Zero on cannot go past the Space's Life Ends (rejected, old value kept, picker max set)", async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': dayStr(1) })], [lifeRow('AA', dayStr(5))]);
     let msg = ''; w.alert = m => { msg = m; };
-    clickNav(w, /^Times$/); const inp = w.document.querySelector('td[data-col="Time Zero on"] input');
+    clickNav(w, /^Time$/); const inp = w.document.querySelector('td[data-col="Time Zero on"] input');
     pickDate(w, inp, dayStr(9));
     if (sheetOf(wbOf(w), 'Daily planning - All tasks').rows[0]['Time Zero on'] !== dayStr(1)) throw new Error('beyond date was saved');
     if (!/Life Ends/.test(msg)) throw new Error('no warning: ' + msg);
@@ -547,14 +547,14 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
   });
   await ta('Times: no limit when the Space is blank, unknown, or has no Life Ends', async () => {
     const w = await weekBoot([blankTask({ 'Timeframe/Meeting': 'a' }), blankTask({ Space: 'Zed', 'Timeframe/Meeting': 'b' }), blankTask({ Space: 'AA', 'Timeframe/Meeting': 'c' })], [lifeRow('AA', '')]);
-    clickNav(w, /^Times$/); const inps = [...w.document.querySelectorAll('td[data-col="Time Zero on"] input')];
+    clickNav(w, /^Time$/); const inps = [...w.document.querySelectorAll('td[data-col="Time Zero on"] input')];
     inps.forEach(i => pickDate(w, i, dayStr(40)));
     if (sheetOf(wbOf(w), 'Daily planning - All tasks').rows.some(r => r['Time Zero on'] !== dayStr(40))) throw new Error('a limit was wrongly applied');
   });
   await ta("Times: Time Zero on cannot go past the Space's Life Ends even for a task shown on TimesX7 (date is edited on Times only)", async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': dayStr(1) })], [lifeRow('AA', dayStr(5))]);
     let msg = ''; w.alert = m => { msg = m; };
-    clickNav(w, /^Times$/); pickDate(w, w.document.querySelector('td[data-col="Time Zero on"] input'), dayStr(9));
+    clickNav(w, /^Time$/); pickDate(w, w.document.querySelector('td[data-col="Time Zero on"] input'), dayStr(9));
     if (!/Life Ends/.test(msg)) throw new Error('no warning');
     if (sheetOf(wbOf(w), 'Daily planning - All tasks').rows[0]['Time Zero on'] !== dayStr(1)) throw new Error('beyond date was saved');
     pickDate(w, w.document.querySelector('td[data-col="Time Zero on"] input'), dayStr(3));
@@ -562,7 +562,7 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
   });
   await ta('TimesX7: radio sits before the date; clicking it deletes the row here AND its source on Times (Demand not 99)', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': todayStr }), blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T2', 'Time Zero on': todayStr })]);
-    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
     const cell = w.document.querySelector('td[data-col="Date/Day"]'); if (!cell.firstElementChild.classList.contains('week-date-wrap') || !cell.firstElementChild.firstElementChild.classList.contains('week-radio')) throw new Error('radio not before date');
     const rowEl = [...w.document.querySelectorAll('tr.week-row')].find(r => /T1/.test(r.textContent)); rowEl.querySelector('.week-radio').click();
     const g = wbOf(w);
@@ -581,7 +581,7 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     const g0 = wbOf(w); const pastDD = dayName(-1) + ', ' + dayStr(-1);
     sheetOf(g0, 'Week planning').rows = [{ 'Date/Day': pastDD, Timeframes: 'AA || late1', 'Time at': '5 PM' }];
     await doImport(w, JSON.stringify(g0));
-    w.document.dispatchEvent(new w.Event('visibilitychange')); clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    w.document.dispatchEvent(new w.Event('visibilitychange')); clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
     const tz = n => dl().rows.find(r => r['Timeframe/Meeting'] === n)['Time Zero on'];
     if (tz('late1') !== todayStr || tz('late3') !== todayStr) throw new Error('not moved: ' + tz('late1') + ' ' + tz('late3'));
     if (tz('future') !== dayStr(2)) throw new Error('future task changed');
@@ -603,7 +603,7 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
       blankTask({ Space: 'AA', 'Timeframe/Meeting': 'dated', 'Time Zero on': dayStr(1) })]);
     const g0 = wbOf(w); sheetOf(g0, 'Week planning').rows = [{ 'Date/Day': dayName(1) + ', ' + dayStr(1), Timeframes: 'AA || cleared' }, { 'Date/Day': dayName(1) + ', ' + dayStr(1), Timeframes: 'AA || dated' }];
     await doImport(w, JSON.stringify(g0));
-    w.document.dispatchEvent(new w.Event('visibilitychange')); clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    w.document.dispatchEvent(new w.Event('visibilitychange')); clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
     const texts = sheetOf(wbOf(w), 'Week planning').rows.map(r => r.Timeframes).join('|');
     if (texts !== 'AA || dated') throw new Error('week rows: ' + texts);
     const d = sheetOf(wbOf(w), 'Daily planning - All tasks').rows;
@@ -613,12 +613,12 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
   await ta('TimesX7 roll-over: a task is not moved past its Space\'s Life Ends', async () => {
     const lr = { Space: 'AA', 'Key milestones': '', 'Life began': '', 'Life Ends': dayStr(-2), 'Life span': '' };
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'stuck', 'Time Zero on': dayStr(-3) })], [lr]);
-    w.document.dispatchEvent(new w.Event('visibilitychange')); clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    w.document.dispatchEvent(new w.Event('visibilitychange')); clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
     if (sheetOf(wbOf(w), 'Daily planning - All tasks').rows[0]['Time Zero on'] !== dayStr(-3)) throw new Error('moved past Life Ends');
   });
   await ta('TimesX7: a Demand 99 task completed for a day stays gone through Refresh and Export/Import; other days and the Times row stay; Reset brings it back', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', Demand: '99', 'Timeframe/Meeting': 'Daily', Date: todayStr, 'Time Zero on': dayStr(40) })]);
-    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
     const dates = () => sheetOf(wbOf(w), 'Week planning').rows.map(r => r['Date/Day'].slice(-10));
     if (!dates().includes(todayStr)) throw new Error('today missing at start');
     const todayRow = [...w.document.querySelectorAll('tr.week-row')][0]; todayRow.querySelector('.week-radio').click();
@@ -628,7 +628,7 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     if (!dates().includes(dayStr(1)) || !dates().includes(dayStr(5))) throw new Error('other days must stay: ' + dates().join());
     if (sheetOf(wbOf(w), 'Daily planning - All tasks').rows.length !== 1) throw new Error('Times row lost');
     const cap = captureBlobs(w); w.document.getElementById('btnExportJson').click(); await sleep(30);
-    await doImport(w, cap[0]); clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    await doImport(w, cap[0]); clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
     if (dates().includes(todayStr)) throw new Error('came back after Export/Import');
     w.confirm = () => true; w.document.getElementById('btnResetSheet').click(); w.document.getElementById('btnRefreshWeek').click();
     if (!dates().includes(todayStr)) throw new Error('Reset should bring completed days back');
@@ -640,14 +640,14 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     await doImport(w, JSON.stringify(g));
     const d = sheetOf(wbOf(w), 'Week planning').done || [];
     if (d.length > 500 || d.some(k => typeof k !== 'string' || !/^T\|\d{2}\/\d{2}\/\d{4}\|/.test(k))) throw new Error('bad list ' + d.length);
-    w.document.dispatchEvent(new w.Event('visibilitychange')); clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    w.document.dispatchEvent(new w.Event('visibilitychange')); clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
     const after = sheetOf(wbOf(w), 'Week planning').done || [];
     if (after.some(k => k.includes('01/01/2020'))) throw new Error('past day kept');
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
   await ta('TimesX7: radio on a Demand 99 task deletes only that day here; the Times row stays and the day does not come back', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', Demand: '99', 'Timeframe/Meeting': 'Daily', Date: todayStr, 'Time Zero on': dayStr(3) })]);
-    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
     if (sheetOf(wbOf(w), 'Week planning').rows.length !== 4) throw new Error('expected 4 days, got ' + sheetOf(wbOf(w), 'Week planning').rows.length);
     let asked = false; w.confirm = () => { asked = true; return true; };
     w.document.querySelector('tr.week-row .week-radio').click();
@@ -658,46 +658,46 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
   });
   await ta('TimesX7: radio -> Cancel deletes nothing', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': todayStr })]);
-    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click(); const before = w.localStorage.getItem(DK);
+    clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click(); const before = w.localStorage.getItem(DK);
     w.confirm = () => false; w.document.querySelector('.week-radio').click(); if (w.localStorage.getItem(DK) !== before) throw new Error('data changed');
   });
   await ta('TimesX7: a hand-made row with no source on Times is deleted on its own (nothing else touched)', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1' })]);
     const g = wbOf(w); sheetOf(g, 'Week planning').rows = [{ 'Date/Day': formatDD(0), Timeframes: 'manual' }]; await doImport(w, JSON.stringify(g));
-    clickNav(w, /^TimesX7$/); w.document.querySelector('.week-radio').click();
+    clickNav(w, /^Spacetime$/); w.document.querySelector('.week-radio').click();
     if (sheetOf(wbOf(w), 'Week planning').rows.length !== 0 || sheetOf(wbOf(w), 'Daily planning - All tasks').rows.length !== 1) throw new Error('wrong rows deleted');
   });
   await ta('TimesX7: the date cannot be edited here (only the time); the time box works for recurring and normal tasks', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', Demand: '99', 'Timeframe/Meeting': 'Daily', Date: todayStr, 'Time Zero on': dayStr(2) }), blankTask({ Space: 'BB', 'Timeframe/Meeting': 'One', 'Time Zero on': todayStr })]);
-    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
     const before = JSON.stringify(sheetOf(wbOf(w), 'Week planning').rows.map(r => r['Date/Day']));
     for (const row of w.document.querySelectorAll('tr.week-row')) { const i = row.querySelector('.week-dt-time'); if (!i || row.querySelector('input[type=date]')) throw new Error('no date input expected'); i.value = '3pm'; i.dispatchEvent(new w.Event('blur')); }
     if (JSON.stringify(sheetOf(wbOf(w), 'Week planning').rows.map(r => r['Date/Day'])) !== before) throw new Error('dates changed');
   });
   await ta('Date sync: changing Time Zero on on Times moves the TimesX7 row on Refresh (one row, new date)', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': todayStr })]);
-    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
-    clickNav(w, /^Times$/); pickDate(w, w.document.querySelector('td[data-col="Time Zero on"] input'), dayStr(2)); await sleep(200);
-    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
+    clickNav(w, /^Time$/); pickDate(w, w.document.querySelector('td[data-col="Time Zero on"] input'), dayStr(2)); await sleep(200);
+    clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
     const rr = sheetOf(wbOf(w), 'Week planning').rows; if (rr.length !== 1 || dateOnly(rr[0]['Date/Day']) !== dayStr(2)) throw new Error(JSON.stringify(rr));
   });
 
 
   await ta('TimesX7: Times column is display-only (not editable) and tapping it opens that task on Times', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': todayStr }), blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T2', 'Time Zero on': todayStr })]);
-    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
     if (w.document.querySelector('tr.week-row td[data-col="Timeframes"] [contenteditable]')) throw new Error('Times column still editable');
     const before = w.localStorage.getItem(DK);
     const link = [...w.document.querySelectorAll('tr.week-row td[data-col="Timeframes"] .week-times-link')].find(e => /T2/.test(e.textContent)); link.click();
-    if (!/Times$/.test(w.document.getElementById('pageTitle').textContent.trim())) throw new Error('did not open Times: ' + w.document.getElementById('pageTitle').textContent);
+    if (!/^Time$/.test(w.document.getElementById('pageTitle').textContent.trim())) throw new Error('did not open Times: ' + w.document.getElementById('pageTitle').textContent);
     await sleep(150); const hl = w.document.querySelector('#tableBody tr.row-highlight'); if (!hl || !/T2/.test(hl.textContent)) throw new Error('T2 row not highlighted');
     if (w.localStorage.getItem(DK) !== before) throw new Error('data changed by navigation');
   });
   await ta('TimesX7: Times link on a row with no source just opens the Times page', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1' })]);
     const g = wbOf(w); sheetOf(g, 'Week planning').rows = [{ 'Date/Day': formatDD(0), Timeframes: 'manual' }]; await doImport(w, JSON.stringify(g));
-    clickNav(w, /^TimesX7$/); w.document.querySelector('.week-times-link').click();
-    if (!/Times$/.test(w.document.getElementById('pageTitle').textContent.trim())) throw new Error('not on Times');
+    clickNav(w, /^Spacetime$/); w.document.querySelector('.week-times-link').click();
+    if (!/^Time$/.test(w.document.getElementById('pageTitle').textContent.trim())) throw new Error('not on Times');
   });
 
 
@@ -709,7 +709,7 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
       blankTask({ Space: 'AA', 'Timeframe/Meeting': 'p1', Timing: 'In-Progress' }),
       blankTask({ Space: 'AA', 'Timeframe/Meeting': 'h2', Timing: 'Hold' }),
       blankTask({ Space: 'AA', 'Timeframe/Meeting': 'p2', Timing: 'In-Progress', 'Time Zero on': dayStr(2) })]);
-    clickNav(w, /^Spacetime$/); expandSpacetime(w);
+    clickNav(w, /^Times$/); expandSpacetime(w);
     const trs = [...w.document.querySelectorAll('#tableBody tr')].map(tr => tr.classList.contains('summary-space-title') ? '@' + tr.dataset.space : tr.classList.contains('summary-status-row') ? '#' + tr.textContent.trim() : (tr.querySelector('.summary-date-input').value || '_') + '|' + tr.querySelector('.summary-task-link').textContent.trim());
     const want = ['@AA', '#In-Progress', '_|p1', dayStr(2) + '|p2', '#Hold', dayStr(1) + '|h1', '_|h2'];
     if (JSON.stringify(trs) !== JSON.stringify(want)) throw new Error(JSON.stringify(trs));
@@ -719,22 +719,22 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
   await ta("Spacetime: date picker saves to the Times row; cannot go past the Space's Life Ends; blank date can be set", async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', Timing: 'Hold' })], [lifeRow('AA', dayStr(5))]);
     let msg = ''; w.alert = m => { msg = m; };
-    clickNav(w, /^Spacetime$/); expandSpacetime(w); let inp = w.document.querySelector('.summary-date-input');
+    clickNav(w, /^Times$/); expandSpacetime(w); let inp = w.document.querySelector('.summary-date-input');
     pickDate(w, inp, dayStr(9));
     if (!/Life Ends/.test(msg) || sheetOf(wbOf(w), 'Daily planning - All tasks').rows[0]['Time Zero on'] !== '') throw new Error('beyond date accepted');
     if (inp.max !== isoOf(dayStr(5))) throw new Error('max ' + inp.max);
     pickDate(w, inp, dayStr(4));
     if (sheetOf(wbOf(w), 'Daily planning - All tasks').rows[0]['Time Zero on'] !== dayStr(4)) throw new Error('not synced to Times');
-    clickNav(w, /^Times$/); if (w.document.querySelector('td[data-col="Time Zero on"] input').value !== dayStr(4)) throw new Error('Times page not showing the date');
-    clickNav(w, /^Spacetime$/); expandSpacetime(w); inp = w.document.querySelector('.summary-date-input'); inp.dispatchEvent(new w.Event('focus')); inp.value = ''; inp.dispatchEvent(new w.Event('change'));
+    clickNav(w, /^Time$/); if (w.document.querySelector('td[data-col="Time Zero on"] input').value !== dayStr(4)) throw new Error('Times page not showing the date');
+    clickNav(w, /^Times$/); expandSpacetime(w); inp = w.document.querySelector('.summary-date-input'); inp.dispatchEvent(new w.Event('focus')); inp.value = ''; inp.dispatchEvent(new w.Event('change'));
     if (sheetOf(wbOf(w), 'Daily planning - All tasks').rows[0]['Time Zero on'] !== '') throw new Error('clear not saved');
   });
   await ta('Spacetime: tapping the date does not navigate away; tapping the task text still opens it on Times', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1' })]);
-    clickNav(w, /^Spacetime$/); expandSpacetime(w); w.document.querySelector('.summary-date-input').click();
-    if (!/Spacetime$/.test(w.document.getElementById('pageTitle').textContent.trim())) throw new Error('left Spacetime');
+    clickNav(w, /^Times$/); expandSpacetime(w); w.document.querySelector('.summary-date-input').click();
+    if (!/^Times$/.test(w.document.getElementById('pageTitle').textContent.trim())) throw new Error('left Spacetime');
     w.document.querySelector('.summary-task-link').click();
-    if (!/Times$/.test(w.document.getElementById('pageTitle').textContent.trim())) throw new Error('did not open Times');
+    if (!/^Time$/.test(w.document.getElementById('pageTitle').textContent.trim())) throw new Error('did not open Times');
   });
 
 
@@ -753,7 +753,7 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
   /* ---- Space colours ---- */
   await ta('Space colours: each Space gets its own colour automatically, saved with the Space (not a column), duplicates share one', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'a' }), blankTask({ Space: 'BB', 'Timeframe/Meeting': 'b' })], [lifeRow('AA', ''), lifeRow('BB', ''), lifeRow('CC', ''), lifeRow('AA', '')]);
-    clickNav(w, /^Times$/);
+    clickNav(w, /^Time$/);
     const road = sheetOf(wbOf(w), 'Road Map - Pending'); const cols = road.rows.map(r => r.Color);
     if (cols.some(c => !/^\d{1,2}$/.test(c))) throw new Error('missing colours ' + JSON.stringify(cols));
     if (new Set([cols[0], cols[1], cols[2]]).size !== 3) throw new Error('not distinct ' + JSON.stringify(cols));
@@ -763,14 +763,14 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
   });
   await ta('Space colours: a new Space gets a different colour; existing colours never change; same colour on Times, TimesX7 and Spacetime', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': todayStr })], [lifeRow('AA', '')]);
-    clickNav(w, /^Times$/); const aaCls = w.document.querySelector('td[data-col="Space"] .space-box').className;
+    clickNav(w, /^Time$/); const aaCls = w.document.querySelector('td[data-col="Space"] .space-box').className;
     const g = wbOf(w); sheetOf(g, 'Road Map - Pending').rows.push(lifeRow('ZZ', '')); await doImport(w, JSON.stringify(g));
     const road = sheetOf(wbOf(w), 'Road Map - Pending').rows; if (road[0].Color === road[1].Color || !road[1].Color) throw new Error('new Space colour ' + JSON.stringify(road.map(r => r.Color)));
-    clickNav(w, /^Times$/); if (w.document.querySelector('td[data-col="Space"] .space-box').className !== aaCls) throw new Error('AA colour changed');
+    clickNav(w, /^Time$/); if (w.document.querySelector('td[data-col="Space"] .space-box').className !== aaCls) throw new Error('AA colour changed');
     const colourOf = el => (/space-color-\d+/.exec(el.className) || [''])[0];
-    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
     const x7 = w.document.querySelector('td[data-col="Timeframes"] .week-times-link'); if (!x7 || colourOf(x7) !== colourOf({ className: aaCls }) || x7.querySelector('.space-color') || x7.textContent !== 'T1') throw new Error('TimesX7 colour (whole box, task text only): ' + (x7 && x7.className));
-    clickNav(w, /^Spacetime$/); const title = w.document.querySelector('tr.summary-space-title .space-box'); if (!title || colourOf(title) !== colourOf({ className: aaCls })) throw new Error('Spacetime Space box colour: ' + (title && title.className)); expandSpacetime(w);
+    clickNav(w, /^Times$/); const title = w.document.querySelector('tr.summary-space-title .space-box'); if (!title || colourOf(title) !== colourOf({ className: aaCls })) throw new Error('Spacetime Space box colour: ' + (title && title.className)); expandSpacetime(w);
     const box = w.document.querySelector('td[data-col="Time"] .week-times-link'); if (!box || colourOf(box) !== colourOf({ className: aaCls })) throw new Error('Spacetime task box colour: ' + (box && box.className));
     clickNav(w, /^Spaces$|^Projects$/); const sc = w.document.querySelector('td[data-col="Space"] .space-box'); if (colourOf(sc) !== colourOf({ className: aaCls })) throw new Error('Spaces page colour');
   });
@@ -780,7 +780,7 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     await doImport(w, JSON.stringify(g)); const cols = sheetOf(wbOf(w), 'Road Map - Pending').rows.map(r => r.Color);
     if (cols[0] !== '5') throw new Error('valid colour lost: ' + JSON.stringify(cols));
     if (cols.some(c => !/^\d{1,2}$/.test(c) || Number(c) > 11) || new Set(cols).size !== 4) throw new Error('bad colours ' + JSON.stringify(cols));
-    clickNav(w, /^Times$/); if (w.document.querySelector('[onclick]')) throw new Error('injected attribute');
+    clickNav(w, /^Time$/); if (w.document.querySelector('[onclick]')) throw new Error('injected attribute');
   });
 
 
@@ -794,7 +794,7 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     if (cells[0].contentEditable !== 'true') throw new Error('double-tap did not open editing');
     cells[0].dispatchEvent(new w.Event('blur'));
     const again = [...w.document.querySelectorAll('td[data-col="Space"] .cell-editable')][0]; again.click(); await sleep(350);
-    if (!/Spacetime$/.test(w.document.getElementById('pageTitle').textContent.trim())) throw new Error('single tap did not open Spacetime: ' + w.document.getElementById('pageTitle').textContent);
+    if (!/^Times$/.test(w.document.getElementById('pageTitle').textContent.trim())) throw new Error('single tap did not open Spacetime: ' + w.document.getElementById('pageTitle').textContent);
     const t = [...w.document.querySelectorAll('tr.summary-space-title')].map(x => x.dataset.space); if (t[0] !== 'AA') throw new Error(JSON.stringify(t)); if (!w.document.querySelector('.summary-task-link')) throw new Error('the Space should be open on Spacetime');
   });
 
@@ -861,7 +861,7 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
       blankTask({ Space: 'AA', 'Timeframe/Meeting': 'h1', Timing: 'Hold' }),
       blankTask({ Space: 'AA', 'Timeframe/Meeting': 'a3', Timing: 'In-Progress' }),
       blankTask({ Space: 'BB', 'Timeframe/Meeting': 'b1', Timing: 'In-Progress' })]);
-    clickNav(w, /^Spacetime$/); expandSpacetime(w);
+    clickNav(w, /^Times$/); expandSpacetime(w);
     const list = () => [...w.document.querySelectorAll('#tableBody .summary-task-link')].map(e => e.textContent.trim()).join(',');
     if (list() !== 'a1,a2,a3,h1,b1') throw new Error('stored order expected, got ' + list());
     let trs = [...w.document.querySelectorAll('#tableBody tr')]; stubRects(trs);
@@ -877,7 +877,7 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
       blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T2', 'Time Zero on': todayStr }),
       blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T3', 'Time Zero on': dayStr(1) }),
       blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T4', 'Time Zero on': todayStr })]);
-    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
     const list = () => [...w.document.querySelectorAll('tr.week-row .week-times-link')].slice(0, 4).map(e => e.textContent.replace('AA || ', '')).join(',');
     if (list() !== 'T1,T2,T4,T3') throw new Error('start ' + list());
     let trs = [...w.document.querySelectorAll('tr.week-row')]; stubRects(trs);
@@ -914,7 +914,7 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
   /* ---- Spacetime collapsed Space lines; TimesX7 today first ---- */
   await ta('Spacetime: each Space is one collapsed line (+, "Times", Space box in its colour); + opens its tasks, + again closes them', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', Timing: 'Hold' }), blankTask({ Space: 'BB', 'Timeframe/Meeting': 'T2', Timing: 'Hold' })], [lifeRow('AA', ''), lifeRow('BB', '')]);
-    clickNav(w, /^Spacetime$/);
+    clickNav(w, /^Times$/);
     if (w.document.querySelector('#tableBody .summary-task-link')) throw new Error('tasks should be hidden at first');
     const heads = [...w.document.querySelectorAll('tr.summary-space-title')]; if (heads.length !== 2) throw new Error('heads ' + heads.length);
     const line = heads[0].querySelector('.space-line'); const kids = [...line.children].map(e => e.className.split(' ')[0]);
@@ -928,7 +928,7 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
   });
   await ta('TimesX7: exactly 7 date tiles (today .. +6), no previous-day tile, no weekday merging', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T0', 'Time Zero on': dayStr(0) }), blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': dayStr(1) }), blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T3', 'Time Zero on': dayStr(3) })]);
-    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
     const all = [...w.document.querySelectorAll('tr.week-day-header-row')].map(e => e.dataset.date);
     const want = []; for (let n = 0; n <= 6; n++) want.push(dayStr(n));
     if (all.join() !== want.join()) throw new Error(all.join() + ' != ' + want.join());
@@ -937,7 +937,7 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
   });
   await ta('TimesX7: Demand 99 task shows once per day; next week\'s same weekday is not mixed into today\'s tile', async () => {
     const w = await weekBoot([blankTask({ Date: dayStr(0), Space: 'AA', Demand: '99', 'Timeframe/Meeting': 'Daily', 'Time Zero on': dayStr(40) })]);
-    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
     const perTile = {}; let cur = null, seen = {};
     [...w.document.querySelectorAll('#tableBody tr')].forEach(tr => { if (tr.classList.contains('week-day-header-row')) { cur = tr.dataset.date; if (seen[cur]) cur = null; else { seen[cur] = true; perTile[cur] = 0; } } else if (cur && tr.classList.contains('week-row')) perTile[cur]++; });
     for (let n = 0; n <= 6; n++) if (perTile[dayStr(n)] !== 1) throw new Error('day ' + n + ' count ' + perTile[dayStr(n)]);
@@ -954,11 +954,21 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     if (navBtns(w).some(b => /NextIn|TimeX0/i.test(b.textContent))) throw new Error('button still there');
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
-  await ta('Header: title row has only the title; page bar order is Spaces, Spacetime, Times, TimesX7, NoSpace (no Stars, no TimeX0)', async () => {
+  await ta('App title is "Lotus"; page names: Spaces, Times (summary), Time (daily), Spacetime (week), NoSpace; nav buttons use the same 12px rounded shape as the action buttons', async () => {
+    const w = await boot();
+    if (w.document.querySelector('.brand-text h1').textContent !== 'Lotus' || w.document.title !== 'Lotus') throw new Error('title');
+    const css = require('fs').readFileSync(require('path').join(__dirname, 'style.css'), 'utf8');
+    const navRule = /\n\.nav-btn\{[^}]*\}/.exec(css)[0], btnRule = /\n\.btn\{[^}]*\}/.exec(css)[0];
+    const radius = r => /border-radius:\s*([^;]+);/.exec(r)[1].trim();
+    if (radius(navRule) !== radius(btnRule)) throw new Error('nav radius ' + radius(navRule) + ' vs btn ' + radius(btnRule));
+    const titles = {}; for (const b of navBtns(w)) { b.click(); titles[b.textContent.trim()] = w.document.getElementById('pageTitle').textContent.trim(); }
+    if (JSON.stringify(Object.keys(titles)) !== JSON.stringify(['Spaces', 'Times', 'Time', 'Spacetime', 'NoSpace'])) throw new Error(Object.keys(titles).join());
+  });
+  await ta('Header: title row has only the title; page bar order is Spaces, Times, Time, Spacetime, NoSpace (no Stars, no TimeX0)', async () => {
     const w = await boot();
     if (w.document.querySelector('.header-row .nav-btn')) throw new Error('page buttons still in the title row');
     const labels = navBtns(w).map(b => b.textContent.trim()).join();
-    if (labels !== 'Spaces,Spacetime,Times,TimesX7,NoSpace') throw new Error(labels);
+    if (labels !== 'Spaces,Times,Time,Spacetime,NoSpace') throw new Error(labels);
     if (w.document.getElementById('nav').querySelectorAll('.nav-btn').length !== 5) throw new Error('nav count');
   });
   await ta('Actions row: no "+ Add" button; "+Stars" comes first and opens the Stars page', async () => {
@@ -971,14 +981,14 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
   });
   await ta('TimesX7: time typed in the Defined time at box ("11pm" -> "11 PM"), saved, kept on import/Refresh, cleared when emptied', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'x', 'Time Zero on': todayStr })]);
-    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
     const tin = () => w.document.querySelector('tr.week-row .week-dt-time');
     tin().value = '11pm'; tin().dispatchEvent(new w.Event('blur'));
     if (tin().value !== '11 PM') throw new Error('shown ' + tin().value);
     if (sheetOf(wbOf(w), 'Week planning').rows[0]['Time at'] !== '11 PM') throw new Error('not saved');
     if (JSON.stringify(sheetOf(wbOf(w), 'Week planning').columns) !== '["Date/Day","Timeframes"]') throw new Error('columns changed');
     const cap = captureBlobs(w); w.document.getElementById('btnExportJson').click(); await sleep(30);
-    await doImport(w, cap[0]); clickNav(w, /^TimesX7$/);
+    await doImport(w, cap[0]); clickNav(w, /^Spacetime$/);
     if (tin().value !== '11 PM') throw new Error('lost on import');
     w.document.getElementById('btnRefreshWeek').click();
     if (tin().value !== '11 PM') throw new Error('lost on Refresh');
@@ -988,27 +998,27 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
   });
   await ta('TimesX7: the Times column shows only the task text (Space is in the group title); stored "Space || Time" and tap-to-open unchanged', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': todayStr })]);
-    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
     const link = w.document.querySelector('tr.week-row .week-times-link');
     if (link.textContent !== 'T1' || /\|\|/.test(link.textContent)) throw new Error('shown: ' + link.textContent);
     if (sheetOf(wbOf(w), 'Week planning').rows[0].Timeframes !== 'AA || T1') throw new Error('stored value changed');
-    link.click(); if (w.document.getElementById('pageTitle').textContent.indexOf('Times') === -1) throw new Error('did not open Times');
+    link.click(); if (w.document.getElementById('pageTitle').textContent.trim() !== 'Time') throw new Error('did not open Times');
   });
   await ta('TimesX7: fixed width (scroll area has no sideways scrolling; other pages keep theirs); group title uses the Space colour class', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': todayStr })], [lifeRow('AA', '')]);
     const sc = w.document.getElementById('tableScroller');
-    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
     if (!sc.classList.contains('no-hscroll')) throw new Error('TimesX7 must be fixed width');
     const head = w.document.querySelector('tr.week-space-heading > td');
     if (!/space-color-\d+/.test(head.className)) throw new Error('group title has no Space colour: ' + head.className);
-    clickNav(w, /^Times$/); if (sc.classList.contains('no-hscroll')) throw new Error('other pages must not be locked');
+    clickNav(w, /^Time$/); if (sc.classList.contains('no-hscroll')) throw new Error('other pages must not be locked');
   });
   await ta('TimesX7: within a day tasks are grouped by Space (A-Z, no Space last) and, inside each Space, sorted by time (no time last)', async () => {
     const w = await weekBoot([
       blankTask({ Space: 'Zed', 'Timeframe/Meeting': 'z1', 'Time Zero on': todayStr }), blankTask({ Space: 'alpha', 'Timeframe/Meeting': 'a1', 'Time Zero on': todayStr }),
       blankTask({ Space: 'Zed', 'Timeframe/Meeting': 'z2', 'Time Zero on': todayStr }), blankTask({ Space: 'alpha', 'Timeframe/Meeting': 'a2', 'Time Zero on': todayStr }),
       blankTask({ Space: 'Mid', 'Timeframe/Meeting': 'm1', 'Time Zero on': todayStr }), blankTask({ Space: '', 'Timeframe/Meeting': 'none', 'Time Zero on': todayStr })]);
-    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
     const order = () => [...w.document.querySelectorAll('tr.week-row')].slice(0, 6).map(r => r.querySelector('.week-times-link').textContent).join(' ; ');
     const setT = (name, v) => { const r = [...w.document.querySelectorAll('tr.week-row')].find(x => x.querySelector('.week-times-link').textContent.endsWith(name)); const i = r.querySelector('.week-dt-time'); i.value = v; i.dispatchEvent(new w.Event('blur')); };
     setT('z1', '9 pm'); setT('z2', '8 am'); setT('a2', '7 am'); setT('a1', '7 pm');
@@ -1023,7 +1033,7 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
   });
   await ta('TimesX7: within a day tasks sort by time ascending (7 AM, 7 PM, 11 PM), odd text after, no time last; re-sorts when a time is set', async () => {
     const w = await weekBoot([1, 2, 3, 4, 5].map(n => blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T' + n, 'Time Zero on': todayStr })));
-    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
     const order = () => [...w.document.querySelectorAll('tr.week-row')].slice(0, 5).map(r => r.querySelector('.week-times-link').textContent.replace('AA || ', '') + '=' + r.querySelector('.week-dt-time').value).join(' ');
     const setT = (name, v) => { const r = [...w.document.querySelectorAll('tr.week-row')].find(x => x.querySelector('.week-times-link').textContent.endsWith(name)); const i = r.querySelector('.week-dt-time'); i.value = v; i.dispatchEvent(new w.Event('blur')); };
     if (order() !== 'T1= T2= T3= T4= T5=') throw new Error('start ' + order());
@@ -1034,7 +1044,7 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
   });
   await ta('TimesX7: Demand 99 - a first time is given to all its days; later edits change one day only', async () => {
     const w = await weekBoot([blankTask({ Date: dayStr(0), Space: 'AA', Demand: '99', 'Timeframe/Meeting': 'D', 'Time Zero on': dayStr(40) })]);
-    clickNav(w, /^TimesX7$/); w.document.getElementById('btnRefreshWeek').click();
+    clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
     const ins = () => [...w.document.querySelectorAll('tr.week-row .week-dt-time')];
     const set = (i, v) => { ins()[i].value = v; ins()[i].dispatchEvent(new w.Event('blur')); };
     set(0, '9 am');
@@ -1050,12 +1060,12 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     await doImport(w, JSON.stringify(g));
     const r = sheetOf(wbOf(w), 'Week planning').rows;
     if ((r[0]['Time at'] || '').length > 40 || (r[1]['Time at'] && typeof r[1]['Time at'] !== 'string')) throw new Error(JSON.stringify(r));
-    clickNav(w, /^TimesX7$/); if (w.document.querySelector('#tableBody img')) throw new Error('markup injected');
+    clickNav(w, /^Spacetime$/); if (w.document.querySelector('#tableBody img')) throw new Error('markup injected');
   });
   await ta('Spacetime: Began/Ends dates under the Space name; Order handle on each Space line moves the Space (Spaces page order, saved)', async () => {
     const lr = (n, b, e) => ({ Space: n, 'Key milestones': 'k', 'Life began': b, 'Life Ends': e, 'Life span': '' });
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'a' }), blankTask({ Space: 'BB', 'Timeframe/Meeting': 'b' }), blankTask({ Space: 'CC', 'Timeframe/Meeting': 'c' })], [lr('AA', '01/01/2026', '12/31/2026'), lr('BB', '', ''), lr('CC', '', '11/30/2026')]);
-    clickNav(w, /^Spacetime$/);
+    clickNav(w, /^Times$/);
     let heads = [...w.document.querySelectorAll('tr.summary-space-title')];
     const dates = heads.map(h => (h.querySelector('.space-dates') || {}).textContent || '-').join('|');
     if (dates !== '01/01/2026 \u2014 12/31/2026|-|\u2014 11/30/2026') throw new Error(dates);
@@ -1069,7 +1079,7 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
   await ta('Spacetime on the phone layout: list of collapsed Spaces (no paging); opened Space shows labelled "Defined time on" / "Times" rows', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', Timing: 'Hold' }), blankTask({ Space: 'BB', 'Timeframe/Meeting': 'T2', Timing: 'Hold' })]);
     w.matchMedia = () => ({ matches: true, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
-    clickNav(w, /^Spacetime$/);
+    clickNav(w, /^Times$/);
     if (w.document.querySelectorAll('tr.summary-space-title').length !== 2) throw new Error('both Spaces must be listed on one page');
     if (!w.document.getElementById('taskSwipeNav').hidden) throw new Error('no BackIn/NextIn paging expected');
     w.document.querySelector('tr.summary-space-title .space-toggle').click();
@@ -1089,7 +1099,7 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
   }
   const lbl = w => w.document.getElementById('taskPositionLabel').textContent;
   const prev = w => w.document.getElementById('taskPrevBtn'), next = w => w.document.getElementById('taskNextBtn');
-  for (const [page, re, fmt] of [['Times', /^Times$/, (i, n) => 'Time ' + i + ' of ' + n], ['NoSpace', /^NoSpace$/, (i, n) => i + ' of ' + n]]) {
+  for (const [page, re, fmt] of [['Times', /^Time$/, (i, n) => 'Time ' + i + ' of ' + n], ['NoSpace', /^NoSpace$/, (i, n) => i + ' of ' + n]]) {
     await ta('BackIn/NextIn wrap on ' + page + ': 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10', async () => {
       const w = await wrapBoot(10); clickNav(w, re);
       const seq = [[null, 1], [prev, 10], [prev, 9], [next, 10], [next, 1], [next, 2], [prev, 1]];
@@ -1101,16 +1111,16 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     });
   }
   await ta('BackIn/NextIn wrap: the item shown actually changes (last item shown after BackIn from first)', async () => {
-    const w = await wrapBoot(10); clickNav(w, /^Times$/); const shown = () => [...w.document.querySelectorAll('#tableBody .cell-editable')].map(e => e.textContent).join('|');
+    const w = await wrapBoot(10); clickNav(w, /^Time$/); const shown = () => [...w.document.querySelectorAll('#tableBody .cell-editable')].map(e => e.textContent).join('|');
     const first = shown(); prev(w).click(); const last = shown(); if (!/t9/.test(last) || /t0/.test(last)) throw new Error('last page content: ' + last);
     next(w).click(); if (shown() !== first) throw new Error('did not return to first');
   });
   await ta('BackIn/NextIn disabled only when there is nothing to move to (0 or 1 items)', async () => {
-    for (const n of [0, 1]) { const w = await wrapBoot(n); clickNav(w, /^Times$/); if (!prev(w).disabled || !next(w).disabled) throw new Error(n + ' items: buttons enabled'); }
-    const w = await wrapBoot(2); clickNav(w, /^Times$/); if (prev(w).disabled || next(w).disabled) throw new Error('2 items: buttons disabled');
+    for (const n of [0, 1]) { const w = await wrapBoot(n); clickNav(w, /^Time$/); if (!prev(w).disabled || !next(w).disabled) throw new Error(n + ' items: buttons enabled'); }
+    const w = await wrapBoot(2); clickNav(w, /^Time$/); if (prev(w).disabled || next(w).disabled) throw new Error('2 items: buttons disabled');
   });
   await ta('Finger swipes still stop at the ends (no wraparound); only the buttons wrap', async () => {
-    const w = await wrapBoot(10); clickNav(w, /^Times$/); const swipe = (dx) => { const target = w.document.querySelector('#tableBody td') || w.document.querySelector('.content'); const a = new w.Event('touchstart', { bubbles: true }); a.touches = [{ clientX: 200, clientY: 100 }]; target.dispatchEvent(a); const b = new w.Event('touchend', { bubbles: true }); b.changedTouches = [{ clientX: 200 + dx, clientY: 100 }]; target.dispatchEvent(b); };
+    const w = await wrapBoot(10); clickNav(w, /^Time$/); const swipe = (dx) => { const target = w.document.querySelector('#tableBody td') || w.document.querySelector('.content'); const a = new w.Event('touchstart', { bubbles: true }); a.touches = [{ clientX: 200, clientY: 100 }]; target.dispatchEvent(a); const b = new w.Event('touchend', { bubbles: true }); b.changedTouches = [{ clientX: 200 + dx, clientY: 100 }]; target.dispatchEvent(b); };
     swipe(120); if (lbl(w) !== 'Time 1 of 10') throw new Error('swipe back from first wrapped: ' + lbl(w));
     swipe(-120); if (lbl(w) !== 'Time 2 of 10') throw new Error('swipe forward failed: ' + lbl(w));
     for (let i = 0; i < 12; i++) swipe(-120); if (lbl(w) !== 'Time 10 of 10') throw new Error('swipe forward past last wrapped: ' + lbl(w));

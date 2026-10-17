@@ -669,9 +669,9 @@
   // name is still used for every internal check (isTaskSheet, MOVE_TARGETS,
   // CALENDAR_DATE_COLUMNS, storage, etc.) and is shown as a tooltip.
   var NAV_SHORT_NAMES = {
-    "Summary": "Spacetime",
-    "Daily planning - All tasks": "Times",
-    "Week planning": "TimesX7",
+    "Summary": "Times",
+    "Daily planning - All tasks": "Time",
+    "Week planning": "Spacetime",
     "Road Map - Pending": "Spaces",
     "Quick list": "Stars",
     "Completed tasks": "NoSpace"
@@ -1437,7 +1437,7 @@
     renderTable();
   }
 
-  // The page bar: Spaces, Spacetime, Times, TimesX7, NoSpace - in that
+  // The page bar: Spaces, Times (Summary), Time (Daily), Spacetime (Week), NoSpace - in that
   // order. (The Stars page is opened from the "+Stars" button instead.)
   var NAV_ORDER = ["Road Map - Pending", "Summary", "Daily planning - All tasks", "Week planning", "Completed tasks"];
 
@@ -1525,8 +1525,8 @@
     if ((sheet.name === "Daily planning - All tasks" || sheet.name === "Completed tasks") && col === "Timeframe/Meeting") return "Time";
     if ((sheet.name === "Daily planning - All tasks" || sheet.name === "Completed tasks") && col === "Next Timeframes") return "Next in Time";
     if (sheet.name === "Road Map - Pending" && col === "Key milestones") return "Time";
-    if (sheet.name === "Week planning" && col === "Timeframes") return "Times";
-    if (sheet.name === "Week planning" && col === "Date/Day") return "Defined time at";
+    if (sheet.name === "Week planning" && col === "Timeframes") return "Time";
+    if (sheet.name === "Week planning" && col === "Date/Day") return "Time at";
     if (sheet.name === "Summary" && col === "Date") return "Defined time on";
     if (sheet.name === "Summary" && col === "Time") return "Times";
     if (sheet.name === "Quick list" && col === "Small Times") return "Small Stars";
@@ -2166,7 +2166,7 @@
   function handleRefreshWeek() {
     var week = workbook.find(function (s) { return s.name === "Week planning"; });
     if (!week) return;
-    if (!window.confirm("Rebuild TimesX7 from the Spaces and Times pages?\n\nRows currently on this page (including any added or edited by hand) will be replaced.")) return;
+    if (!window.confirm("Rebuild Spacetime from the Spaces and Time pages?\n\nRows currently on this page (including any added or edited by hand) will be replaced.")) return;
     // Remember the times typed on this page: by date + text, and (when a
     // task's date was changed on Times) by text alone if it is unambiguous.
     var keepByKey = newMap(), keepByText = newMap();
@@ -2889,7 +2889,7 @@
       var named = String(row[col] || "").trim() !== "";
       div.contentEditable = named ? "false" : "true";
       div.classList.toggle("space-nav", named);
-      div.title = named ? "Tap: open on Spacetime. Double-tap: rename" : "";
+      div.title = named ? "Tap: open on Times. Double-tap: rename" : "";
     }
     lockIfNamed();
     div.addEventListener("click", function () {
@@ -3199,7 +3199,7 @@
     timeInput.placeholder = "time";
     timeInput.maxLength = 40;
     timeInput.value = String(row["Time at"] || "");
-    timeInput.setAttribute("aria-label", "Defined time at (for example 6 pm)");
+    timeInput.setAttribute("aria-label", "Time at (for example 6 pm)");
     box.appendChild(timeInput);
 
     timeInput.addEventListener("keydown", function (e) {
@@ -3227,7 +3227,7 @@
     if (wcls) div.classList.add(wcls);
     // Only the task text: its Space is the small group title above it.
     div.textContent = sepAt === -1 ? wtext : wtext.slice(sepAt + 4);
-    div.title = "Tap to open this task on the Times page";
+    div.title = "Tap to open this task on the Time page";
     var weekWrap = null;
     if (!sortState["Week planning"]) {
       weekWrap = document.createElement("div");
@@ -3263,7 +3263,7 @@
     if (idx === -1) return;
     var src = findWeekSource(row);
     if (src && !src.recurring) {
-      if (!window.confirm("Delete this task from TimesX7 and from the Times page?")) return;
+      if (!window.confirm("Delete this task from Spacetime and from the Time page?")) return;
       var daily = dailySheet();
       var di = daily.rows.indexOf(src.row);
       if (di !== -1) daily.rows.splice(di, 1);
@@ -3461,10 +3461,10 @@
     }
     var msg;
     if (cascade) {
-      var label = { "Daily planning - All tasks": "Times", "Completed tasks": "NoSpace" };
+      var label = { "Daily planning - All tasks": "Time", "Completed tasks": "NoSpace" };
       msg = 'Delete space "' + name + '"?\n\nThis permanently deletes:\n- this row on Spaces';
       targets.forEach(function (t) { msg += "\n- " + t.count + " row(s) on " + label[t.sheet.name]; });
-      msg += "\n\nSpacetime updates automatically. This cannot be undone - Export a backup first if unsure.";
+      msg += "\n\nTimes updates automatically. This cannot be undone - Export a backup first if unsure.";
     } else if (duplicate) {
       msg = 'Delete this row from Spaces?\n\nAnother Spaces row is also named "' + name + '", so its tasks are kept.';
     } else {

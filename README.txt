@@ -711,3 +711,19 @@ you need to scroll:
 - Status bar area: the page edge colour (html background) is now the header's dark colour so iOS shows a dark strip above the header instead of white.
 
 - Header blend: the header's top edge is exactly the dark page-edge colour (fades into the diagonal shade), and the page bar no longer clips the active pill's shadow.
+
+------------------------------------------------------------
+28. NEW NAMES  (applies to everything written above)
+------------------------------------------------------------
+- App title: Lotus.
+- Page bar (second row) - the buttons now have the same rounded-rectangle
+  shape as Export / Import / Order. Old name -> new name:
+    Spacetime -> Times      (the Space groups page)
+    Times     -> Time       (the task list page)
+    TimesX7   -> Spacetime  (the 7-day page)
+  Spaces and NoSpace are unchanged; the order is Spaces, Times, Time,
+  Spacetime, NoSpace.
+- On the 7-day page (now Spacetime) the column titles are "Time at" and "Time".
+- Where earlier sections say Spacetime / Times / TimesX7 they mean the OLD names.
+- The Home Screen name (manifest.json: "Participant - Spaces & Time") is
+  unchanged; edit "name"/"short_name" there and re-add the app if you want it renamed too.
