@@ -736,3 +736,10 @@ you need to scroll:
   soft rose (#fda4af) on a transparent background, 64px high on the phone and 80px on wide
   screens (change .brand-logo in style.css to resize). logo.png is a NEW file: upload it next to
   index.html with the other app files (8 files in all, plus the icons).
+
+- Logo in the title is a little smaller (54px on the phone, 68px on wide screens).
+- Home Screen: new icon (the rose Lotus logo on the app's navy) in icon-192.png, icon-512.png and
+  apple-touch-icon.png, and the name under it is "Lotus" (index.html + manifest.json). iOS reads
+  the icon and name only when the app is ADDED to the Home Screen: delete the old icon, open the
+  page in Safari and use Share > Add to Home Screen again. Upload all of: index.html, manifest.json,
+  the three icon PNGs, logo.png, style.css, script.js.

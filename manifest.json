@@ -1,12 +1,12 @@
 {
-  "name": "Participant - Spaces & Time",
-  "short_name": "Participant",
+  "name": "Lotus",
+  "short_name": "Lotus",
   "description": "Local secure timeframe portal - all data stays on this device.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#f9fafb",
+  "background_color": "#0f172a",
   "theme_color": "#0f172a",
   "icons": [
     {

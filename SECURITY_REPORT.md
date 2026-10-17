@@ -193,3 +193,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: logo title (158 tests)
 - logo.png (16 KB) is a plain PNG with no metadata chunks (checked by a test), loaded from the same folder (CSP img-src self). No script changes.
+
+## Update: Home Screen icon and name (158 tests)
+- New icons are plain RGB PNGs without metadata chunks (the existing icon tests re-ran); manifest name/short_name and apple-mobile-web-app-title are now "Lotus". No script changes.
