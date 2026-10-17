@@ -727,3 +727,7 @@ you need to scroll:
 - Where earlier sections say Spacetime / Times / TimesX7 they mean the OLD names.
 - The Home Screen name (manifest.json: "Participant - Spaces & Time") is
   unchanged; edit "name"/"short_name" there and re-add the app if you want it renamed too.
+
+- Page bar on the phone: 11px text on one line (no wrapping) so all five buttons have the same, lower height.
+
+- Title colour: the theme's soft rose accent (#fda4af), solid.
