@@ -764,3 +764,8 @@ you need to scroll:
   day, tap again to hide them. Open/closed is remembered while the app stays open.
 - Section 29's "centred title" no longer applies; the coloured delete radio and the missing
   right strip on the task boxes still do.
+
+- Spacetime (7-day page): the Space lines now start OPEN (tap + or the name to collapse one; it
+  stays collapsed while the app is open). The "Spacetime" label has its own wider column so it no
+  longer touches the name box: the gap is the same 14px as on the Spaces page, and the dates
+  underneath line up with the name box.

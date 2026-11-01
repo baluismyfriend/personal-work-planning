@@ -2081,13 +2081,13 @@
     return i === -1 ? "" : t.slice(0, i).trim();
   }
 
-  // Which Space groups are open on the 7-day page ("MM/DD/YYYY|space"). Every
-  // group starts collapsed, like the Spaces and Times pages; kept while the app is open.
-  var expandedWeekSpaces = new Set();
+  // Which Space groups you collapsed on the 7-day page ("MM/DD/YYYY|space"). Every
+  // group starts open; the collapsed ones are remembered while the app is open.
+  var collapsedWeekSpaces = new Set();
 
   // A Space's line inside a day, laid out like the Spaces page: "+" (first column),
   // "Spacetime" (second), the gray box with the Space name in its colour (third), and the
-  // Space's "Began - Ends" dates underneath. "+" / the box shows or hides the day's tasks of that Space.
+  // Space's "Began - Ends" dates underneath. "+" / the box hides or shows the day's tasks of that Space.
   function buildWeekSpaceLine(sheet, row, stateKey, open) {
     var name = weekSpaceName(row);
     var tr = document.createElement("tr");
@@ -2113,8 +2113,8 @@
     if (colorClass) box.classList.add(colorClass);
     box.textContent = name || "(No space)";
     function toggle() {
-      if (expandedWeekSpaces.has(stateKey)) expandedWeekSpaces.delete(stateKey);
-      else expandedWeekSpaces.add(stateKey);
+      if (collapsedWeekSpaces.has(stateKey)) collapsedWeekSpaces.delete(stateKey);
+      else collapsedWeekSpaces.add(stateKey);
       renderTableBody(sheet);
     }
     btn.addEventListener("click", toggle);
@@ -2180,7 +2180,7 @@
         if (spaceKey !== lastSpaceKey) {
           lastSpaceKey = spaceKey;
           var stateKey = g.date + "|" + spaceKey;
-          groupOpen = expandedWeekSpaces.has(stateKey);
+          groupOpen = !collapsedWeekSpaces.has(stateKey);
           frag.appendChild(buildWeekSpaceLine(sheet, item.row, stateKey, groupOpen));
         }
         if (groupOpen) frag.appendChild(buildRowElement(sheet, item.row, item.idx, false));

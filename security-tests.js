@@ -978,24 +978,27 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     if (order() !== 'BDCA') throw new Error('not re-sorted on the next visit: ' + order());
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
-  await ta('Spacetime page: each Space in a day is a collapsed line like the Spaces page: + | "Spacetime" | gray box with the coloured Space name, dates underneath; + opens/closes its tasks', async () => {
+  await ta('Spacetime page: each Space in a day is a line like the Spaces page (+ | "Spacetime" | gray box with the coloured Space name, dates underneath), open by default; + closes/opens its tasks', async () => {
     const lr = { Space: 'AA', 'Key milestones': '', 'Life began': '01/01/2026', 'Life Ends': '12/31/2026', 'Life span': '' };
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': todayStr }), blankTask({ Space: 'BB', 'Timeframe/Meeting': 'T2', 'Time Zero on': todayStr })], [lr, lifeRow('BB', '')]);
     const nav = [...w.document.querySelectorAll('.nav-btn')].find(b => /^Spacetime$/.test(b.textContent.trim())); nav.click();   // no auto-open here
     w.document.getElementById('btnRefreshWeek').click();
     const lines = () => [...w.document.querySelectorAll('tr.week-space-line')];
     if (lines().length !== 2) throw new Error('lines ' + lines().length);
-    if (w.document.querySelector('tr.week-row')) throw new Error('tasks must start hidden (collapsed)');
+    if (w.document.querySelectorAll('tr.week-row').length !== 2) throw new Error('all Spaces must start open (tasks shown)');
     const l = lines()[0], kids = [...l.querySelector('.space-line').children].map(c => c.className.split(' ')[0]).join();
     if (kids !== 'space-toggle,space-line-label,cell-editable') throw new Error(kids);
     if (l.querySelector('.space-line-label').textContent !== 'Spacetime') throw new Error('label');
     if (!/space-color-\d+/.test(l.querySelector('.space-box').className) || l.querySelector('.space-box').textContent !== 'AA') throw new Error('name box');
     if (l.querySelector('.space-dates').textContent !== '01/01/2026 \u2014 12/31/2026') throw new Error('dates: ' + l.querySelector('.space-dates').textContent);
     if (lines()[1].querySelector('.space-dates')) throw new Error('no dates -> no line');
+    if (l.querySelector('.space-toggle').getAttribute('aria-expanded') !== 'true') throw new Error('should start expanded');
     l.querySelector('.space-toggle').click();
-    if (w.document.querySelectorAll('tr.week-row').length !== 1 || lines()[0].querySelector('.space-toggle').getAttribute('aria-expanded') !== 'true') throw new Error('+ did not open');
+    if (w.document.querySelectorAll('tr.week-row').length !== 1 || lines()[0].querySelector('.space-toggle').getAttribute('aria-expanded') !== 'false') throw new Error('toggle did not collapse');
     lines()[0].querySelector('.space-box').click();
-    if (w.document.querySelector('tr.week-row')) throw new Error('box did not close it');
+    if (w.document.querySelectorAll('tr.week-row').length !== 2) throw new Error('box did not re-open it');
+    const css = require('fs').readFileSync(require('path').join(__dirname, 'style.css'), 'utf8');
+    if (!/\.week-space-line \.space-line-label\{[^}]*margin-right:14px/.test(css) || !/\.week-space-line \.space-line-label\{[^}]*width:72px/.test(css)) throw new Error('label width/gap');
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
   await ta('Spacetime page: no Space strip on the task boxes, delete radio in the Space colour', async () => {

@@ -202,3 +202,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: Spaces-style Space lines on the 7-day page (161 tests)
 - Display/UI only (textContent, code-owned colour classes); open/closed state is in memory only, nothing stored or imported changed.
+
+## Update: Space lines open by default, label spacing (161 tests)
+- UI only.

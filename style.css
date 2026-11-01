@@ -1678,3 +1678,14 @@ html{overflow-x:hidden;max-width:100%;}
 .week-radio[class*="space-color-"]{border-color:var(--sc);}
 .week-radio[class*="space-color-"]:hover,
 .week-radio[class*="space-color-"]:active{background:var(--sc);}
+
+/* Spacetime (7-day page) Space line: the label "SPACETIME" is wider than "SPACE"/"TIMES", so it gets
+   its own width - the gap before the name box stays the same 14px as on the Spaces page */
+.week-space-line .space-line-label{flex:0 0 72px;width:72px;white-space:nowrap;margin-right:14px;}
+.week-space-line .space-dates,
+.week-space-line.summary-space-head-row .space-dates{margin-left:104px;}
+@media (max-width:680px){
+  .week-space-line .space-line-label{flex:0 0 72px;width:72px;}
+  .week-space-line .space-dates,
+  .week-space-line.summary-space-head-row .space-dates{margin-left:104px;}
+}
