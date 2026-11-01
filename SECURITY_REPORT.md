@@ -199,3 +199,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: Spacetime colours/centring, Spaces order on each visit (160 tests)
 - logo.png re-saved without the extra provenance chunk that the file hand-off had added (the PNG-chunk test caught it). CSS/UI plus a stable sort of the Spaces rows using existing validated date parsing; no innerHTML / network APIs / inline styles added.
+
+## Update: Spaces-style Space lines on the 7-day page (161 tests)
+- Display/UI only (textContent, code-owned colour classes); open/closed state is in memory only, nothing stored or imported changed.

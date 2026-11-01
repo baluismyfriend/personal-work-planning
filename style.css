@@ -1656,24 +1656,6 @@ body.order-mode .drag-handle:active{cursor:grabbing;color:var(--text);}
   .data-table tr.week-row .week-dt input:focus{font-size:16px;}
 }
 
-/* TimesX7: small Space title (as typed) above each Space's tasks inside a day */
-.data-table tr.week-space-heading,
-.data-table tr.week-space-heading > td{
-  display:block;
-  padding:0;
-  border:0;
-  background:none;
-  box-shadow:none;
-}
-.data-table tr.week-space-heading > td{
-  margin:3px 0 -4px 4px;
-  font-size:12.5px;
-  font-weight:800;
-  line-height:1.2;
-  letter-spacing:.02em;
-  color:var(--sc, #64748b); /* the Space's own colour (muted gray when it has none) */
-}
-
 /* TimesX7: the page width is fixed - nothing moves left/right */
 html{overflow-x:hidden;max-width:100%;}
 .table-scroller.no-hscroll{
@@ -1692,8 +1674,7 @@ html{overflow-x:hidden;max-width:100%;}
   .brand-logo{height:54px;}
 }
 
-/* Spacetime (7-day page): Space group title centred; delete radio in the task's Space colour */
-.data-table tr.week-space-heading > td{text-align:center;margin-left:0;margin-right:0;}
+/* Spacetime (7-day page): delete radio in the task's Space colour */
 .week-radio[class*="space-color-"]{border-color:var(--sc);}
 .week-radio[class*="space-color-"]:hover,
 .week-radio[class*="space-color-"]:active{background:var(--sc);}

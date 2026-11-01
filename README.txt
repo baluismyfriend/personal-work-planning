@@ -753,3 +753,14 @@ you need to scroll:
 - Spaces page: every time you open it the Spaces are listed by Life Ends, earliest first (then
   Life began; Spaces with no dates last) and that order is saved. A hand-made (drag) order lasts
   only until you leave the page and come back.
+
+------------------------------------------------------------
+30. SPACE LINES ON THE SPACETIME (7-DAY) PAGE  (replaces the small centred titles)
+------------------------------------------------------------
+- Inside each day, every Space is one line laid out like the Spaces page: "+" (first column),
+  "Spacetime" (second), the gray box with the Space name in its colour (third), and the
+  Space's "Began - Ends" dates underneath (when it has them).
+- Every Space starts collapsed. Tap "+" (or the name box) to show that Space's tasks for that
+  day, tap again to hide them. Open/closed is remembered while the app stays open.
+- Section 29's "centred title" no longer applies; the coloured delete radio and the missing
+  right strip on the task boxes still do.

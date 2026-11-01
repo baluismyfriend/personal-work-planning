@@ -2081,16 +2081,66 @@
     return i === -1 ? "" : t.slice(0, i).trim();
   }
 
-  // Small group title: the Space name as typed (or "No space").
-  function buildWeekSpaceHeading(sheet, row) {
+  // Which Space groups are open on the 7-day page ("MM/DD/YYYY|space"). Every
+  // group starts collapsed, like the Spaces and Times pages; kept while the app is open.
+  var expandedWeekSpaces = new Set();
+
+  // A Space's line inside a day, laid out like the Spaces page: "+" (first column),
+  // "Spacetime" (second), the gray box with the Space name in its colour (third), and the
+  // Space's "Began - Ends" dates underneath. "+" / the box shows or hides the day's tasks of that Space.
+  function buildWeekSpaceLine(sheet, row, stateKey, open) {
     var name = weekSpaceName(row);
     var tr = document.createElement("tr");
-    tr.className = "week-space-heading";
+    tr.className = "week-space-line summary-space-head-row";
     var td = document.createElement("td");
     td.colSpan = sheet.columns.length;
-    td.textContent = name || "No space";
-    var colorClass = spaceColorClass(name); // same colour as the Space everywhere else
-    if (colorClass) td.classList.add(colorClass);
+    td.className = "summary-space-head";
+    var line = document.createElement("div");
+    line.className = "space-line";
+
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "space-toggle";
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    btn.setAttribute("aria-label", open ? "Hide the tasks of this Space" : "Show the tasks of this Space");
+    btn.title = open ? "Tap to hide the tasks" : "Tap to show the tasks";
+    var label = document.createElement("span");
+    label.className = "space-line-label";
+    label.textContent = "Spacetime";
+    var box = document.createElement("div");
+    box.className = "cell-editable space-box";
+    var colorClass = spaceColorClass(name);
+    if (colorClass) box.classList.add(colorClass);
+    box.textContent = name || "(No space)";
+    function toggle() {
+      if (expandedWeekSpaces.has(stateKey)) expandedWeekSpaces.delete(stateKey);
+      else expandedWeekSpaces.add(stateKey);
+      renderTableBody(sheet);
+    }
+    btn.addEventListener("click", toggle);
+    box.addEventListener("click", toggle);
+    line.appendChild(btn);
+    line.appendChild(label);
+    line.appendChild(box);
+
+    var block = document.createElement("div");
+    block.className = "space-block";
+    block.appendChild(line);
+    var road = workbook.find(function (sh) { return sh.name === "Road Map - Pending"; });
+    var roadRow = (road && Array.isArray(road.rows) && name)
+      ? (road.rows.find(function (r) { return r && String(r.Space || "").trim() === name; }) || null) : null;
+    var b = roadRow ? String(roadRow["Life began"] || "").trim() : "";
+    var e = roadRow ? String(roadRow["Life Ends"] || "").trim() : "";
+    if (b || e) {
+      var dates = document.createElement("div");
+      dates.className = "space-dates summary-space-dates";
+      var sp = document.createElement("span");
+      sp.className = "space-date-item";
+      sp.textContent = (b + " \u2014 " + e).trim();
+      dates.appendChild(sp);
+      block.appendChild(dates);
+    }
+    td.appendChild(block);
     tr.appendChild(td);
     return tr;
   }
@@ -2123,15 +2173,17 @@
           return (a.timeRank - b.timeRank) || (a.idx - b.idx);
         });
       }
-      // A small heading for each Space's group of tasks in the day.
-      var lastSpaceKey = null;
+      // A collapsible line for each Space's group of tasks in the day.
+      var lastSpaceKey = null, groupOpen = false;
       list.forEach(function (item) {
         var spaceKey = weekSpaceKey(item.row);
         if (spaceKey !== lastSpaceKey) {
           lastSpaceKey = spaceKey;
-          frag.appendChild(buildWeekSpaceHeading(sheet, item.row));
+          var stateKey = g.date + "|" + spaceKey;
+          groupOpen = expandedWeekSpaces.has(stateKey);
+          frag.appendChild(buildWeekSpaceLine(sheet, item.row, stateKey, groupOpen));
         }
-        frag.appendChild(buildRowElement(sheet, item.row, item.idx, false));
+        if (groupOpen) frag.appendChild(buildRowElement(sheet, item.row, item.idx, false));
       });
     });
     // Empty space after the last tile so today's tile can always be scrolled to the top.
