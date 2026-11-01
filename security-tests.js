@@ -966,6 +966,27 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     const titles = {}; for (const b of navBtns(w)) { b.click(); titles[b.textContent.trim()] = w.document.getElementById('pageTitle').textContent.trim(); }
     if (JSON.stringify(Object.keys(titles)) !== JSON.stringify(['Spaces', 'Times', 'Time', 'Spacetime', 'NoSpace'])) throw new Error(Object.keys(titles).join());
   });
+  await ta('Spaces page: every visit lists Spaces by Life Ends ascending (blank dates last), and saves that order', async () => {
+    const w = await weekBoot([blankTask({ Space: 'C', 'Timeframe/Meeting': 'x' })], [lifeRow('C', dayStr(9)), lifeRow('A', ''), lifeRow('B', dayStr(2)), lifeRow('D', dayStr(5))]);
+    clickNav(w, /^Time$/); clickNav(w, /^Spaces$/);
+    const order = () => sheetOf(wbOf(w), 'Road Map - Pending').rows.map(r => r.Space).join('');
+    if (order() !== 'BDCA') throw new Error('order ' + order());
+    const road = sheetOf(wbOf(w), 'Road Map - Pending'); road.rows.reverse();   // scramble it by hand (drag), then leave and come back
+    const g = wbOf(w); await doImport(w, JSON.stringify(g)); clickNav(w, /^Time$/); clickNav(w, /^Spaces$/);
+    if (order() !== 'BDCA') throw new Error('not re-sorted on the next visit: ' + order());
+    if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
+  await ta('Spacetime page: Space title centred, no Space strip on the task boxes, delete radio in the Space colour', async () => {
+    const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': todayStr })], [lifeRow('AA', '')]);
+    clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
+    const css = require('fs').readFileSync(require('path').join(__dirname, 'style.css'), 'utf8');
+    if (!/tr\.week-space-heading > td\{text-align:center/.test(css)) throw new Error('title not centred');
+    const stripRule = /div\.week-times-link[^{]*space-color[^{]*\{[^}]*border-right[^}]*\}/.exec(css);
+    if (!stripRule || !/summary-task-text/.test(stripRule[0])) throw new Error('strip rule must be limited to the Times page: ' + (stripRule && stripRule[0]));
+    const link = w.document.querySelector('tr.week-row .week-times-link'); if (link.classList.contains('summary-task-text')) throw new Error('7-day page box must not match the strip rule');
+    const radio = w.document.querySelector('tr.week-row .week-radio'); if (!/space-color-\d+/.test(radio.className)) throw new Error('radio colour class missing: ' + radio.className);
+    const heading = w.document.querySelector('tr.week-space-heading > td'); const hc = /space-color-\d+/.exec(heading.className)[0]; if (!radio.classList.contains(hc)) throw new Error('radio and title colours differ');
+  });
   await ta('Header: title row has only the title; page bar order is Spaces, Times, Time, Spacetime, NoSpace (no Stars, no TimeX0)', async () => {
     const w = await boot();
     if (w.document.querySelector('.header-row .nav-btn')) throw new Error('page buttons still in the title row');

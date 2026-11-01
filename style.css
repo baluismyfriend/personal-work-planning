@@ -1285,8 +1285,8 @@ div.week-times-link,
   font-weight:700;
 }
 .cell-editable.space-box:focus{background:#fff;}
-/* TimesX7: strip on the left of the whole "Space || Time" box */
-div.week-times-link[class*="space-color-"]{border-right:4px solid var(--sc);}
+/* Times page task boxes keep the Space strip; the 7-day page (Spacetime) has none */
+div.week-times-link.summary-task-text[class*="space-color-"]{border-right:4px solid var(--sc);}
 /* Spacetime: Space group title keeps the pink bar, with nicely rounded corners */
 .data-table tr.week-day-header-row.summary-space-title > td.week-day-header{border-radius:12px;}
 
@@ -1691,3 +1691,9 @@ html{overflow-x:hidden;max-width:100%;}
 @media (max-width:680px){
   .brand-logo{height:54px;}
 }
+
+/* Spacetime (7-day page): Space group title centred; delete radio in the task's Space colour */
+.data-table tr.week-space-heading > td{text-align:center;margin-left:0;margin-right:0;}
+.week-radio[class*="space-color-"]{border-color:var(--sc);}
+.week-radio[class*="space-color-"]:hover,
+.week-radio[class*="space-color-"]:active{background:var(--sc);}

@@ -743,3 +743,13 @@ you need to scroll:
   the icon and name only when the app is ADDED to the Home Screen: delete the old icon, open the
   page in Safari and use Share > Add to Home Screen again. Upload all of: index.html, manifest.json,
   the three icon PNGs, logo.png, style.css, script.js.
+
+------------------------------------------------------------
+29. SPACETIME (7-DAY PAGE) AND SPACES TWEAKS
+------------------------------------------------------------
+- Spacetime (the 7-day page): each Space's group title is centred; the coloured strip on the
+  right of the task boxes is gone (the Times page keeps its own strip); each task's round delete
+  button is drawn in its Space's colour (red when the Space has no colour).
+- Spaces page: every time you open it the Spaces are listed by Life Ends, earliest first (then
+  Life began; Spaces with no dates last) and that order is saved. A hand-made (drag) order lasts
+  only until you leave the page and come back.

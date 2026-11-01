@@ -1052,6 +1052,7 @@
     });
 
     resetDayView();
+    if (currentSheet() && currentSheet().name === "Road Map - Pending") sortRoadMapByLifeEnds();
     renderAll();
     initAutoBackupOnStartup();
     initSwipeNavigation();
@@ -1369,12 +1370,34 @@
     return added;
   }
 
+  // Spaces page: every visit lists the Spaces by "Life Ends", earliest first
+  // (then "Life began"; Spaces without dates last). Rows that tie keep their order.
+  function sortRoadMapByLifeEnds() {
+    var road = workbook.find(function (sh) { return sh.name === "Road Map - Pending"; });
+    if (!road || !Array.isArray(road.rows) || road.rows.length < 2) return;
+    var keyed = road.rows.map(function (r, i) {
+      return { r: r, i: i, e: dateToUtcMs(r && r["Life Ends"]), b: dateToUtcMs(r && r["Life began"]) };
+    });
+    function cmp(x, y) { // nulls last
+      if (x === null && y === null) return 0;
+      if (x === null) return 1;
+      if (y === null) return -1;
+      return x - y;
+    }
+    keyed.sort(function (a, b) { return cmp(a.e, b.e) || cmp(a.b, b.b) || (a.i - b.i); });
+    var changed = keyed.some(function (k, pos) { return k.i !== pos; });
+    if (!changed) return;
+    road.rows = keyed.map(function (k) { return k.r; });
+    saveWorkbookSilently();
+  }
+
   function goToSheetIndex(idx) {
     if (idx < 0 || idx >= workbook.length || idx === selectedSheetIndex) return;
     autoAddToWeekPlanning();
     selectedSheetIndex = idx;
     persistSelectedSheet();
     if (isDaySheet(workbook[idx])) resetDayView();
+    if (workbook[idx].name === "Road Map - Pending") sortRoadMapByLifeEnds();
     if (workbook[idx].name === "Summary") {
       refreshSummarySheet(workbook);
       saveWorkbookSilently();
@@ -2051,11 +2074,16 @@
     return i === -1 ? "" : t.slice(0, i).trim().toLowerCase();
   }
 
-  // Small group title: the Space name as typed (or "No space").
-  function buildWeekSpaceHeading(sheet, row) {
+  // The Space name of a Spacetime (7-day page) row as typed, or "".
+  function weekSpaceName(row) {
     var t = String((row && row["Timeframes"]) || "");
     var i = t.indexOf(" || ");
-    var name = i === -1 ? "" : t.slice(0, i).trim();
+    return i === -1 ? "" : t.slice(0, i).trim();
+  }
+
+  // Small group title: the Space name as typed (or "No space").
+  function buildWeekSpaceHeading(sheet, row) {
+    var name = weekSpaceName(row);
     var tr = document.createElement("tr");
     tr.className = "week-space-heading";
     var td = document.createElement("td");
@@ -3186,6 +3214,8 @@
     radio.className = "week-radio";
     radio.setAttribute("aria-label", "Delete this task");
     radio.title = "Tap to delete this task";
+    var radioColor = spaceColorClass(weekSpaceName(row)); // the task's Space colour
+    if (radioColor) radio.classList.add(radioColor);
     radio.addEventListener("click", function () { deleteWeekRowAndSource(sheet, row); });
     wrap.appendChild(radio);
 

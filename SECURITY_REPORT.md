@@ -196,3 +196,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: Home Screen icon and name (158 tests)
 - New icons are plain RGB PNGs without metadata chunks (the existing icon tests re-ran); manifest name/short_name and apple-mobile-web-app-title are now "Lotus". No script changes.
+
+## Update: Spacetime colours/centring, Spaces order on each visit (160 tests)
+- logo.png re-saved without the extra provenance chunk that the file hand-off had added (the PNG-chunk test caught it). CSS/UI plus a stable sort of the Spaces rows using existing validated date parsing; no innerHTML / network APIs / inline styles added.
