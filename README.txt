@@ -769,3 +769,5 @@ you need to scroll:
   stays collapsed while the app is open). The "Spacetime" label has its own wider column so it no
   longer touches the name box: the gap is the same 14px as on the Spaces page, and the dates
   underneath line up with the name box.
+
+- Home Screen icon: now a white background with the black Lotus logo (icon-192.png, icon-512.png, apple-touch-icon.png). Delete the old Home Screen icon and Add to Home Screen again to see it (Export a backup first).
