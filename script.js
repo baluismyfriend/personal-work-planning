@@ -1253,6 +1253,7 @@
       });
     }
     var liveKeys = Object.create(null); // keys the source rows currently produce
+    var newRows = [];                   // rows this run adds (they may inherit a time, see below)
 
     function consider(tag, dateStr, text, legacyText, recurring) {
       var ms = dateToUtcMs(dateStr);
@@ -1288,6 +1289,7 @@
           if (sibling) newWeekRow["Time at"] = sibling["Time at"];
         }
         week.rows.push(newWeekRow);
+        newRows.push(newWeekRow);
         added++;
       }
       synced[key] = true;
@@ -1355,9 +1357,46 @@
     // - e.g. picked, then changed, then picked again - would never be
     // added again. A key for a row that still exists stays remembered, so
     // a TimesX7 row you delete does not come back.
+    // The TimesX7 row this sync added for such a key goes too (otherwise an edited
+    // task would show twice - old and new - until Refresh); its typed time moves to
+    // the task's new row.
+    var dropped = []; // { text, time } of removed rows that had a typed time
     Object.keys(synced).forEach(function (k) {
-      if (!liveKeys[k]) { delete synced[k]; changedKeys = true; }
+      if (!liveKeys[k]) {
+        var km = /^T\|(\d{2}\/\d{2}\/\d{4})\|([\s\S]*)$/.exec(k);
+        if (km) {
+          var kp = km[1].split("/");
+          var kDateDay = formatDateDay(new Date(Number(kp[2]), Number(kp[0]) - 1, Number(kp[1])));
+          var at = week.rows.findIndex(function (r) {
+            return r && r["Date/Day"] === kDateDay && String(r["Timeframes"] || "").trim() === km[2];
+          });
+          if (at !== -1) {
+            if (week.rows[at]["Time at"]) dropped.push({ text: km[2], time: week.rows[at]["Time at"] });
+            week.rows.splice(at, 1);
+            staleRemoved++;
+          }
+        }
+        delete synced[k];
+        changedKeys = true;
+      }
     });
+    // Give the time to the task's new row: same text (its date changed), else the same
+    // task name under another Space, else - one removed, one added - the edited task.
+    function taskPart(t) { var i = t.indexOf(" || "); return i === -1 ? t : t.slice(i + 4); }
+    function giveTime(match) {
+      dropped = dropped.filter(function (d) {
+        var target = newRows.find(function (r) { return !r["Time at"] && match(d, String(r["Timeframes"] || "").trim()); });
+        if (!target) return true;
+        target["Time at"] = d.time;
+        return false;
+      });
+    }
+    if (dropped.length) {
+      giveTime(function (d, t) { return d.text === t; });
+      giveTime(function (d, t) { return taskPart(d.text) === taskPart(t); });
+      var free = newRows.filter(function (r) { return !r["Time at"]; });
+      if (dropped.length === 1 && free.length === 1) free[0]["Time at"] = dropped[0].time;
+    }
     if (changedKeys) saveWeekAutoAdded(synced);
     if (added > 0 || moved > 0 || staleRemoved > 0) {
       if (moved > 0) refreshSummarySheet(workbook);
@@ -2258,6 +2297,7 @@
       keepByText[text] = (hasOwn(keepByText, text) && keepByText[text] !== t) ? "" : t;
     });
     week.rows = [];
+    collapsedWeekSpaces.clear(); // Refresh shows every Space open again
     resetDayView();
     clearWeekAutoAdded();
     autoAddToWeekPlanning(true); // Refresh also pulls in overdue items

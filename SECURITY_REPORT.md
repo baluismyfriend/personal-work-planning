@@ -205,3 +205,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: Space lines open by default, label spacing (161 tests)
 - UI only.
+
+## Update: Spacetime sync keeps rows in step with Time (162 tests)
+- Removes the auto-added row of a task whose Space/text/date changed (only rows this sync itself added: tracked by its stored keys); data logic only, no innerHTML / network APIs / inline styles.

@@ -1011,6 +1011,30 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     const radio = w.document.querySelector('tr.week-row .week-radio'); if (!/space-color-\d+/.test(radio.className)) throw new Error('radio colour class missing: ' + radio.className);
     const heading = w.document.querySelector('tr.week-space-line .space-box'); const hc = /space-color-\d+/.exec(heading.className)[0]; if (!radio.classList.contains(hc)) throw new Error('radio and title colours differ');
   });
+  await ta('Spacetime: editing a task on Time (Space, text or date) replaces its row at once - no old copy left until Refresh; the typed time moves with it; Refresh gives the same rows', async () => {
+    const w = await weekBoot([blankTask({ Space: 'Alpha', 'Timeframe/Meeting': 'x', 'Time Zero on': dayStr(0) }), blankTask({ Space: 'Beta', 'Timeframe/Meeting': 'keep', 'Time Zero on': dayStr(0) })], [lifeRow('Alpha', ''), lifeRow('Beta', ''), lifeRow('Gamma', '')]);
+    const week = () => sheetOf(wbOf(w), 'Week planning').rows.map(r => r['Date/Day'].slice(-10).slice(0, 5) + ' ' + r.Timeframes + (r['Time at'] ? ' @' + r['Time at'] : '')).sort().join(' ; ');
+    const setCell = (col, val) => { clickNav(w, /^Time$/); const el = w.document.querySelector('tr[data-source-idx="0"] td[data-col="' + col + '"] .cell-editable'); el.focus(); el.textContent = val; el.dispatchEvent(new w.Event('blur')); };
+    const edit = async what => { if (what.Space !== undefined) setCell('Space', what.Space); if (what.text !== undefined) setCell('Timeframe/Meeting', what.text); if (what.date !== undefined) { clickNav(w, /^Time$/); pickDate(w, w.document.querySelector('tr[data-source-idx="0"] td[data-col="Time Zero on"] input'), what.date); } clickNav(w, /^Spacetime$/); };
+    clickNav(w, /^Time$/); clickNav(w, /^Spacetime$/);
+    const t0 = dayStr(0).slice(0, 5), t2 = dayStr(2).slice(0, 5);
+    if (week() !== t0 + ' Alpha || x ; ' + t0 + ' Beta || keep') throw new Error('start ' + week());
+    const tin = w.document.querySelector('tr.week-row .week-dt-time'); const trs = [...w.document.querySelectorAll('tr.week-row')]; const mine = trs.find(r => /x$/.test(r.querySelector('.week-times-link').textContent)); const ti = mine.querySelector('.week-dt-time'); ti.value = '5pm'; ti.dispatchEvent(new w.Event('blur'));
+    await edit({ Space: 'Gamma' });
+    let want = t0 + ' Beta || keep ; ' + t0 + ' Gamma || x @5 PM';
+    if (week() !== want) throw new Error('after Space change: ' + week());
+    await edit({ text: 'y' });
+    want = t0 + ' Beta || keep ; ' + t0 + ' Gamma || y @5 PM';
+    if (week() !== want) throw new Error('after text change: ' + week());
+    await edit({ date: dayStr(2) });
+    want = t0 + ' Beta || keep ; ' + t2 + ' Gamma || y @5 PM';
+    if (week() !== want) throw new Error('after date change: ' + week());
+    w.document.querySelector('tr.week-space-line .space-toggle').click(); if (w.document.querySelectorAll('tr.week-row').length >= 2) throw new Error('collapse did not hide');
+    const before = week(); w.document.getElementById('btnRefreshWeek').click();
+    if (w.document.querySelectorAll('tr.week-row').length < 2) throw new Error('Refresh must re-open collapsed Spaces');
+    if (week() !== before) throw new Error('Refresh differs: ' + week() + ' <> ' + before);
+    if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
   await ta('Header: title row has only the title; page bar order is Spaces, Times, Time, Spacetime, NoSpace (no Stars, no TimeX0)', async () => {
     const w = await boot();
     if (w.document.querySelector('.header-row .nav-btn')) throw new Error('page buttons still in the title row');

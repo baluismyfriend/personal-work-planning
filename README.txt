@@ -771,3 +771,8 @@ you need to scroll:
   underneath line up with the name box.
 
 - Home Screen icon: now a white background with the black Lotus logo (icon-192.png, icon-512.png, apple-touch-icon.png). Delete the old Home Screen icon and Add to Home Screen again to see it (Export a backup first).
+
+- Spacetime (7-day page) now stays in step with the Time page: when you edit a task there (its
+  Space, text or date), the old Spacetime row is replaced at once instead of staying next to the
+  new one until you tap Refresh. A time you typed for the task moves to its new row. Refresh now
+  also re-opens any Space lines you had collapsed.
