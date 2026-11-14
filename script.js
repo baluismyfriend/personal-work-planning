@@ -1016,7 +1016,7 @@
       if (document.visibilityState === "visible") autoAddToWeekPlanning();
     });
 
-    document.getElementById("btnStars").addEventListener("click", openStarsPage);
+    document.getElementById("btnNoSpace").addEventListener("click", openNoSpacePage);
     document.getElementById("btnRefreshWeek").addEventListener("click", handleRefreshWeek);
     document.getElementById("btnAddRowFloating").addEventListener("click", handleAddRow);
     document.getElementById("btnExportJson").addEventListener("click", handleExportJson);
@@ -1499,15 +1499,15 @@
     renderTable();
   }
 
-  // The page bar: Spaces, Times (Summary), Time (Daily), Spacetime (Week), NoSpace - in that
-  // order. (The Stars page is opened from the "+Stars" button instead.)
-  var NAV_ORDER = ["Road Map - Pending", "Summary", "Daily planning - All tasks", "Week planning", "Completed tasks"];
+  // The page bar: Spaces, Times (Summary), Time (Daily), Spacetime (Week), +Stars - in that
+  // order. (The NoSpace page is opened from the "NoSpace" button in the buttons row instead.)
+  var NAV_ORDER = ["Road Map - Pending", "Summary", "Daily planning - All tasks", "Week planning", "Quick list"];
 
   function renderNav() {
     var frag = document.createDocumentFragment();
     // Any extra page from an old backup goes after NoSpace so it stays reachable.
     var names = NAV_ORDER.concat(workbook.map(function (sh) { return sh.name; }).filter(function (n) {
-      return NAV_ORDER.indexOf(n) === -1 && n !== "Quick list";
+      return NAV_ORDER.indexOf(n) === -1 && n !== "Completed tasks";
     }));
     names.forEach(function (name) {
       var idx = workbook.findIndex(function (sh) { return sh.name === name; });
@@ -1515,17 +1515,18 @@
       var btn = document.createElement("button");
       btn.type = "button";
       btn.className = "nav-btn" + (idx === selectedSheetIndex ? " active" : "");
-      btn.textContent = shortSheetName(workbook[idx]);
-      btn.title = shortSheetName(workbook[idx]);
+      var navLabel = workbook[idx].name === "Quick list" ? "+Stars" : shortSheetName(workbook[idx]);
+      btn.textContent = navLabel;
+      btn.title = navLabel;
       btn.addEventListener("click", function () { goToSheetIndex(idx); });
       frag.appendChild(btn);
     });
     navEl.replaceChildren(frag);
   }
 
-  // "+Stars": opens the Stars page (the old Stars pill, moved here).
-  function openStarsPage() {
-    var idx = workbook.findIndex(function (sh) { return sh.name === "Quick list"; });
+  // "NoSpace": opens the NoSpace (completed tasks) page; the button sits first in the buttons row.
+  function openNoSpacePage() {
+    var idx = workbook.findIndex(function (sh) { return sh.name === "Completed tasks"; });
     if (idx !== -1) goToSheetIndex(idx);
   }
 
@@ -1534,14 +1535,14 @@
     var sheet = currentSheet();
     pageTitleEl.textContent = shortSheetName(sheet);
 
-    // TimesX7 only: show the Refresh button. "+Stars" is highlighted on the Stars page.
+    // Spacetime only: show the Refresh button. "NoSpace" is highlighted on the NoSpace page.
     var isWeek = sheet.name === "Week planning";
     // TimesX7 is a fixed-width page: no sideways scrolling or dragging.
     if (tableScrollerEl) tableScrollerEl.classList.toggle("no-hscroll", isWeek);
     var refreshBtnEl = document.getElementById("btnRefreshWeek");
     if (refreshBtnEl) refreshBtnEl.hidden = !isWeek;
-    var starsBtnEl = document.getElementById("btnStars");
-    if (starsBtnEl) starsBtnEl.classList.toggle("btn-primary", sheet.name === "Quick list");
+    var noSpaceBtnEl = document.getElementById("btnNoSpace");
+    if (noSpaceBtnEl) noSpaceBtnEl.classList.toggle("btn-primary", sheet.name === "Completed tasks");
 
     // colgroup
     colgroupEl.replaceChildren();
@@ -1839,11 +1840,55 @@
     renderTableBody(sheet);
   }
 
+  // The numbered circles at the bottom of the Time page: 1, 2, 3 ... for every task of
+  // the Space whose task is on screen (in the page's order). Tapping a number shows that
+  // task; the number on screen is highlighted. The row scrolls sideways when it is long.
+  function renderTaskNumberNav(sheet, items, navEl) {
+    if (!navEl) return;
+    navEl.replaceChildren();
+    var pages = getSwipePages(sheet, items);
+    if (pages.length === 0) { navEl.hidden = true; return; }
+    var cur = clampTaskIndex(sheet, pages.length);
+    var spaceOf = function (page) { return String((page[0].row && page[0].row.Space) || "").trim(); };
+    var space = spaceOf(pages[cur]);
+    var frag = document.createDocumentFragment();
+    var n = 0;
+    pages.forEach(function (page, pageIdx) {
+      if (spaceOf(page) !== space) return;
+      n++;
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "task-number" + (pageIdx === cur ? " active" : "");
+      b.textContent = String(n);
+      b.setAttribute("aria-label", "Task " + n + (space ? " of " + space : ""));
+      if (pageIdx === cur) b.setAttribute("aria-current", "true");
+      b.addEventListener("click", function () {
+        currentTaskIndexBySheet[sheet.name] = pageIdx;
+        renderTableBody(sheet);
+      });
+      frag.appendChild(b);
+    });
+    navEl.appendChild(frag);
+    navEl.hidden = false;
+    var sel = navEl.querySelector(".task-number.active");
+    if (sel) navEl.scrollLeft = Math.max(0, sel.offsetLeft - (navEl.clientWidth - sel.offsetWidth) / 2);
+  }
+
   function updateRowCountAndTaskNav(sheet, items) {
     var countEl = document.getElementById("rowCountIndicator");
     var swipeNavEl = document.getElementById("taskSwipeNav");
     var posEl = document.getElementById("taskPositionLabel");
     if (!countEl || !swipeNavEl || !posEl) return;
+    var numberNavEl = document.getElementById("taskNumberNav");
+    if (numberNavEl) numberNavEl.hidden = true;
+    // Time page (phone): no Back / Next buttons and no count - a row of numbered
+    // circles, one per task of the Space being shown, takes their place.
+    if (sheet.name === "Daily planning - All tasks" && isSingleTaskSwipeMode(sheet)) {
+      countEl.hidden = true;
+      swipeNavEl.hidden = true;
+      renderTaskNumberNav(sheet, items, numberNavEl);
+      return;
+    }
     if (isSingleTaskSwipeMode(sheet)) {
       var pages = getSwipePages(sheet, items);
       countEl.hidden = true;

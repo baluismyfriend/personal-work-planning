@@ -59,7 +59,7 @@ const sheetOf = (g, n) => g.find(x => x.name === n);
 const expandAllSpaces = w => { for (let g = 0; g < 300; g++) { const b = w.document.querySelector('tr.week-space-line .space-toggle[aria-expanded="false"]'); if (!b) break; b.click(); } };
 const refreshWeek = w => { w.document.getElementById('btnRefreshWeek').click(); expandAllSpaces(w); };
 const navBtns = w => [...w.document.querySelectorAll('.nav-btn')];
-const clickNav = (w, re) => { const b = navBtns(w).find(x => re.test(x.textContent.trim())); if (!b && (re.test('Stars') || re.test('Quick list'))) { const sb = w.document.getElementById('btnStars'); sb.click(); return sb; } if (!b) throw new Error('nav not found ' + re); b.click(); expandAllSpaces(w); return b; };
+const clickNav = (w, re) => { const plain = x => x.textContent.trim().replace(/^\+/, ''); const b = navBtns(w).find(x => re.test(plain(x))); if (!b && re.test('NoSpace')) { const nb = w.document.getElementById('btnNoSpace'); nb.click(); expandAllSpaces(w); return nb; } if (!b) throw new Error('nav not found ' + re); b.click(); expandAllSpaces(w); return b; };
 const protoNames = w => JSON.stringify(w.eval('Object.getOwnPropertyNames(Object.prototype).sort()'));
 function captureBlobs(w) { const cap = []; w.Blob = class { constructor(p) { cap.push(p.join('')); } }; w.URL.createObjectURL = () => 'blob:x'; w.URL.revokeObjectURL = () => {}; w.HTMLAnchorElement.prototype.click = function () {}; return cap; }
 function defineKey(o, k, v) { Object.defineProperty(o, k, { value: v, enumerable: true, configurable: true, writable: true }); }
@@ -321,12 +321,6 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     if (w.document.querySelectorAll('#tableBody tr').length < 5) throw new Error('summary did not render all spaces');
   });
   await ta('Exported/stored data contains no code-bearing content types', async () => { if (/function\s*\(|<script/i.test(w0.localStorage.getItem(DK))) throw new Error('code in data'); });
-  await ta('Labels: Times page counter reads "Time N of M"', async () => {
-    const w = await boot(); w.matchMedia = () => ({ matches: true, addListener() {}, removeListener() {}, addEventListener() {} });
-    const g = wbOf(w); const d = sheetOf(g, 'Daily planning - All tasks'); d.rows = [0, 1].map(i => Object.assign(Object.fromEntries(d.columns.map(c => [c, ''])), { Space: 'S', 'Timeframe/Meeting': 't' + i }));
-    await doImport(w, JSON.stringify(g)); clickNav(w, /^Time$/);
-    const lbl = w.document.getElementById('taskPositionLabel').textContent; if (!/^Time 1 of 2$/.test(lbl)) throw new Error('got "' + lbl + '"');
-  });
   await ta('Milestone splitter is not catastrophically slow on pathological input (ReDoS)', async () => {
     const w = await boot(); const g = wbOf(w); const rm = sheetOf(g, 'Road Map - Pending');
     rm.rows = [{ Space: 'RR', 'Key milestones': ' '.repeat(4990) + '1.x', 'Life began': '', 'Life Ends': '', 'Life span': '' }, { Space: 'RR', 'Key milestones': '1.'.repeat(2500), 'Life began': '', 'Life Ends': '', 'Life span': '' }];
@@ -956,7 +950,7 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     if (navBtns(w).some(b => /NextIn|TimeX0/i.test(b.textContent))) throw new Error('button still there');
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
-  await ta('App title is the Lotus logo (PNG, no metadata); page names: Spaces, Times (summary), Time (daily), Spacetime (week), NoSpace; nav buttons use the same 12px rounded shape as the action buttons', async () => {
+  await ta('App title is the Lotus logo (PNG, no metadata); page names: Spaces, Times (summary), Time (daily), Spacetime (week), +Stars; nav buttons use the same 12px rounded shape as the action buttons', async () => {
     const w = await boot();
     const logo = w.document.querySelector('.brand-text h1 img.brand-logo'); if (!logo || logo.getAttribute('alt') !== 'Lotus' || logo.getAttribute('src') !== 'logo.png' || w.document.title !== 'Lotus') throw new Error('title');
     const png = require('fs').readFileSync(require('path').join(__dirname, 'logo.png')); if (png.slice(1, 4).toString() !== 'PNG') throw new Error('logo.png is not a PNG');
@@ -966,7 +960,7 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     const radius = r => /border-radius:\s*([^;]+);/.exec(r)[1].trim();
     if (radius(navRule) !== radius(btnRule)) throw new Error('nav radius ' + radius(navRule) + ' vs btn ' + radius(btnRule));
     const titles = {}; for (const b of navBtns(w)) { b.click(); titles[b.textContent.trim()] = w.document.getElementById('pageTitle').textContent.trim(); }
-    if (JSON.stringify(Object.keys(titles)) !== JSON.stringify(['Spaces', 'Times', 'Time', 'Spacetime', 'NoSpace'])) throw new Error(Object.keys(titles).join());
+    if (JSON.stringify(Object.keys(titles)) !== JSON.stringify(['Spaces', 'Times', 'Time', 'Spacetime', '+Stars'])) throw new Error(Object.keys(titles).join());
   });
   await ta('Spaces page: every visit lists Spaces by Life Ends ascending (blank dates last), and saves that order', async () => {
     const w = await weekBoot([blankTask({ Space: 'C', 'Timeframe/Meeting': 'x' })], [lifeRow('C', dayStr(9)), lifeRow('A', ''), lifeRow('B', dayStr(2)), lifeRow('D', dayStr(5))]);
@@ -1035,19 +1029,56 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     if (week() !== before) throw new Error('Refresh differs: ' + week() + ' <> ' + before);
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
-  await ta('Header: title row has only the title; page bar order is Spaces, Times, Time, Spacetime, NoSpace (no Stars, no TimeX0)', async () => {
+  await ta('Time page (phone): no Back/Next buttons and no count; numbered circles 1..N for the tasks of the Space on screen; tapping a number shows that task; selected number is highlighted', async () => {
+    const w = await boot(); w.matchMedia = () => ({ matches: true, addListener() {}, removeListener() {}, addEventListener() {} });
+    const g = wbOf(w); const mk = (sp, n) => blankTask({ Space: sp, 'Timeframe/Meeting': n });
+    sheetOf(g, 'Daily planning - All tasks').rows = [mk('A', 'a1'), mk('B', 'b1'), mk('A', 'a2'), mk('B', 'b2'), mk('A', 'a3'), mk('B', 'b3'), mk('B', 'b4')];
+    await doImport(w, JSON.stringify(g)); clickNav(w, /^Time$/);
+    const nav = w.document.getElementById('taskNumberNav'), swipe = w.document.getElementById('taskSwipeNav');
+    if (!swipe.hidden || !w.document.getElementById('rowCountIndicator').hidden) throw new Error('Back/Next buttons or count still shown');
+    if (nav.hidden) throw new Error('number list hidden');
+    const nums = () => [...nav.querySelectorAll('.task-number')].map(b => b.textContent + (b.classList.contains('active') ? '*' : '')).join(' ');
+    const shown = () => [...w.document.querySelectorAll('#tableBody .cell-editable')].map(e => e.textContent).join('|');
+    if (nums() !== '1* 2 3' || !/a1/.test(shown())) throw new Error('A: ' + nums() + ' / ' + shown());
+    nav.querySelectorAll('.task-number')[2].click();
+    if (nums() !== '1 2 3*' || !/a3/.test(shown())) throw new Error('after tapping 3: ' + nums() + ' / ' + shown());
+    nav.querySelectorAll('.task-number')[1].click();
+    if (nums() !== '1 2* 3' || !/a2/.test(shown())) throw new Error('after tapping 2: ' + nums());
+    // swiping into another Space switches the list to that Space's tasks
+    const swipeTo = dx => { const target = w.document.querySelector('#tableBody td') || w.document.querySelector('.content'); const a = new w.Event('touchstart', { bubbles: true }); a.touches = [{ clientX: 200, clientY: 100 }]; target.dispatchEvent(a); const b = new w.Event('touchend', { bubbles: true }); b.changedTouches = [{ clientX: 200 + dx, clientY: 100 }]; target.dispatchEvent(b); };
+    swipeTo(-120); if (nums() !== '1 2* 3 4') throw new Error('after swipe into B (b2 is B\'s 2nd task): ' + nums());
+    if (!/b/.test(shown())) throw new Error('swipe did not show a B task: ' + shown());
+    // a long list keeps every number (scrolls sideways) and the circle styling exists
+    const css = require('fs').readFileSync(require('path').join(__dirname, 'style.css'), 'utf8');
+    if (!/\.task-number-nav:not\(\[hidden\]\)\{[^}]*overflow-x:auto/.test(css) || !/\.task-number\{[^}]*border-radius:50%[^}]*\}/.test(css) || !/\.task-number\.active\{[^}]*background/.test(css) || !/gap:12px/.test(css)) throw new Error('circle / gap / scroll / selected styles missing');
+    if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
+  await ta('Time page numbers: 60 tasks in one Space give 1..60; empty Time page hides the list; wide screens do not use it', async () => {
+    const w = await boot(); w.matchMedia = () => ({ matches: true, addListener() {}, removeListener() {}, addEventListener() {} });
+    const g = wbOf(w); sheetOf(g, 'Daily planning - All tasks').rows = Array.from({ length: 60 }, (_, i) => blankTask({ Space: 'Big', 'Timeframe/Meeting': 't' + i }));
+    await doImport(w, JSON.stringify(g)); clickNav(w, /^Time$/);
+    const nav = w.document.getElementById('taskNumberNav'); if (nav.querySelectorAll('.task-number').length !== 60) throw new Error('count ' + nav.querySelectorAll('.task-number').length);
+    nav.querySelectorAll('.task-number')[59].click(); if (nav.querySelector('.task-number.active').textContent !== '60') throw new Error('60 not selected');
+    const g2 = wbOf(w); sheetOf(g2, 'Daily planning - All tasks').rows = []; await doImport(w, JSON.stringify(g2)); clickNav(w, /^Time$/);
+    if (!w.document.getElementById('taskNumberNav').hidden) throw new Error('empty list must be hidden');
+    const wide = await boot(); clickNav(wide, /^Time$/); if (!wide.document.getElementById('taskNumberNav').hidden) throw new Error('wide screens use the table');
+    if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
+  await ta('Header: title row has only the title; page bar order is Spaces, Times, Time, Spacetime, +Stars (NoSpace is in the buttons row)', async () => {
     const w = await boot();
     if (w.document.querySelector('.header-row .nav-btn')) throw new Error('page buttons still in the title row');
     const labels = navBtns(w).map(b => b.textContent.trim()).join();
-    if (labels !== 'Spaces,Times,Time,Spacetime,NoSpace') throw new Error(labels);
+    if (labels !== 'Spaces,Times,Time,Spacetime,+Stars') throw new Error(labels);
     if (w.document.getElementById('nav').querySelectorAll('.nav-btn').length !== 5) throw new Error('nav count');
   });
-  await ta('Actions row: no "+ Add" button; "+Stars" comes first and opens the Stars page', async () => {
+  await ta('Actions row: no "+ Add" button; "NoSpace" comes first and opens the NoSpace page; "+Stars" is the last page-bar pill', async () => {
     const w = await boot();
     if (w.document.getElementById('btnAddRow')) throw new Error('+ Add button still exists');
-    const first = w.document.querySelector('.actions .btn'); if (first.id !== 'btnStars' || first.textContent.trim() !== '+Stars') throw new Error(first.id + ' ' + first.textContent);
+    const first = w.document.querySelector('.actions .btn'); if (first.id !== 'btnNoSpace' || first.textContent.trim() !== 'NoSpace') throw new Error(first.id + ' ' + first.textContent);
     first.click();
-    if (w.document.getElementById('pageTitle').textContent !== 'Stars') throw new Error('title ' + w.document.getElementById('pageTitle').textContent);
+    if (w.document.getElementById('pageTitle').textContent !== 'NoSpace' || !first.classList.contains('btn-primary')) throw new Error('title ' + w.document.getElementById('pageTitle').textContent);
+    const stars = navBtns(w).find(b => b.textContent.trim() === '+Stars'); if (!stars) throw new Error('+Stars pill missing'); stars.click();
+    if (w.document.getElementById('pageTitle').textContent !== 'Stars') throw new Error('Stars title');
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
   await ta('TimesX7: time typed in the Defined time at box ("11pm" -> "11 PM"), saved, kept on import/Refresh, cleared when emptied', async () => {
@@ -1170,7 +1201,7 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
   }
   const lbl = w => w.document.getElementById('taskPositionLabel').textContent;
   const prev = w => w.document.getElementById('taskPrevBtn'), next = w => w.document.getElementById('taskNextBtn');
-  for (const [page, re, fmt] of [['Times', /^Time$/, (i, n) => 'Time ' + i + ' of ' + n], ['NoSpace', /^NoSpace$/, (i, n) => i + ' of ' + n]]) {
+  for (const [page, re, fmt] of [['NoSpace', /^NoSpace$/, (i, n) => i + ' of ' + n]]) {
     await ta('BackIn/NextIn wrap on ' + page + ': 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> NextIn = 10 of 10 -> NextIn = 1 of 10', async () => {
       const w = await wrapBoot(10); clickNav(w, re);
       const seq = [[null, 1], [prev, 10], [prev, 9], [next, 10], [next, 1], [next, 2], [prev, 1]];
@@ -1182,19 +1213,19 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     });
   }
   await ta('BackIn/NextIn wrap: the item shown actually changes (last item shown after BackIn from first)', async () => {
-    const w = await wrapBoot(10); clickNav(w, /^Time$/); const shown = () => [...w.document.querySelectorAll('#tableBody .cell-editable')].map(e => e.textContent).join('|');
+    const w = await wrapBoot(10); clickNav(w, /^NoSpace$/); const shown = () => [...w.document.querySelectorAll('#tableBody .cell-editable')].map(e => e.textContent).join('|');
     const first = shown(); prev(w).click(); const last = shown(); if (!/t9/.test(last) || /t0/.test(last)) throw new Error('last page content: ' + last);
     next(w).click(); if (shown() !== first) throw new Error('did not return to first');
   });
   await ta('BackIn/NextIn disabled only when there is nothing to move to (0 or 1 items)', async () => {
-    for (const n of [0, 1]) { const w = await wrapBoot(n); clickNav(w, /^Time$/); if (!prev(w).disabled || !next(w).disabled) throw new Error(n + ' items: buttons enabled'); }
-    const w = await wrapBoot(2); clickNav(w, /^Time$/); if (prev(w).disabled || next(w).disabled) throw new Error('2 items: buttons disabled');
+    for (const n of [0, 1]) { const w = await wrapBoot(n); clickNav(w, /^NoSpace$/); if (!prev(w).disabled || !next(w).disabled) throw new Error(n + ' items: buttons enabled'); }
+    const w = await wrapBoot(2); clickNav(w, /^NoSpace$/); if (prev(w).disabled || next(w).disabled) throw new Error('2 items: buttons disabled');
   });
   await ta('Finger swipes still stop at the ends (no wraparound); only the buttons wrap', async () => {
-    const w = await wrapBoot(10); clickNav(w, /^Time$/); const swipe = (dx) => { const target = w.document.querySelector('#tableBody td') || w.document.querySelector('.content'); const a = new w.Event('touchstart', { bubbles: true }); a.touches = [{ clientX: 200, clientY: 100 }]; target.dispatchEvent(a); const b = new w.Event('touchend', { bubbles: true }); b.changedTouches = [{ clientX: 200 + dx, clientY: 100 }]; target.dispatchEvent(b); };
-    swipe(120); if (lbl(w) !== 'Time 1 of 10') throw new Error('swipe back from first wrapped: ' + lbl(w));
-    swipe(-120); if (lbl(w) !== 'Time 2 of 10') throw new Error('swipe forward failed: ' + lbl(w));
-    for (let i = 0; i < 12; i++) swipe(-120); if (lbl(w) !== 'Time 10 of 10') throw new Error('swipe forward past last wrapped: ' + lbl(w));
+    const w = await wrapBoot(10); clickNav(w, /^NoSpace$/); const swipe = (dx) => { const target = w.document.querySelector('#tableBody td') || w.document.querySelector('.content'); const a = new w.Event('touchstart', { bubbles: true }); a.touches = [{ clientX: 200, clientY: 100 }]; target.dispatchEvent(a); const b = new w.Event('touchend', { bubbles: true }); b.changedTouches = [{ clientX: 200 + dx, clientY: 100 }]; target.dispatchEvent(b); };
+    swipe(120); if (lbl(w) !== '1 of 10') throw new Error('swipe back from first wrapped: ' + lbl(w));
+    swipe(-120); if (lbl(w) !== '2 of 10') throw new Error('swipe forward failed: ' + lbl(w));
+    for (let i = 0; i < 12; i++) swipe(-120); if (lbl(w) !== '10 of 10') throw new Error('swipe forward past last wrapped: ' + lbl(w));
   });
 
   /* ---- mutation fuzz of the import path ---- */

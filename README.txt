@@ -776,3 +776,15 @@ you need to scroll:
   Space, text or date), the old Spacetime row is replaced at once instead of staying next to the
   new one until you tap Refresh. A time you typed for the task moves to its new row. Refresh now
   also re-opens any Space lines you had collapsed.
+
+------------------------------------------------------------
+31. BUTTON SWAP AND NUMBERED TASKS ON THE TIME PAGE
+------------------------------------------------------------
+- "NoSpace" is now the first button in the buttons row (where +Stars was) and "+Stars" is the
+  last pill in the page bar (where NoSpace was). Both open the same pages as before.
+- Time page (phone): the Back / Next buttons and the "Time N of M" count are gone. At the bottom
+  there is a row of numbered circles - 1, 2, 3 ... - one for every task of the Space whose task
+  is on screen. Tap a number to show that task; the number on screen is highlighted (rose
+  background). A long list scrolls sideways. Swiping the task left/right still moves through the
+  tasks; when it moves into another Space, the numbers switch to that Space's tasks.
+- The NoSpace page keeps its Back / Next buttons.

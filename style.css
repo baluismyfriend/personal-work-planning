@@ -1689,3 +1689,51 @@ html{overflow-x:hidden;max-width:100%;}
   .week-space-line .space-dates,
   .week-space-line.summary-space-head-row .space-dates{margin-left:104px;}
 }
+
+/* Time page (phone): numbered circles (1, 2, 3 ...) for the tasks of the Space on screen */
+.task-number-nav{display:none;}
+@media (max-width:680px){
+  .task-number-nav:not([hidden]){
+    display:flex;
+    align-items:center;
+    gap:12px;
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    z-index:500;
+    margin:0;
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+    overflow-x:auto;
+    overflow-y:hidden;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    background:rgba(255,255,255,.88);
+    backdrop-filter:blur(18px) saturate(160%);
+    -webkit-backdrop-filter:blur(18px) saturate(160%);
+    border-top:1px solid rgba(100,116,139,.16);
+    box-shadow:0 -10px 26px rgba(15,23,42,.12);
+  }
+  .task-number-nav::-webkit-scrollbar{display:none;}
+  .task-number{
+    flex:0 0 auto;
+    box-sizing:border-box;
+    width:40px;
+    height:40px;
+    padding:0;
+    border-radius:50%;
+    border:2px solid rgba(100,116,139,.55);
+    background:rgba(255,255,255,.7);
+    color:var(--text);
+    font-size:15px;
+    font-weight:800;
+    line-height:1;
+    cursor:pointer;
+  }
+  .task-number.active{
+    background:linear-gradient(135deg,#64748b,#fb7185);
+    border-color:#fb7185;
+    color:#fff;
+    box-shadow:0 4px 12px rgba(251,113,133,.35);
+  }
+}

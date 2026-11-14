@@ -208,3 +208,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: Spacetime sync keeps rows in step with Time (162 tests)
 - Removes the auto-added row of a task whose Space/text/date changed (only rows this sync itself added: tracked by its stored keys); data logic only, no innerHTML / network APIs / inline styles.
+
+## Update: button swap, numbered tasks on the Time page (162 tests)
+- UI only (textContent numbers, existing paging state); no storage, innerHTML or network changes.
