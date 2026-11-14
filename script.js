@@ -2312,8 +2312,10 @@
     // The area's full height comes from its CSS max-height - NOT from its
     // current clientHeight, which shrinks to fit short content and would
     // make the page end part-way down the screen.
+    // (The page frame now gives the area a fixed height, so its clientHeight is reliable;
+    // an older CSS max-height, when there is one, still wins.)
     var avail = parseFloat(window.getComputedStyle(sc).maxHeight);
-    if (!(avail > 0)) avail = Math.max(sc.clientHeight, (window.innerHeight || 0) - sc.getBoundingClientRect().top);
+    if (!(avail > 0)) avail = sc.clientHeight;
     sp.style.height = "0px";
     var below = sp.getBoundingClientRect().top - hdr.getBoundingClientRect().top; // today's tile down to the end
     var room = avail - headH - below;
@@ -2923,9 +2925,17 @@
 
   function dragScrollLoop() {
     if (!dragState) return;
-    var y = dragState.y, h = window.innerHeight || 0;
-    if (y < 90) window.scrollBy(0, -14);
-    else if (h && y > h - 90) window.scrollBy(0, 14);
+    var y = dragState.y;
+    // The content area (not the page) scrolls; scroll it when the finger is near its top / bottom edge.
+    var scroller = tableScrollerEl;
+    var top = 0, bottom = window.innerHeight || 0;
+    if (scroller && scroller.getBoundingClientRect) {
+      var r = scroller.getBoundingClientRect();
+      if (r.height > 0) { top = r.top; bottom = r.bottom; }
+    }
+    var target = scroller || window;
+    if (y < top + 70) target.scrollBy(0, -14);
+    else if (bottom && y > bottom - 70) target.scrollBy(0, 14);
     updateDropTarget();
     dragState.raf = window.requestAnimationFrame(dragScrollLoop);
   }

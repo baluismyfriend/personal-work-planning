@@ -1737,3 +1737,31 @@ html{overflow-x:hidden;max-width:100%;}
     box-shadow:0 4px 12px rgba(251,113,133,.35);
   }
 }
+
+/* ---- Fixed page frame (every page) ----------------------------------------
+   The page itself never scrolls: the logo and the buttons rows stay put, and
+   only the content area under them scrolls. (Before, the content area was a
+   fixed number of pixels tall while the header grew with the logo, so the
+   whole page became taller than the screen and scrolled the header away.) */
+html,body{height:100%;overflow:hidden;}
+.app{height:100vh;height:100dvh;min-height:0;overflow:hidden;}
+.site-header{flex:0 0 auto;position:relative;}
+.content{
+  flex:1 1 auto;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  padding-bottom:0;
+}
+.top-row{flex:0 0 auto;}
+.table-card{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;}
+.table-scroller{
+  flex:1 1 auto;
+  min-height:0;
+  max-height:none;
+  overflow-y:auto;
+  overscroll-behavior-y:contain;
+  -webkit-overflow-scrolling:touch;
+  /* room under the last row for the floating "+ Add Space" button and the bottom bars */
+  padding-bottom:96px;
+}

@@ -788,3 +788,5 @@ you need to scroll:
   background). A long list scrolls sideways. Swiping the task left/right still moves through the
   tasks; when it moves into another Space, the numbers switch to that Space's tasks.
 - The NoSpace page keeps its Back / Next buttons.
+
+- Page frame (all pages): the page no longer scrolls as a whole. The logo and the two button rows stay fixed and only the content area scrolls (this also fixes the header moving on Spaces, Time, NoSpace and Stars). Dragging rows near the top/bottom edge of the content area auto-scrolls it.

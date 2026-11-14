@@ -211,3 +211,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: button swap, numbered tasks on the Time page (162 tests)
 - UI only (textContent numbers, existing paging state); no storage, innerHTML or network changes.
+
+## Update: fixed page frame (162 tests)
+- CSS layout (html/body overflow hidden, flex frame) and the drag auto-scroll target; no storage or security-relevant code changed.
