@@ -790,3 +790,5 @@ you need to scroll:
 - The NoSpace page keeps its Back / Next buttons.
 
 - Page frame (all pages): the page no longer scrolls as a whole. The logo and the two button rows stay fixed and only the content area scrolls (this also fixes the header moving on Spaces, Time, NoSpace and Stars). Dragging rows near the top/bottom edge of the content area auto-scrolls it.
+
+- Logo: re-made from your original drawing with stronger, fully opaque strokes (the thin lotus lines were semi-transparent, which made the top look faded/shady on the dark header) and at double resolution so it stays crisp. Upload logo.png and index.html.
