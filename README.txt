@@ -801,3 +801,5 @@ you need to scroll:
 - "+ Add Space" (and the highlighted NoSpace button) keep their colour and white text after a tap.
 - The page no longer zooms in when you tap a text box (viewport maximum-scale=1), and after the keyboard
   closes or you change page the page is put back at its normal position/size.
+
+- Logo sharpness (iPhone): the header now starts about 34pt lower so the logo sits below the blurred strip iOS draws at the top of the screen (status bar + soft fade). If it still looks soft, send a screenshot; the amount is the 44px in the phone header padding in style.css.
