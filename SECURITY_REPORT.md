@@ -217,3 +217,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: iPhone fixes (163 tests)
 - Viewport now sets maximum-scale=1, user-scalable=no (stops focus auto-zoom; pinch-zoom is disabled by design for this personal app). CSS state fixes; a guarded scroll reset. Logo renamed to lotus-logo.png. No storage, innerHTML or network changes.
+
+## Update: logo v3, header back to original height (163 tests)
+- lotus-logo-v3.png: plain PNG, no metadata chunks (test-checked). CSS padding only.

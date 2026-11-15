@@ -802,4 +802,4 @@ you need to scroll:
 - The page no longer zooms in when you tap a text box (viewport maximum-scale=1), and after the keyboard
   closes or you change page the page is put back at its normal position/size.
 
-- Logo sharpness (iPhone): the header now starts about 34pt lower so the logo sits below the blurred strip iOS draws at the top of the screen (status bar + soft fade). If it still looks soft, send a screenshot; the amount is the 44px in the phone header padding in style.css.
+- Logo (iPhone): back at its original height. iOS blurs a strip at the top of the screen, so the lotus part of the logo is now thicker and brighter (lotus-logo-v3.png) and stays clear through the blur. Upload lotus-logo-v3.png (the older lotus-logo.png / logo.png are unused).
