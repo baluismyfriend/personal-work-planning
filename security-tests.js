@@ -952,8 +952,8 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
   });
   await ta('App title is the Lotus logo (PNG, no metadata); page names: Spaces, Times (summary), Time (daily), Spacetime (week), +Stars; nav buttons use the same 12px rounded shape as the action buttons', async () => {
     const w = await boot();
-    const logo = w.document.querySelector('.brand-text h1 img.brand-logo'); if (!logo || logo.getAttribute('alt') !== 'Lotus' || logo.getAttribute('src') !== 'logo.png' || w.document.title !== 'Lotus') throw new Error('title');
-    const png = require('fs').readFileSync(require('path').join(__dirname, 'logo.png')); if (png.slice(1, 4).toString() !== 'PNG') throw new Error('logo.png is not a PNG');
+    const logo = w.document.querySelector('.brand-text h1 img.brand-logo'); if (!logo || logo.getAttribute('alt') !== 'Lotus' || logo.getAttribute('src') !== 'lotus-logo.png' || w.document.title !== 'Lotus') throw new Error('title');
+    const png = require('fs').readFileSync(require('path').join(__dirname, 'lotus-logo.png')); if (png.slice(1, 4).toString() !== 'PNG') throw new Error('logo.png is not a PNG');
     const chunks = []; for (let p = 8; p < png.length;) { chunks.push(png.slice(p + 4, p + 8).toString()); p += 12 + png.readUInt32BE(p); } if (chunks.some(k => !['IHDR', 'IDAT', 'IEND', 'PLTE', 'tRNS'].includes(k))) throw new Error('logo.png has metadata chunks: ' + chunks.join());
     const css = require('fs').readFileSync(require('path').join(__dirname, 'style.css'), 'utf8');
     const navRule = /\n\.nav-btn\{[^}]*\}/.exec(css)[0], btnRule = /\n\.btn\{[^}]*\}/.exec(css)[0];
@@ -1062,6 +1062,18 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     const g2 = wbOf(w); sheetOf(g2, 'Daily planning - All tasks').rows = []; await doImport(w, JSON.stringify(g2)); clickNav(w, /^Time$/);
     if (!w.document.getElementById('taskNumberNav').hidden) throw new Error('empty list must be hidden');
     const wide = await boot(); clickNav(wide, /^Time$/); if (!wide.document.getElementById('taskNumberNav').hidden) throw new Error('wide screens use the table');
+    if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
+  await ta('iPhone fixes: primary buttons keep colour/text in hover+active+focus; no auto-zoom (viewport maximum-scale=1); page position is reset after typing and on page change', async () => {
+    const css = require('fs').readFileSync(require('path').join(__dirname, 'style.css'), 'utf8');
+    const html = require('fs').readFileSync(require('path').join(__dirname, 'index.html'), 'utf8');
+    if (!/\.btn-primary:hover,\s*\.btn-primary:active,\s*\.btn-primary:focus,\s*\.btn-primary:focus-visible\{[^}]*background:linear-gradient[^}]*color:#fff/.test(css)) throw new Error('primary button states');
+    if (!/name="viewport"[^>]*maximum-scale=1\.0[^>]*user-scalable=no/.test(html)) throw new Error('viewport');
+    const w = await boot(); let called = 0; const orig = w.scrollTo; w.scrollTo = () => { called++; };
+    Object.defineProperty(w, 'pageYOffset', { value: 40, configurable: true });
+    w.document.dispatchEvent(new w.Event('focusout')); await sleep(200);
+    if (!called) throw new Error('page position not reset after focusout');
+    called = 0; clickNav(w, /^Time$/); if (!called) throw new Error('page position not reset on page change');
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
   await ta('Header: title row has only the title; page bar order is Spaces, Times, Time, Spacetime, +Stars (NoSpace is in the buttons row)', async () => {

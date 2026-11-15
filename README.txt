@@ -792,3 +792,12 @@ you need to scroll:
 - Page frame (all pages): the page no longer scrolls as a whole. The logo and the two button rows stay fixed and only the content area scrolls (this also fixes the header moving on Spaces, Time, NoSpace and Stars). Dragging rows near the top/bottom edge of the content area auto-scrolls it.
 
 - Logo: re-made from your original drawing with stronger, fully opaque strokes (the thin lotus lines were semi-transparent, which made the top look faded/shady on the dark header) and at double resolution so it stays crisp. Upload logo.png and index.html.
+
+------------------------------------------------------------
+32. IPHONE FIXES
+------------------------------------------------------------
+- Logo file is now lotus-logo.png (new name, so the phone cannot show an old cached copy of logo.png).
+  Upload lotus-logo.png; logo.png is no longer used and can be deleted.
+- "+ Add Space" (and the highlighted NoSpace button) keep their colour and white text after a tap.
+- The page no longer zooms in when you tap a text box (viewport maximum-scale=1), and after the keyboard
+  closes or you change page the page is put back at its normal position/size.

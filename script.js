@@ -1052,6 +1052,14 @@
     });
 
     resetDayView();
+    // iPhone: after the keyboard closes the page can stay shifted or stretched. Put it back.
+    function resetPagePosition() {
+      var ae = document.activeElement;
+      if (ae && (ae.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))) return; // still typing
+      scrollPageToTop();
+    }
+    document.addEventListener("focusout", function () { setTimeout(resetPagePosition, 120); });
+    if (window.visualViewport) window.visualViewport.addEventListener("resize", function () { setTimeout(resetPagePosition, 60); });
     if (currentSheet() && currentSheet().name === "Road Map - Pending") sortRoadMapByLifeEnds();
     renderAll();
     initAutoBackupOnStartup();
@@ -1430,12 +1438,20 @@
     saveWorkbookSilently();
   }
 
+  // Only touches the page when it really is shifted (the page itself is not meant to scroll).
+  function scrollPageToTop() {
+    if ((window.pageYOffset || 0) !== 0 || (window.pageXOffset || 0) !== 0) window.scrollTo(0, 0);
+    var se = document.scrollingElement;
+    if (se && (se.scrollTop !== 0 || se.scrollLeft !== 0)) { se.scrollTop = 0; se.scrollLeft = 0; }
+  }
+
   function goToSheetIndex(idx) {
     if (idx < 0 || idx >= workbook.length || idx === selectedSheetIndex) return;
     autoAddToWeekPlanning();
     selectedSheetIndex = idx;
     persistSelectedSheet();
     if (isDaySheet(workbook[idx])) resetDayView();
+    scrollPageToTop(); // a new page always starts at its normal size and position
     if (workbook[idx].name === "Road Map - Pending") sortRoadMapByLifeEnds();
     if (workbook[idx].name === "Summary") {
       refreshSummarySheet(workbook);

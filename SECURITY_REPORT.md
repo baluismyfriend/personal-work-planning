@@ -214,3 +214,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: fixed page frame (162 tests)
 - CSS layout (html/body overflow hidden, flex frame) and the drag auto-scroll target; no storage or security-relevant code changed.
+
+## Update: iPhone fixes (163 tests)
+- Viewport now sets maximum-scale=1, user-scalable=no (stops focus auto-zoom; pinch-zoom is disabled by design for this personal app). CSS state fixes; a guarded scroll reset. Logo renamed to lotus-logo.png. No storage, innerHTML or network changes.

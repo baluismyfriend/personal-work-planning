@@ -1765,3 +1765,20 @@ html,body{height:100%;overflow:hidden;}
   /* room under the last row for the floating "+ Add Space" button and the bottom bars */
   padding-bottom:96px;
 }
+
+/* Primary buttons (the round "+ Add Space", the highlighted NoSpace): on iPhone the :hover style stays
+   "stuck" after a tap and painted the button white under white text. Keep the colours in every state. */
+.btn-primary:hover,
+.btn-primary:active,
+.btn-primary:focus,
+.btn-primary:focus-visible{
+  background:linear-gradient(135deg,rgba(100,116,139,.92),rgba(251,113,133,.85));
+  color:#fff;
+  border-color:rgba(255,255,255,.4);
+  transform:none;
+  box-shadow:0 16px 32px rgba(51,65,85,.30), inset 0 1px 0 rgba(255,255,255,.45);
+}
+.btn-primary:active{filter:brightness(.94);}
+@media (hover:none){
+  .btn:hover{transform:none;}
+}
