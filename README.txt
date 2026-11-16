@@ -803,3 +803,9 @@ you need to scroll:
   closes or you change page the page is put back at its normal position/size.
 
 - Logo (iPhone): back at its original height. iOS blurs a strip at the top of the screen, so the lotus part of the logo is now thicker and brighter (lotus-logo-v3.png) and stays clear through the blur. Upload lotus-logo-v3.png (the older lotus-logo.png / logo.png are unused).
+
+- Logo blur (iPhone), round 3: (1) the page frame is now exactly as tall as the visible page (100%, no
+  overflow:hidden on html/body) - the blur strip appeared after the earlier fixed-height frame change, so this
+  is the most likely cause; (2) the lotus in the logo is thicker and brighter (lotus-logo-v4.png) so it stays
+  readable even if some blur remains. Upload index.html, style.css and lotus-logo-v4.png. Older logo files
+  (logo.png, lotus-logo.png, lotus-logo-v3.png) are unused.

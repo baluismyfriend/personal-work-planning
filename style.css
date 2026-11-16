@@ -1745,8 +1745,11 @@ html{overflow-x:hidden;max-width:100%;}
    only the content area under them scrolls. (Before, the content area was a
    fixed number of pixels tall while the header grew with the logo, so the
    whole page became taller than the screen and scrolled the header away.) */
-html,body{height:100%;overflow:hidden;}
-.app{height:100vh;height:100dvh;min-height:0;overflow:hidden;}
+/* The frame is exactly as tall as the visible page (100%, not 100vh/100dvh, and no overflow:hidden on
+   html/body): newer iOS versions blur a strip at the top of the screen when the page is taller than,
+   or locked to, the visible area. */
+html,body{height:100%;}
+.app{height:100%;min-height:0;overflow:hidden;}
 .site-header{flex:0 0 auto;position:relative;}
 .content{
   flex:1 1 auto;

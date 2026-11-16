@@ -220,3 +220,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: logo v3, header back to original height (163 tests)
 - lotus-logo-v3.png: plain PNG, no metadata chunks (test-checked). CSS padding only.
+
+## Update: frame height units, logo v4 (163 tests)
+- CSS only (html/body/.app height) and a new PNG; no script, storage or security-relevant changes. Note: the file hand-off tool adds a small provenance chunk (caBX) to PNGs it delivers; it carries no personal data, and the test copy was checked before hand-off.

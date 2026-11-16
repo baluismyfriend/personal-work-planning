@@ -952,8 +952,8 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
   });
   await ta('App title is the Lotus logo (PNG, no metadata); page names: Spaces, Times (summary), Time (daily), Spacetime (week), +Stars; nav buttons use the same 12px rounded shape as the action buttons', async () => {
     const w = await boot();
-    const logo = w.document.querySelector('.brand-text h1 img.brand-logo'); if (!logo || logo.getAttribute('alt') !== 'Lotus' || logo.getAttribute('src') !== 'lotus-logo-v3.png' || w.document.title !== 'Lotus') throw new Error('title');
-    const png = require('fs').readFileSync(require('path').join(__dirname, 'lotus-logo-v3.png')); if (png.slice(1, 4).toString() !== 'PNG') throw new Error('logo.png is not a PNG');
+    const logo = w.document.querySelector('.brand-text h1 img.brand-logo'); if (!logo || logo.getAttribute('alt') !== 'Lotus' || logo.getAttribute('src') !== 'lotus-logo-v4.png' || w.document.title !== 'Lotus') throw new Error('title');
+    const png = require('fs').readFileSync(require('path').join(__dirname, 'lotus-logo-v4.png')); if (png.slice(1, 4).toString() !== 'PNG') throw new Error('logo.png is not a PNG');
     const chunks = []; for (let p = 8; p < png.length;) { chunks.push(png.slice(p + 4, p + 8).toString()); p += 12 + png.readUInt32BE(p); } if (chunks.some(k => !['IHDR', 'IDAT', 'IEND', 'PLTE', 'tRNS'].includes(k))) throw new Error('logo.png has metadata chunks: ' + chunks.join());
     const css = require('fs').readFileSync(require('path').join(__dirname, 'style.css'), 'utf8');
     const navRule = /\n\.nav-btn\{[^}]*\}/.exec(css)[0], btnRule = /\n\.btn\{[^}]*\}/.exec(css)[0];
