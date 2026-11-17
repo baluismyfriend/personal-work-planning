@@ -1052,6 +1052,21 @@
     });
 
     resetDayView();
+    // The header is fixed, so the content below it starts at the header's real height.
+    function syncHeaderHeight() {
+      var hd = document.querySelector(".site-header");
+      if (!hd) return;
+      var px = Math.ceil(hd.getBoundingClientRect().height);
+      if (px > 0) document.documentElement.style.setProperty("--header-h", px + "px");
+    }
+    syncHeaderHeight();
+    window.addEventListener("resize", syncHeaderHeight);
+    window.addEventListener("orientationchange", syncHeaderHeight);
+    window.addEventListener("load", syncHeaderHeight);
+    if (typeof ResizeObserver === "function") {
+      var headerWatcher = new ResizeObserver(syncHeaderHeight);
+      headerWatcher.observe(document.querySelector(".site-header"));
+    }
     // iPhone: after the keyboard closes the page can stay shifted or stretched. Put it back.
     function resetPagePosition() {
       var ae = document.activeElement;

@@ -223,3 +223,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: frame height units, logo v4 (163 tests)
 - CSS only (html/body/.app height) and a new PNG; no script, storage or security-relevant changes. Note: the file hand-off tool adds a small provenance chunk (caBX) to PNGs it delivers; it carries no personal data, and the test copy was checked before hand-off.
+
+## Update: fixed header (164 tests)
+- CSS layout plus a guarded CSSOM write of --header-h (style.setProperty, allowed by the CSP); no innerHTML, network or storage changes.

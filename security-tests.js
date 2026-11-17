@@ -1076,6 +1076,18 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     called = 0; clickNav(w, /^Time$/); if (!called) throw new Error('page position not reset on page change');
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
+  await ta('Fixed header: header is position:fixed with a solid background, the page is locked (no bounce), content starts below the measured header height', async () => {
+    const css = require('fs').readFileSync(require('path').join(__dirname, 'style.css'), 'utf8');
+    if (!/\.site-header\{position:fixed;top:0;left:0;right:0;z-index:600;\}/.test(css)) throw new Error('header not fixed');
+    if (!/html,body\{height:100%;overflow:hidden;\}/.test(css)) throw new Error('page not locked');
+    if (!/\.content\{padding-top:calc\(var\(--header-h\) \+ 8px\);\}/.test(css)) throw new Error('content offset');
+    const hdr = /\.site-header\{[^}]*\}/.exec(css)[0]; if (/rgba\(15,23,42,\.9/.test(hdr)) throw new Error('header must be solid');
+    const w = await boot(); const h = w.document.querySelector('.site-header');
+    h.getBoundingClientRect = () => ({ height: 123.2, width: 390, top: 0, left: 0, right: 390, bottom: 123.2 });
+    w.dispatchEvent(new w.Event('resize')); await sleep(30);
+    if (w.document.documentElement.style.getPropertyValue('--header-h') !== '124px') throw new Error('--header-h not set: ' + w.document.documentElement.style.getPropertyValue('--header-h'));
+    if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
   await ta('Header: title row has only the title; page bar order is Spaces, Times, Time, Spacetime, +Stars (NoSpace is in the buttons row)', async () => {
     const w = await boot();
     if (w.document.querySelector('.header-row .nav-btn')) throw new Error('page buttons still in the title row');
