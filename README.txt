@@ -818,3 +818,17 @@ you need to scroll:
 - Logo (final): the blur was caused by the header not being fixed, so the extra-bold/bright lotus is no longer
   needed. The logo is back to one uniform rose colour and stroke weight (lotus-logo-v5.png). Upload
   lotus-logo-v5.png and index.html; lotus-logo-v4.png and older logo files are unused.
+
+------------------------------------------------------------
+33. TIME PAGE FITTING, REPEATING (DEMAND 99) TASKS
+------------------------------------------------------------
+- Time page (and every page): the content now always starts right below the fixed header. The header's
+  height is measured again after the page bar is drawn and after the first paint/logo load (it was measured
+  too early, while the page bar was still empty, so the top row of buttons sat half under the header). The
+  content area scrolls top to bottom under the fixed header, with the bottom bar (numbers / Back-Next) fixed.
+- Demand 99 = a repeating task: it is added to Spacetime for every day, again and again, until you
+  complete it. "Time Zero on" is NOT looked at (blank, past or future - ignored). If "time on" (Date) is a
+  future date the task starts then, otherwise today. This is the same thing Refresh does; the automatic
+  sync and Refresh now behave the same. Completing it: tap the radio for one day (that day is remembered as
+  done) or mark the task Complete on the Time page (it moves to NoSpace and stops repeating).
+- All other tasks still need a "Time Zero on" date to appear on Spacetime.

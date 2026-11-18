@@ -1793,7 +1793,7 @@ html,body{height:100%;}
    locked to the screen, so it cannot bounce up/down on short pages (Time, Stars) and take the header
    with it; only the content area under the header scrolls. A fixed, solid header at the top is also
    what lets iOS skip its blurred strip over the top of the page. --header-h is measured by the script. */
-:root{--header-h:190px;}
+:root{--header-h:calc(env(safe-area-inset-top, 0px) + 118px);} /* until the script measures the real height */
 html,body{height:100%;overflow:hidden;}
 .app{height:100%;min-height:0;overflow:hidden;}
 .site-header{position:fixed;top:0;left:0;right:0;z-index:600;}

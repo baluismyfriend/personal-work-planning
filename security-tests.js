@@ -455,19 +455,18 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     if (got.length !== 8) throw new Error('expected 8 consecutive days (today..+7), got ' + got.length);
     const wds = new Set(got.map(d => { const [m, dd, y] = d.split('/').map(Number); return new Date(y, m - 1, dd).getDay(); })); if (wds.size !== 7) throw new Error('not every weekday covered: ' + [...wds]);
   });
-  await ta('Demand 99: stops at the Time Zero on date (inclusive) and starts at time-on when it is in the future', async () => {
-    let w = await repeatCase('99', 0, 3); if (JSON.stringify(weekDates(w)) !== JSON.stringify(expectedWeekdays(0, 3))) throw new Error('end: ' + weekDates(w));
-    w = await repeatCase('99', 2, 6); if (JSON.stringify(weekDates(w)) !== JSON.stringify(expectedWeekdays(2, 6))) throw new Error('start: ' + weekDates(w));
+  await ta('Demand 99: repeats every day with no end date - Time Zero on is ignored (blank, past or future); starts at time-on only when that is a future date', async () => {
+    const all = JSON.stringify(expectedWeekdays(0, 7));
+    for (const end of [null, 3, -5, 40]) { const w = await repeatCase('99', 0, end); if (JSON.stringify(weekDates(w)) !== all) throw new Error('end ' + end + ': ' + weekDates(w)); }
+    let w = await repeatCase('99', -10, null); if (JSON.stringify(weekDates(w)) !== all) throw new Error('past start must not matter: ' + weekDates(w));
+    w = await repeatCase('99', 2, null); if (JSON.stringify(weekDates(w)) !== JSON.stringify(expectedWeekdays(2, 7))) throw new Error('future start: ' + weekDates(w));
+    w = await repeatCase('99', null, null); if (JSON.stringify(weekDates(w)) !== all) throw new Error('blank start: ' + weekDates(w));
   });
-  await ta('Demand 99: no past days (even on Refresh), no Time Zero on -> nothing, " 99 " is accepted', async () => {
-    let w = await repeatCase('99', -10, -2); if (weekDates(w).length) throw new Error('past days added: ' + weekDates(w));
-    w = await repeatCase('99', 0, null); if (weekDates(w).length) throw new Error('added without end date');
-    w = await repeatCase(' 99 ', 0, 7); if (JSON.stringify(weekDates(w)) !== JSON.stringify(expectedWeekdays(0, 7))) throw new Error('trim: ' + weekDates(w));
-  });
-  await ta('Demand 99: blank/invalid time-on falls back to the end date only (any day, weekend too); other Demand values are not repeated', async () => {
-    let w = await repeatCase('99', null, 4); const want = expectedWeekdays(4, 4); if (JSON.stringify(weekDates(w)) !== JSON.stringify(want)) throw new Error('blank start: ' + weekDates(w) + ' want ' + want);
+  await ta('Demand 99: " 99 " is accepted; other Demand values are not repeated (and still need a Time Zero on date)', async () => {
+    let w = await repeatCase(' 99 ', 0, null); if (JSON.stringify(weekDates(w)) !== JSON.stringify(expectedWeekdays(0, 7))) throw new Error('trim: ' + weekDates(w));
     w = await repeatCase('5', -3, 4); if (JSON.stringify(weekDates(w)) !== JSON.stringify([dayStrOf(4)])) throw new Error('normal row changed: ' + weekDates(w));
     w = await repeatCase('990', 0, 5); if (JSON.stringify(weekDates(w)) !== JSON.stringify([dayStrOf(5)])) throw new Error('"990" treated as 99: ' + weekDates(w));
+    w = await repeatCase('990', 0, null); if (weekDates(w).length) throw new Error('"990" without a date must not be added');
   });
   await ta('Demand 99: repeat rows are not duplicated by a second Refresh or the automatic sync', async () => {
     const w = await repeatCase('99', 0, 7); const n = weekDates(w).length; refreshWeek(w); clickNav(w, /^Time$/); clickNav(w, /^Spacetime$/); await sleep(30);
@@ -591,17 +590,18 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     if (todayCount !== 2) throw new Error('today should hold both late tasks, has ' + todayCount);
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
-  await ta('TimesX7: tasks with no "Time Zero on" date are never shown or moved (also Demand 99 without an end date); a row left from when the date existed is removed', async () => {
+  await ta('TimesX7: tasks with no "Time Zero on" date are never shown or moved (Demand 99 tasks are the exception: they repeat without a date); a row left from when the date existed is removed', async () => {
     const w = await weekBoot([
       blankTask({ Space: 'AA', 'Timeframe/Meeting': 'nodate' }),
-      blankTask({ Space: 'AA', Demand: '99', 'Timeframe/Meeting': 'dailynodate', Date: dayStr(-2) }),
+      blankTask({ Space: 'AA', Demand: '99', 'Timeframe/Meeting': 'dailynodate', Date: dayStr(-2) }),   // repeats: no date needed
       blankTask({ Space: 'AA', 'Timeframe/Meeting': 'cleared' }),
       blankTask({ Space: 'AA', 'Timeframe/Meeting': 'dated', 'Time Zero on': dayStr(1) })]);
     const g0 = wbOf(w); sheetOf(g0, 'Week planning').rows = [{ 'Date/Day': dayName(1) + ', ' + dayStr(1), Timeframes: 'AA || cleared' }, { 'Date/Day': dayName(1) + ', ' + dayStr(1), Timeframes: 'AA || dated' }];
     await doImport(w, JSON.stringify(g0));
     w.document.dispatchEvent(new w.Event('visibilitychange')); clickNav(w, /^Spacetime$/); refreshWeek(w);
-    const texts = sheetOf(wbOf(w), 'Week planning').rows.map(r => r.Timeframes).join('|');
+    const texts = sheetOf(wbOf(w), 'Week planning').rows.map(r => r.Timeframes).filter(x => x !== 'AA || dailynodate').join('|');
     if (texts !== 'AA || dated') throw new Error('week rows: ' + texts);
+    if (sheetOf(wbOf(w), 'Week planning').rows.filter(r => r.Timeframes === 'AA || dailynodate').length !== 8) throw new Error('the Demand 99 task must repeat on every day of the window');
     const d = sheetOf(wbOf(w), 'Daily planning - All tasks').rows;
     if (d.filter(r => !/dated$/.test(r['Timeframe/Meeting']) || r['Timeframe/Meeting'] === 'nodate').some(r => r['Time Zero on'] !== '')) throw new Error('an undated task got a date');
     if (w.__errs.length) throw new Error(w.__errs[0]);
@@ -644,13 +644,13 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
   await ta('TimesX7: radio on a Demand 99 task deletes only that day here; the Times row stays and the day does not come back', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', Demand: '99', 'Timeframe/Meeting': 'Daily', Date: todayStr, 'Time Zero on': dayStr(3) })]);
     clickNav(w, /^Spacetime$/); refreshWeek(w);
-    if (sheetOf(wbOf(w), 'Week planning').rows.length !== 4) throw new Error('expected 4 days, got ' + sheetOf(wbOf(w), 'Week planning').rows.length);
+    if (sheetOf(wbOf(w), 'Week planning').rows.length !== 8) throw new Error('expected 8 days, got ' + sheetOf(wbOf(w), 'Week planning').rows.length);
     let asked = false; w.confirm = () => { asked = true; return true; };
     w.document.querySelector('tr.week-row .week-radio').click();
-    const g = wbOf(w); if (sheetOf(g, 'Week planning').rows.length !== 3) throw new Error('day not removed');
+    const g = wbOf(w); if (sheetOf(g, 'Week planning').rows.length !== 7) throw new Error('day not removed');
     if (sheetOf(g, 'Daily planning - All tasks').rows.length !== 1) throw new Error('Times row was deleted');
     if (asked) throw new Error('should not ask: nothing on Times is deleted');
-    await sleep(30); w.document.dispatchEvent(new w.Event('visibilitychange')); if (sheetOf(wbOf(w), 'Week planning').rows.length !== 3) throw new Error('removed day returned');
+    await sleep(30); w.document.dispatchEvent(new w.Event('visibilitychange')); if (sheetOf(wbOf(w), 'Week planning').rows.length !== 7) throw new Error('removed day returned');
   });
   await ta('TimesX7: radio -> Cancel deletes nothing', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'T1', 'Time Zero on': todayStr })]);
@@ -1086,6 +1086,10 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     h.getBoundingClientRect = () => ({ height: 123.2, width: 390, top: 0, left: 0, right: 390, bottom: 123.2 });
     w.dispatchEvent(new w.Event('resize')); await sleep(30);
     if (w.document.documentElement.style.getPropertyValue('--header-h') !== '124px') throw new Error('--header-h not set: ' + w.document.documentElement.style.getPropertyValue('--header-h'));
+    h.getBoundingClientRect = () => ({ height: 161.4, width: 390, top: 0, left: 0, right: 390, bottom: 161.4 });
+    clickNav(w, /^Time$/);   // drawing the page bar re-measures the header (it was still empty at the first measurement)
+    if (w.document.documentElement.style.getPropertyValue('--header-h') !== '162px') throw new Error('not re-measured after the page bar was drawn: ' + w.document.documentElement.style.getPropertyValue('--header-h'));
+    if (!/--header-h:calc\(env\(safe-area-inset-top, 0px\) \+ 118px\)/.test(css)) throw new Error('CSS fallback');
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
   await ta('Header: title row has only the title; page bar order is Spaces, Times, Time, Spacetime, +Stars (NoSpace is in the buttons row)', async () => {

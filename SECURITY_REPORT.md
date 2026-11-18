@@ -229,3 +229,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: uniform logo v5 (164 tests)
 - New PNG only (plain RGBA, checked by the metadata test on the working copy) and its file name in index.html.
+
+## Update: header height, Demand 99 repeats without a date (164 tests)
+- Sync logic only (uses the existing validated date helpers) plus a CSSOM custom-property write; no innerHTML, network or storage changes.

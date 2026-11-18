@@ -92,9 +92,8 @@ PASS  TimesX7 phone layout keeps Date and Times on one line (no-wrap, Times flex
 PASS  Times page: "time on" (Date) is a calendar input; picking a date saves MM/DD/YYYY
 PASS  Times page: "+ Add" fills today's date and does not pop the calendar (focus goes to a text cell)
 PASS  Demand 99: one TimesX7 row per day (all 7 days of the week, weekends included) from time-on to Time Zero on, within the next 7 days
-PASS  Demand 99: stops at the Time Zero on date (inclusive) and starts at time-on when it is in the future
-PASS  Demand 99: no past days (even on Refresh), no Time Zero on -> nothing, " 99 " is accepted
-PASS  Demand 99: blank/invalid time-on falls back to the end date only (any day, weekend too); other Demand values are not repeated
+PASS  Demand 99: repeats every day with no end date - Time Zero on is ignored (blank, past or future); starts at time-on only when that is a future date
+PASS  Demand 99: " 99 " is accepted; other Demand values are not repeated (and still need a Time Zero on date)
 PASS  Demand 99: repeat rows are not duplicated by a second Refresh or the automatic sync
 PASS  Spaces Delete: removes the Space and its tasks on Times and NoSpace (exact trimmed name only)
 PASS  Spaces Delete: Cancel deletes nothing
@@ -107,7 +106,7 @@ PASS  Times: no limit when the Space is blank, unknown, or has no Life Ends
 PASS  Times: Time Zero on cannot go past the Space's Life Ends even for a task shown on TimesX7 (date is edited on Times only)
 PASS  TimesX7: radio sits before the date; clicking it deletes the row here AND its source on Times (Demand not 99)
 PASS  TimesX7 roll-over: pending (non-99) tasks dated before today move to today (Times "Time Zero on" + TimesX7 row, time kept); Demand 99 and future tasks untouched; no previous-day tile
-PASS  TimesX7: tasks with no "Time Zero on" date are never shown or moved (also Demand 99 without an end date); a row left from when the date existed is removed
+PASS  TimesX7: tasks with no "Time Zero on" date are never shown or moved (Demand 99 tasks are the exception: they repeat without a date); a row left from when the date existed is removed
 PASS  TimesX7 roll-over: a task is not moved past its Space's Life Ends
 PASS  TimesX7: a Demand 99 task completed for a day stays gone through Refresh and Export/Import; other days and the Times row stay; Reset brings it back
 PASS  TimesX7: completed-days list is cleaned on import (bad keys dropped, past days forgotten, capped)
@@ -161,7 +160,7 @@ PASS  BackIn/NextIn wrap on NoSpace: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> 
 PASS  BackIn/NextIn wrap: the item shown actually changes (last item shown after BackIn from first)
 PASS  BackIn/NextIn disabled only when there is nothing to move to (0 or 1 items)
 PASS  Finger swipes still stop at the ends (no wraparound); only the buttons wrap
-      (fuzz: 58 imports accepted, 92 rejected)
+      (fuzz: 60 imports accepted, 90 rejected)
 PASS  Fuzz: 150 randomly type-confused/poisoned imports -> no crash, no pollution, storage always reloadable
 
-164 passed, 0 failed
+163 passed, 0 failed

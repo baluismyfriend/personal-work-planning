@@ -1052,21 +1052,21 @@
     });
 
     resetDayView();
-    // The header is fixed, so the content below it starts at the header's real height.
-    function syncHeaderHeight() {
-      var hd = document.querySelector(".site-header");
-      if (!hd) return;
-      var px = Math.ceil(hd.getBoundingClientRect().height);
-      if (px > 0) document.documentElement.style.setProperty("--header-h", px + "px");
-    }
+    // The header is fixed, so the content below it starts at the header's real height. It is
+    // measured now and again after the page bar is drawn, after the first paint and after the
+    // fonts/logo have loaded (the page bar was still empty at the very first measurement).
     syncHeaderHeight();
     window.addEventListener("resize", syncHeaderHeight);
     window.addEventListener("orientationchange", syncHeaderHeight);
     window.addEventListener("load", syncHeaderHeight);
+    window.addEventListener("pageshow", syncHeaderHeight);
     if (typeof ResizeObserver === "function") {
       var headerWatcher = new ResizeObserver(syncHeaderHeight);
       headerWatcher.observe(document.querySelector(".site-header"));
     }
+    if (window.requestAnimationFrame) window.requestAnimationFrame(syncHeaderHeight);
+    setTimeout(syncHeaderHeight, 200);
+    setTimeout(syncHeaderHeight, 800);
     // iPhone: after the keyboard closes the page can stay shifted or stretched. Put it back.
     function resetPagePosition() {
       var ae = document.activeElement;
@@ -1093,8 +1093,9 @@
      - Times page: a row whose "Time Zero on" date falls today..+7
        days gets a TimesX7 row: Defined time on = that date, Times =
        the row's Time text (falls back to the Space if Time is blank).
-     - Times page, Demand = 99: the row repeats on every day of the
-       week (Mon-Sun) from its "time on" date to its "Time Zero on" date.
+     - Times page, Demand = 99: the row repeats on every day (from "time on"
+       if that is a future date, else from today) with no end date - "Time Zero
+       on" is ignored - until the task is completed.
      Each (source, date, text) is added only once - remembered in
      localStorage - so a row you delete from TimesX7 stays deleted. */
   function loadWeekAutoAdded() {
@@ -1331,7 +1332,9 @@
         var st = String(r.Space || "").trim();
         var full = sanitizeCell((st && tt) ? (st + " || " + tt) : (tt || st), MAX_CELL_LEN).trim();
         if (!full) return;
-        var target = dayKeyOf(r["Time Zero on"]) !== "" ? datedTexts : undatedTexts;
+        // A repeating (Demand 99) task never needs a date; every other task does.
+        var isRepeating = String(r.Demand || "").trim() === "99";
+        var target = (isRepeating || dayKeyOf(r["Time Zero on"]) !== "") ? datedTexts : undatedTexts;
         target[full] = true;
         if (tt) target[tt] = true;
       });
@@ -1354,16 +1357,14 @@
         var spaceText = String(r.Space || "").trim();
         var text = (spaceText && timeText) ? (spaceText + " || " + timeText) : (timeText || spaceText);
         if (String(r.Demand || "").trim() === "99") {
-          // Demand 99 = repeats every day (all 7 days) from "time on"
-          // (Date) to "Time Zero on", inclusive. Only today and the
-          // coming days inside the sync window are added - past days of
-          // a daily task are not "overdue" items worth listing.
-          var endMs = dateToUtcMs(r["Time Zero on"]);
-          if (endMs === null) return;                 // no end date: nothing to repeat to
+          // Demand 99 = a repeating task: it is added for every day, again and
+          // again, until you complete it. "Time Zero on" is NOT looked at (no end
+          // date). If "time on" (Date) is a future date it starts then, otherwise
+          // today. Only today and the coming days inside the sync window are
+          // added - past days of a daily task are not "overdue" items.
           var startMs = dateToUtcMs(r["Date"]);
-          if (startMs === null || startMs > endMs) startMs = endMs;
-          var from = Math.max(startMs, todayMs);
-          var to = Math.min(endMs, todayMs + 7 * 86400000);
+          var from = (startMs === null) ? todayMs : Math.max(startMs, todayMs);
+          var to = todayMs + 7 * 86400000;
           for (var ms = from; ms <= to; ms += 86400000) {
             var d = new Date(ms);                      // UTC midnight; read back in UTC
             var dayStr = String(d.getUTCMonth() + 1).padStart(2, "0") + "/" +
@@ -1553,6 +1554,17 @@
       frag.appendChild(btn);
     });
     navEl.replaceChildren(frag);
+    syncHeaderHeight(); // the page bar changes the header's height
+  }
+
+  // Measures the fixed header and tells the CSS (--header-h) where the content starts.
+  function syncHeaderHeight() {
+    var hd = document.querySelector(".site-header");
+    if (!hd) return;
+    var px = Math.max(hd.offsetHeight || 0, Math.ceil(hd.getBoundingClientRect().height || 0));
+    if (px > 0 && document.documentElement.style.getPropertyValue("--header-h") !== px + "px") {
+      document.documentElement.style.setProperty("--header-h", px + "px");
+    }
   }
 
   // "NoSpace": opens the NoSpace (completed tasks) page; the button sits first in the buttons row.
