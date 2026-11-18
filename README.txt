@@ -814,3 +814,7 @@ you need to scroll:
   screen (no bounce on short pages like Time and Stars), and the content area scrolls underneath. The header's height is
   measured by the script so the content always starts right below it. A fixed solid header is also what iOS needs to
   skip its blurred top strip. Upload index.html (unchanged since last time), script.js, style.css, lotus-logo-v4.png.
+
+- Logo (final): the blur was caused by the header not being fixed, so the extra-bold/bright lotus is no longer
+  needed. The logo is back to one uniform rose colour and stroke weight (lotus-logo-v5.png). Upload
+  lotus-logo-v5.png and index.html; lotus-logo-v4.png and older logo files are unused.

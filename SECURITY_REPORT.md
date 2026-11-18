@@ -226,3 +226,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: fixed header (164 tests)
 - CSS layout plus a guarded CSSOM write of --header-h (style.setProperty, allowed by the CSP); no innerHTML, network or storage changes.
+
+## Update: uniform logo v5 (164 tests)
+- New PNG only (plain RGBA, checked by the metadata test on the working copy) and its file name in index.html.
