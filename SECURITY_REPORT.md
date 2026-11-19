@@ -232,3 +232,6 @@ No security-sensitive code changed (still no innerHTML / network APIs); the full
 
 ## Update: header height, Demand 99 repeats without a date (164 tests)
 - Sync logic only (uses the existing validated date helpers) plus a CSSOM custom-property write; no innerHTML, network or storage changes.
+
+## Update: Spacetime tap target (164 tests)
+- Lookup logic only; the text-only fallback is used for opening a task and never for deleting or editing.

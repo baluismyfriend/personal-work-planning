@@ -1150,14 +1150,27 @@
       var matches = timesRowWeekText(r) === text || String(r["Timeframe/Meeting"] || "").trim() === text;
       if (!matches) continue;
       if (String(r.Demand || "").trim() === "99") {
-        var end = dateToUtcMs(r["Time Zero on"]);
+        // A repeating task has no end date ("Time Zero on" is not looked at); it covers
+        // every day from its "time on" date (or from today when that is blank).
         var start = dateToUtcMs(r["Date"]);
-        if (end !== null && ms !== null && ms <= end && (start === null || ms >= start || start > end) && !recurringHit) recurringHit = { row: r, recurring: true };
+        if (ms !== null && (start === null || ms >= start) && !recurringHit) recurringHit = { row: r, recurring: true };
       } else if (r["Time Zero on"] === date) {
         return { row: r, recurring: false };
       }
     }
     return recurringHit;
+  }
+
+  // Best-effort lookup used only for opening a task: the first Time row whose Space + text
+  // equal the Spacetime row's text. (Never used for deleting or changing anything.)
+  function findDailyIndexByText(weekRow, daily) {
+    var text = String((weekRow && weekRow["Timeframes"]) || "").trim();
+    if (!text || !daily || !Array.isArray(daily.rows)) return -1;
+    for (var i = 0; i < daily.rows.length; i++) {
+      var r = daily.rows[i];
+      if (r && (timesRowWeekText(r) === text || String(r["Timeframe/Meeting"] || "").trim() === text)) return i;
+    }
+    return -1;
   }
 
   // The "Life Ends" of a Space on the Spaces page, or null (no Space,
@@ -3461,6 +3474,9 @@
       var src = findWeekSource(row);
       var daily = dailySheet();
       var idx = (src && daily) ? daily.rows.indexOf(src.row) : -1;
+      // No exact match (e.g. its date changed on Time): still open the Time row with the same
+      // text, never "whatever task the Time page showed last".
+      if (idx === -1 && daily) idx = findDailyIndexByText(row, daily);
       if (idx !== -1) {
         goToDailyTaskFromSummary(idx);
       } else {

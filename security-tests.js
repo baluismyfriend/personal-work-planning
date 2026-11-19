@@ -1092,6 +1092,24 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     if (!/--header-h:calc\(env\(safe-area-inset-top, 0px\) \+ 118px\)/.test(css)) throw new Error('CSS fallback');
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
+  await ta('Spacetime: tapping a task opens exactly that task on the Time page - normal tasks, repeating (Demand 99, no Time Zero on) tasks, and a row whose Time date changed', async () => {
+    const w = await boot(); w.matchMedia = () => ({ matches: true, addListener() {}, removeListener() {}, addEventListener() {} });
+    const g = wbOf(w); const mk = (sp, n, d, extra) => blankTask(Object.assign({ Space: sp, 'Timeframe/Meeting': n, 'Time Zero on': d }, extra || {}));
+    sheetOf(g, 'Daily planning - All tasks').rows = [mk('A', 'one', dayStr(0)), mk('B', 'daily', '', { Demand: '99' }), mk('A', 'three', dayStr(0)), mk('C', 'daily2', dayStr(40), { Demand: '99' }), mk('B', 'five', dayStr(1))];
+    sheetOf(g, 'Road Map - Pending').rows = [lifeRow('A', ''), lifeRow('B', ''), lifeRow('C', '')];
+    await doImport(w, JSON.stringify(g)); clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
+    const shownOnTime = () => [...w.document.querySelectorAll('#tableBody .cell-editable')].map(e => e.textContent).join('|');
+    const tap = text => { clickNav(w, /^Spacetime$/); const link = [...w.document.querySelectorAll('tr.week-row .week-times-link')].find(l => l.textContent === text); if (!link) throw new Error('no row ' + text); link.click(); };
+    for (const name of ['five', 'three', 'daily', 'one', 'daily2', 'daily', 'five']) {
+      tap(name);
+      if (w.document.getElementById('pageTitle').textContent !== 'Time') throw new Error('not on the Time page after tapping ' + name);
+      const s = shownOnTime(); if (!new RegExp('(^|\\|)' + name + '(\\||$)').test(s)) throw new Error('tapped ' + name + ' but Time shows: ' + s);
+    }
+    // the task's date was changed on Time: the old Spacetime row still opens the same task
+    const wk = sheetOf(wbOf(w), 'Week planning').rows.find(r => r.Timeframes === 'A || three'); const d2 = sheetOf(wbOf(w), 'Daily planning - All tasks').rows.find(r => r['Timeframe/Meeting'] === 'three'); d2['Time Zero on'] = dayStr(3);
+    tap('three'); if (!/(^|\|)three(\||$)/.test(shownOnTime())) throw new Error('fallback by text failed: ' + shownOnTime());
+    if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
   await ta('Header: title row has only the title; page bar order is Spaces, Times, Time, Spacetime, +Stars (NoSpace is in the buttons row)', async () => {
     const w = await boot();
     if (w.document.querySelector('.header-row .nav-btn')) throw new Error('page buttons still in the title row');

@@ -832,3 +832,11 @@ you need to scroll:
   sync and Refresh now behave the same. Completing it: tap the radio for one day (that day is remembered as
   done) or mark the task Complete on the Time page (it moves to NoSpace and stops repeating).
 - All other tasks still need a "Time Zero on" date to appear on Spacetime.
+
+- Spacetime: tapping a task's text now opens exactly that task on the Time page. Cause of "sometimes a
+  different task": a repeating (Demand 99) task without a "Time Zero on" date could no longer be matched to its Time
+  row (the matching still wanted an end date), so the tap just opened the Time page at whatever task it showed
+  last. Matching now follows the new rule (no end date for Demand 99), and if there is no exact match (for
+  example its date was changed on Time) it opens the Time row with the same Space + text. The same fix makes the
+  round button on such a repeating task mark that day as done (it used to just delete the row, and the sync could
+  bring it back).

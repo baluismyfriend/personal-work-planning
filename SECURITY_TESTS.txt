@@ -145,6 +145,7 @@ PASS  Time page (phone): no Back/Next buttons and no count; numbered circles 1..
 PASS  Time page numbers: 60 tasks in one Space give 1..60; empty Time page hides the list; wide screens do not use it
 PASS  iPhone fixes: primary buttons keep colour/text in hover+active+focus; no auto-zoom (viewport maximum-scale=1); page position is reset after typing and on page change
 PASS  Fixed header: header is position:fixed with a solid background, the page is locked (no bounce), content starts below the measured header height
+PASS  Spacetime: tapping a task opens exactly that task on the Time page - normal tasks, repeating (Demand 99, no Time Zero on) tasks, and a row whose Time date changed
 PASS  Header: title row has only the title; page bar order is Spaces, Times, Time, Spacetime, +Stars (NoSpace is in the buttons row)
 PASS  Actions row: no "+ Add" button; "NoSpace" comes first and opens the NoSpace page; "+Stars" is the last page-bar pill
 PASS  TimesX7: time typed in the Defined time at box ("11pm" -> "11 PM"), saved, kept on import/Refresh, cleared when emptied
@@ -160,7 +161,7 @@ PASS  BackIn/NextIn wrap on NoSpace: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> 
 PASS  BackIn/NextIn wrap: the item shown actually changes (last item shown after BackIn from first)
 PASS  BackIn/NextIn disabled only when there is nothing to move to (0 or 1 items)
 PASS  Finger swipes still stop at the ends (no wraparound); only the buttons wrap
-      (fuzz: 60 imports accepted, 90 rejected)
+      (fuzz: 66 imports accepted, 84 rejected)
 PASS  Fuzz: 150 randomly type-confused/poisoned imports -> no crash, no pollution, storage always reloadable
 
-163 passed, 0 failed
+164 passed, 0 failed
