@@ -18,6 +18,7 @@
 
   var STORAGE_DATA_KEY = "workPlanningFinal.v2.data";
   var STORAGE_SHEET_KEY = "workPlanningFinal.v2.selectedSheet";
+  var STORAGE_SHEET_NAME_KEY = "workPlanningFinal.v2.selectedSheetName";
   var STORAGE_FILTERS_KEY = "workPlanningFinal.v2.filters";
   var STORAGE_WIDTHS_KEY = "workPlanningFinal.v2.safeManualColumnWidths";
   var STORAGE_WEEK_AUTOADD_KEY = "workPlanningFinal.v2.weekAutoAdded";
@@ -684,6 +685,7 @@
   /* ---------------------------------------------------------
      Persistence
      --------------------------------------------------------- */
+  var loadedRaw = null; // the parsed saved workbook, kept only during start-up (parsed once)
   function loadWorkbook() {
     var raw = null;
     try {
@@ -692,6 +694,7 @@
     } catch (e) {
       raw = null;
     }
+    loadedRaw = raw;
     if (raw) {
       try {
         return normalizeWorkbook(raw);
@@ -722,14 +725,17 @@
   // because the numeric index it used to sit at now points elsewhere.
   function loadPreviouslySelectedSheetName() {
     try {
-      var storedData = localStorage.getItem(STORAGE_DATA_KEY);
+      // Newer saves remember the page by NAME (the saved workbook no longer
+      // contains the derived Times sheet, so an index into it would be off).
+      var storedName = localStorage.getItem(STORAGE_SHEET_NAME_KEY);
+      if (typeof storedName === "string" && storedName) return sanitizeName(storedName, 120);
+      // Older saves: the page index into the saved workbook (already parsed once above).
       var storedIdxRaw = localStorage.getItem(STORAGE_SHEET_KEY);
-      if (!storedData || storedIdxRaw === null) return null;
+      if (!loadedRaw || storedIdxRaw === null) return null;
       var idx = parseInt(storedIdxRaw, 10);
       if (isNaN(idx)) return null;
-      var parsed = JSON.parse(storedData);
-      if (!Array.isArray(parsed) || !parsed[idx] || typeof parsed[idx] !== "object") return null;
-      return typeof parsed[idx].name === "string" ? parsed[idx].name : null;
+      if (!Array.isArray(loadedRaw) || !loadedRaw[idx] || typeof loadedRaw[idx] !== "object") return null;
+      return typeof loadedRaw[idx].name === "string" ? loadedRaw[idx].name : null;
     } catch (e) {
       return null;
     }
@@ -784,7 +790,11 @@
   }
 
   function persistSelectedSheet() {
-    try { localStorage.setItem(STORAGE_SHEET_KEY, String(selectedSheetIndex)); } catch (e) { /* ignore */ }
+    try {
+      localStorage.setItem(STORAGE_SHEET_KEY, String(selectedSheetIndex));
+      var cs = workbook[selectedSheetIndex];
+      if (cs && typeof cs.name === "string") localStorage.setItem(STORAGE_SHEET_NAME_KEY, cs.name);
+    } catch (e) { /* ignore */ }
   }
 
   function persistFilters() {
@@ -824,10 +834,22 @@
       window.alert("Warning: your device storage is full or unavailable, so your latest changes could NOT be saved. Tap Export now to keep a backup copy, then free up space.");
     } catch (e) { /* ignore */ }
   }
+  // The "Times" (Summary) sheet is always rebuilt from the Time page on load, so it is not
+  // stored or exported: that roughly halves what every save has to write.
+  function serializeWorkbook(pretty) {
+    var out = [];
+    for (var i = 0; i < workbook.length; i++) if (workbook[i].name !== "Summary") out.push(workbook[i]);
+    return pretty ? JSON.stringify(out, null, 2) : JSON.stringify(out);
+  }
+
+  // Bumped on every save; lets the Spacetime sync know cheaply that nothing changed.
+  var workbookVersion = 0;
+
   function writeWorkbookToStorage() {
     ensureSpaceColors(workbook);
+    workbookVersion++;
     try {
-      localStorage.setItem(STORAGE_DATA_KEY, JSON.stringify(workbook));
+      localStorage.setItem(STORAGE_DATA_KEY, serializeWorkbook(false));
       storageWarned = false;
       return true;
     } catch (e) {
@@ -981,23 +1003,25 @@
     }
     filters = loadFilters();
     manualWidths = loadWidths();
+    loadedRaw = null; // free the parsed copy; the workbook was built from it
 
-    // Summary is derived from Daily planning; refresh it once against
-    // whatever Daily planning data just loaded, then persist.
-    refreshSummarySheet(workbook);
+    // (The Times sheet was just built from the loaded Time rows by normalizeWorkbook.)
     autoAddToWeekPlanning();
     saveWorkbookSilently();
+    persistSelectedSheet(); // also records the page by name (see loadPreviouslySelectedSheetName)
 
     // Re-check every time an edit is committed (a cell loses focus), so
     // a date entered before its Space/Time text - or the other way
     // round - still creates the TimesX7 row as soon as both exist.
-    tableBodyEl.addEventListener("focusout", function () {
-      setTimeout(autoAddToWeekPlanning, 150);
-    });
+    // (Several quick events share one timer, so the check runs once.)
+    var weekSyncTimer = null;
+    function scheduleWeekSync() {
+      if (weekSyncTimer) return;
+      weekSyncTimer = setTimeout(function () { weekSyncTimer = null; autoAddToWeekPlanning(); }, 150);
+    }
+    tableBodyEl.addEventListener("focusout", scheduleWeekSync);
     // A date picked in a calendar box fires "change" (iOS may never blur it).
-    tableBodyEl.addEventListener("change", function () {
-      setTimeout(autoAddToWeekPlanning, 150);
-    });
+    tableBodyEl.addEventListener("change", scheduleWeekSync);
     window.addEventListener("pageshow", function () { autoAddToWeekPlanning(); });
     // Safety net: iOS keeps a date box focused after "Done", so no blur
     // may ever fire. Check every few seconds, but never while the user
@@ -1102,7 +1126,10 @@
     var out = Object.create(null);
     try {
       var arr = JSON.parse(localStorage.getItem(STORAGE_WEEK_AUTOADD_KEY) || "[]");
-      if (Array.isArray(arr)) arr.forEach(function (k) { if (typeof k === "string") out[k] = true; });
+      // Untrusted: only well-formed keys, at most the newest 3000, each of bounded length.
+      if (Array.isArray(arr)) arr.slice(-3000).forEach(function (k) {
+        if (typeof k === "string" && k.length <= MAX_CELL_LEN + 40 && /^T\|\d{2}\/\d{2}\/\d{4}\|/.test(k)) out[k] = true;
+      });
     } catch (e) { /* ignore */ }
     return out;
   }
@@ -1221,18 +1248,10 @@
 
     var now = new Date();
     var todayMs = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
-    // Cheap change check: the sync only depends on the Times rows' relevant
-    // fields and on today's date. Same inputs as last time -> nothing to do
-    // (Refresh always runs it in full).
+    // Cheap change check: the sync only depends on the saved data and on today's date.
+    // Same data version and same day as last time -> nothing to do (Refresh always runs it in full).
     if (!includeOverdue) {
-      var sig = todayMs + "#" + (daily && Array.isArray(daily.rows) ? daily.rows.length : 0);
-      if (daily && Array.isArray(daily.rows)) {
-        for (var si = 0; si < daily.rows.length; si++) {
-          var sr = daily.rows[si] || {};
-          sig += "|" + sr.Space + "\u0001" + sr["Timeframe/Meeting"] + "\u0001" + sr.Demand + "\u0001" + sr.Date + "\u0001" + sr["Time Zero on"];
-        }
-      }
-      sig += "#" + week.rows.length;
+      var sig = todayMs + "#" + workbookVersion;
       if (sig === lastWeekSyncSig) return 0;
       lastWeekSyncSig = sig;
     } else {
@@ -1306,26 +1325,26 @@
       if (synced[key]) return;
       var parts = dateStr.split("/");
       var dateDay = formatDateDay(new Date(Number(parts[2]), Number(parts[0]) - 1, Number(parts[1])));
-      var exists = week.rows.some(function (r) {
-        return r && r["Date/Day"] === dateDay && String(r["Timeframes"] || "").trim() === text;
-      });
+      var exists = wIndex.has(wKey(dateDay, text));
       if (!exists && legacyText && legacyText !== text) {
         // A row added earlier by this same sync, before it started
         // showing "Space || Time": upgrade it in place instead of adding
         // a duplicate beside it.
-        var legacyRow = week.rows.find(function (r) {
-          return r && r["Date/Day"] === dateDay && String(r["Timeframes"] || "").trim() === legacyText;
-        });
-        if (legacyRow) { legacyRow["Timeframes"] = text; added++; exists = true; }
+        var legacyRow = wIndex.get(wKey(dateDay, legacyText));
+        if (legacyRow) {
+          legacyRow["Timeframes"] = text; added++; exists = true;
+          if (!wIndex.has(wKey(dateDay, text))) wIndex.set(wKey(dateDay, text), legacyRow);
+        }
       }
       if (!exists) {
         if (week.rows.length >= MAX_ROWS) return;
         var newWeekRow = { "Date/Day": dateDay, "Timeframes": text };
         if (recurring) {
-          var sibling = week.rows.find(function (r) { return r && r["Time at"] && String(r["Timeframes"] || "").trim() === text; });
+          var sibling = timeByText.get(text);
           if (sibling) newWeekRow["Time at"] = sibling["Time at"];
         }
         week.rows.push(newWeekRow);
+        wIndex.set(wKey(dateDay, text), newWeekRow);
         newRows.push(newWeekRow);
         added++;
       }
@@ -1358,6 +1377,18 @@
       });
       staleRemoved = beforeCount - week.rows.length;
     }
+
+    // Lookup tables for the Spacetime rows (day + text -> first row; text -> first row that
+    // has a time), so each task is checked in O(1) instead of by scanning every row.
+    var wKey = function (dd, tx) { return dd + "\u0001" + tx; };
+    var wIndex = new Map(), timeByText = new Map();
+    week.rows.forEach(function (r) {
+      if (!r) return;
+      var rt = String(r["Timeframes"] || "").trim();
+      var k = wKey(r["Date/Day"], rt);
+      if (!wIndex.has(k)) wIndex.set(k, r);
+      if (r["Time at"] && !timeByText.has(rt)) timeByText.set(rt, r);
+    });
 
     // TimesX7 is built from the Times page only (Spaces rows are no
     // longer copied here).
@@ -1398,16 +1429,25 @@
     // task would show twice - old and new - until Refresh); its typed time moves to
     // the task's new row.
     var dropped = []; // { text, time } of removed rows that had a typed time
+    var dropIndex = null; // built only when a remembered key really has to be dropped
     Object.keys(synced).forEach(function (k) {
       if (!liveKeys[k]) {
         var km = /^T\|(\d{2}\/\d{2}\/\d{4})\|([\s\S]*)$/.exec(k);
         if (km) {
           var kp = km[1].split("/");
           var kDateDay = formatDateDay(new Date(Number(kp[2]), Number(kp[0]) - 1, Number(kp[1])));
-          var at = week.rows.findIndex(function (r) {
-            return r && r["Date/Day"] === kDateDay && String(r["Timeframes"] || "").trim() === km[2];
-          });
+          if (!dropIndex) {
+            dropIndex = new Map();
+            week.rows.forEach(function (r) {
+              if (!r) return;
+              var dk = wKey(r["Date/Day"], String(r["Timeframes"] || "").trim());
+              if (!dropIndex.has(dk)) dropIndex.set(dk, r);
+            });
+          }
+          var hitRow = dropIndex.get(wKey(kDateDay, km[2]));
+          var at = hitRow ? week.rows.indexOf(hitRow) : -1;
           if (at !== -1) {
+            dropIndex.delete(wKey(kDateDay, km[2]));
             if (week.rows[at]["Time at"]) dropped.push({ text: km[2], time: week.rows[at]["Time at"] });
             week.rows.splice(at, 1);
             staleRemoved++;
@@ -1549,25 +1589,40 @@
   var NAV_ORDER = ["Road Map - Pending", "Summary", "Daily planning - All tasks", "Week planning", "Quick list"];
 
   function renderNav() {
-    var frag = document.createDocumentFragment();
     // Any extra page from an old backup goes after NoSpace so it stays reachable.
     var names = NAV_ORDER.concat(workbook.map(function (sh) { return sh.name; }).filter(function (n) {
       return NAV_ORDER.indexOf(n) === -1 && n !== "Completed tasks";
-    }));
-    names.forEach(function (name) {
-      var idx = workbook.findIndex(function (sh) { return sh.name === name; });
-      if (idx === -1) return;
-      var btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "nav-btn" + (idx === selectedSheetIndex ? " active" : "");
-      var navLabel = workbook[idx].name === "Quick list" ? "+Stars" : shortSheetName(workbook[idx]);
-      btn.textContent = navLabel;
-      btn.title = navLabel;
-      btn.addEventListener("click", function () { goToSheetIndex(idx); });
-      frag.appendChild(btn);
+    })).filter(function (name) {
+      return workbook.some(function (sh) { return sh.name === name; });
     });
-    navEl.replaceChildren(frag);
-    syncHeaderHeight(); // the page bar changes the header's height
+    var signature = names.join("\u0001");
+    if (navEl._sig !== signature) {
+      // The set of pages changed (first draw, import): build the buttons.
+      var frag = document.createDocumentFragment();
+      names.forEach(function (name) {
+        var idx = workbook.findIndex(function (sh) { return sh.name === name; });
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "nav-btn";
+        btn._sheetName = name;
+        var navLabel = workbook[idx].name === "Quick list" ? "+Stars" : shortSheetName(workbook[idx]);
+        btn.textContent = navLabel;
+        btn.title = navLabel;
+        btn.addEventListener("click", function () {
+          goToSheetIndex(workbook.findIndex(function (sh) { return sh.name === btn._sheetName; }));
+        });
+        frag.appendChild(btn);
+      });
+      navEl.replaceChildren(frag);
+      navEl._sig = signature;
+    }
+    // Every other draw only moves the highlight.
+    var current = workbook[selectedSheetIndex];
+    var btns = navEl.children;
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].classList.toggle("active", !!current && btns[i]._sheetName === current.name);
+    }
+    syncHeaderHeight(); // the page bar can change the header's height (a guarded, single measurement)
   }
 
   // Measures the fixed header and tells the CSS (--header-h) where the content starts.
@@ -1705,30 +1760,59 @@
       search.maxLength = 200;
       search.value = cf.text;
       search.addEventListener("click", function (e) { e.stopPropagation(); });
+      var searchTimer = null;
       search.addEventListener("input", function () {
         cf.text = search.value;
-        persistFilters();
-        renderTableBody(sheet);
+        var run = function () { searchTimer = null; persistFilters(); renderTableBody(sheet); };
+        if (searchTimer) clearTimeout(searchTimer);
+        // Long pages: wait for a short pause in typing instead of redrawing on every key.
+        if (sheet.rows.length > 200) searchTimer = setTimeout(run, 140); else run();
       });
       th.appendChild(search);
 
-      var uniqueVals = getUniqueValues(sheet, col);
       var select = document.createElement("select");
       select.className = "filter-select";
-      var optAll = document.createElement("option");
-      optAll.value = "";
-      optAll.textContent = "All values";
-      select.appendChild(optAll);
-      var optBlank = document.createElement("option");
-      optBlank.value = "\u0000__BLANK__";
-      optBlank.textContent = "(Blank)";
-      select.appendChild(optBlank);
-      uniqueVals.forEach(function (v) {
-        var opt = document.createElement("option");
-        opt.value = v;
-        opt.textContent = (sheet.name === "Week planning" && col === "Date/Day") ? weekDateOnly(v) : v;
-        select.appendChild(opt);
-      });
+      var optionsFilled = false;
+      // The list of distinct values is built when the dropdown is first used (or at once
+      // on short pages); building thousands of <option>s for every column on every
+      // redraw was slow.
+      function fillOptions() {
+        optionsFilled = true;
+        var keep = cf.select || "";
+        var frag = document.createDocumentFragment();
+        var optAll = document.createElement("option");
+        optAll.value = "";
+        optAll.textContent = "All values";
+        frag.appendChild(optAll);
+        var optBlank = document.createElement("option");
+        optBlank.value = "\u0000__BLANK__";
+        optBlank.textContent = "(Blank)";
+        frag.appendChild(optBlank);
+        var isWeekDate = (sheet.name === "Week planning" && col === "Date/Day");
+        getUniqueValues(sheet, col).forEach(function (v) {
+          var opt = document.createElement("option");
+          opt.value = v;
+          opt.textContent = isWeekDate ? weekDateOnly(v) : v;
+          frag.appendChild(opt);
+        });
+        select.replaceChildren(frag);
+        select.value = keep;
+      }
+      var lazyOptions = sheet.rows.length > 150;
+      if (lazyOptions) {
+        // Only the entries needed to show the current choice; the rest on first use.
+        var o1 = document.createElement("option"); o1.value = ""; o1.textContent = "All values"; select.appendChild(o1);
+        var o2 = document.createElement("option"); o2.value = "\u0000__BLANK__"; o2.textContent = "(Blank)"; select.appendChild(o2);
+        if (cf.select && cf.select !== "\u0000__BLANK__") {
+          var o3 = document.createElement("option"); o3.value = cf.select; o3.textContent = cf.select; select.appendChild(o3);
+        }
+        ["pointerdown", "focus", "keydown", "touchstart"].forEach(function (evt) {
+          select.addEventListener(evt, function () { if (!optionsFilled) fillOptions(); }, { passive: true });
+        });
+      } else {
+        fillOptions();
+      }
+      select._refreshOptions = function () { if (lazyOptions) optionsFilled = false; else fillOptions(); };
       select.value = cf.select || "";
       select.addEventListener("click", function (e) { e.stopPropagation(); });
       select.addEventListener("change", function () {
@@ -1762,13 +1846,16 @@
     tableHeadEl.appendChild(filterRow);
   }
 
+  var valueCollator = (typeof Intl !== "undefined" && Intl.Collator) ? new Intl.Collator() : null;
   function getUniqueValues(sheet, col) {
     var set = newMap();
     sheet.rows.forEach(function (row) {
       var v = (row[col] || "").toString().trim();
       if (v.length > 0) set[v] = true;
     });
-    return Object.keys(set).sort(function (a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });
+    var keyed = Object.keys(set).map(function (v) { return { v: v, l: v.toLowerCase() }; });
+    keyed.sort(function (a, b) { return valueCollator ? valueCollator.compare(a.l, b.l) : a.l.localeCompare(b.l); });
+    return keyed.map(function (k) { return k.v; });
   }
 
   function getFilteredSortedRows(sheet) {
@@ -1899,10 +1986,10 @@
   // The numbered circles at the bottom of the Time page: 1, 2, 3 ... for every task of
   // the Space whose task is on screen (in the page's order). Tapping a number shows that
   // task; the number on screen is highlighted. The row scrolls sideways when it is long.
-  function renderTaskNumberNav(sheet, items, navEl) {
+  function renderTaskNumberNav(sheet, items, navEl, knownPages) {
     if (!navEl) return;
     navEl.replaceChildren();
-    var pages = getSwipePages(sheet, items);
+    var pages = knownPages || getSwipePages(sheet, items);
     if (pages.length === 0) { navEl.hidden = true; return; }
     var cur = clampTaskIndex(sheet, pages.length);
     var spaceOf = function (page) { return String((page[0].row && page[0].row.Space) || "").trim(); };
@@ -1930,7 +2017,7 @@
     if (sel) navEl.scrollLeft = Math.max(0, sel.offsetLeft - (navEl.clientWidth - sel.offsetWidth) / 2);
   }
 
-  function updateRowCountAndTaskNav(sheet, items) {
+  function updateRowCountAndTaskNav(sheet, items, knownPages) {
     var countEl = document.getElementById("rowCountIndicator");
     var swipeNavEl = document.getElementById("taskSwipeNav");
     var posEl = document.getElementById("taskPositionLabel");
@@ -1942,11 +2029,11 @@
     if (sheet.name === "Daily planning - All tasks" && isSingleTaskSwipeMode(sheet)) {
       countEl.hidden = true;
       swipeNavEl.hidden = true;
-      renderTaskNumberNav(sheet, items, numberNavEl);
+      renderTaskNumberNav(sheet, items, numberNavEl, knownPages);
       return;
     }
     if (isSingleTaskSwipeMode(sheet)) {
-      var pages = getSwipePages(sheet, items);
+      var pages = knownPages || getSwipePages(sheet, items);
       countEl.hidden = true;
       swipeNavEl.hidden = false;
       if (pages.length === 0) {
@@ -2054,13 +2141,48 @@
     return solo;
   }
 
+  // Long lists are drawn in slices: the first rows appear at once, the rest follow in the
+  // next frames, so a page with thousands of rows never freezes the screen. Anything that
+  // needs a row to exist (scroll to a new row, jump to a task) calls flushPendingRows().
+  var CHUNK_FIRST = 120, CHUNK_NEXT = 250;
+  var pendingRows = null; // { items, build, i }
+  function pumpRows(limit) {
+    var p = pendingRows;
+    if (!p) return;
+    var frag = document.createDocumentFragment();
+    var end = Math.min(p.items.length, p.i + limit);
+    for (; p.i < end; p.i++) frag.appendChild(p.build(p.items[p.i]));
+    tableBodyEl.appendChild(frag);
+    if (p.i >= p.items.length) pendingRows = null;
+  }
+  function flushPendingRows() {
+    while (pendingRows) pumpRows(CHUNK_NEXT);
+  }
+  function appendRowsChunked(items, build) {
+    pendingRows = { items: items, build: build, i: 0 };
+    pumpRows(CHUNK_FIRST);
+    if (!pendingRows) return;
+    var mine = pendingRows;
+    var later = window.requestAnimationFrame ? window.requestAnimationFrame.bind(window) : function (f) { return setTimeout(f, 16); };
+    (function step() {
+      later(function () {
+        if (pendingRows !== mine) return; // a newer draw replaced this one
+        pumpRows(CHUNK_NEXT);
+        if (pendingRows === mine) step();
+      });
+    })();
+  }
+
   function renderTableBody(sheet) {
+    pendingRows = null; // stop drawing slices of the previous draw
     var items = getFilteredSortedRows(sheet);
-    updateRowCountAndTaskNav(sheet, items);
+    var singleMode = isSingleTaskSwipeMode(sheet);
+    var knownPages = singleMode ? getSwipePages(sheet, items) : null;
+    updateRowCountAndTaskNav(sheet, items, knownPages);
     tableBodyEl.replaceChildren();
 
-    if (isSingleTaskSwipeMode(sheet)) {
-      var pages = getSwipePages(sheet, items);
+    if (singleMode) {
+      var pages = knownPages;
       if (pages.length === 0) {
         var emptyTr = document.createElement("tr");
         var emptyTd = document.createElement("td");
@@ -2092,9 +2214,7 @@
 
     if (sheet.name === "Quick list") {
       tableBodyEl.appendChild(buildQuickListHeaderRow(sheet));
-      items.forEach(function (item) {
-        tableBodyEl.appendChild(buildQuickListRow(sheet, item.row, item.idx));
-      });
+      appendRowsChunked(items, function (item) { return buildQuickListRow(sheet, item.row, item.idx); });
       return;
     }
 
@@ -2109,9 +2229,7 @@
       return;
     }
 
-    items.forEach(function (item) {
-      tableBodyEl.appendChild(buildRowElement(sheet, item.row, item.idx, false));
-    });
+    appendRowsChunked(items, function (item) { return buildRowElement(sheet, item.row, item.idx, false); });
   }
 
   // Spacetime: one collapsed line per Space ("+  Times  [Space name]");
@@ -2184,7 +2302,7 @@
 
   // "09:30 AM", "6 pm", "18:30" -> minutes after midnight, or null
   function timeAtMinutes(v) {
-    var t = String(v || "").trim();
+    var t = String(v || "").trim().slice(0, 40); // bounded input for the pattern below
     var m = /^(\d{1,2})(?:[:.](\d{2}))?\s*([ap])\.?\s*m?\.?$/i.exec(t);
     if (m) {
       var h = Number(m[1]), mi = m[2] ? Number(m[2]) : 0;
@@ -3218,11 +3336,15 @@
 
     div.addEventListener("blur", function () {
       var text = sanitizeTyped(extractPlainText(div)).trim();
+      var changed = text !== String(row[col] || "");
       row[col] = text;
       rawVal = text;
-      saveWorkbook();
       setCellDisplay(div, col, text, false);
-      refreshPillDependentUI(sheet);
+      // Tapping in and out of a cell without changing it must cost nothing:
+      // no save, no redraw.
+      if (!changed) return;
+      saveWorkbook();
+      refreshPillDependentUI(sheet, col);
     });
 
     return div;
@@ -3257,12 +3379,20 @@
     div.textContent = value;
   }
 
-  function refreshPillDependentUI(sheet) {
-    // Re-render head (unique filter values may have changed) and body pills
-    renderTableHead(sheet);
-    renderTableBody(sheet);
-    applyManualWidths(sheet);
-    attachResizeHandles(sheet);
+  // After one cell was edited: refresh only what depends on it. The whole table is NOT
+  // rebuilt (that was the main cause of lag when moving between cells on a long page).
+  function refreshPillDependentUI(sheet, col) {
+    // 1. The edited column's filter list (it may have a new distinct value).
+    var heads = tableHeadEl.querySelectorAll(".filter-row th");
+    var ci = sheet.columns.indexOf(col);
+    var sel = (ci !== -1 && heads[ci]) ? heads[ci].querySelector(".filter-select") : null;
+    if (sel && typeof sel._refreshOptions === "function") sel._refreshOptions();
+    // 2. The rows only need redrawing when this page is filtered/sorted (the edit may
+    //    move the row), or when the phone view groups its task numbers by Space.
+    var sf = getSheetFilters(sheet.name);
+    var filtered = sheet.columns.some(function (c) { var f = sf[c]; return f && (f.text || f.select); });
+    var needsBody = filtered || !!sortState[sheet.name] || isSingleTaskSwipeMode(sheet);
+    if (needsBody) renderTableBody(sheet);
   }
 
   function buildStatusCell(sheet, row, sourceIdx) {
@@ -3605,6 +3735,7 @@
     if (activeBtn) activeBtn.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
 
     setTimeout(function () {
+      flushPendingRows();
       var tr = tableBodyEl.querySelector('tr[data-source-idx="' + dailyRowIdx + '"]');
       if (tr) {
         tr.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -3855,6 +3986,7 @@
 
     renderTable();
     setTimeout(function () {
+      flushPendingRows();
       var tr = tableBodyEl.querySelector('tr[data-source-idx="' + newIdx + '"]') ||
         Array.prototype.find.call(tableBodyEl.querySelectorAll("tr"), function (r) {
           return r.dataset.sourceIdx === String(newIdx);
@@ -3940,17 +4072,21 @@
   /* ---------------------------------------------------------
      JSON export / import
      --------------------------------------------------------- */
-  function handleExportJson() {
-    var json = JSON.stringify(workbook, null, 2);
+  function downloadJson(json, fileName) {
     var blob = new Blob([json], { type: "application/json" });
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
     a.href = url;
-    a.download = "participant-spaces-and-time-local-backup.json";
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     a.remove();
-    URL.revokeObjectURL(url);
+    // Safari can cancel the download if the URL is released at once.
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+  }
+
+  function handleExportJson() {
+    downloadJson(serializeWorkbook(true), "participant-spaces-and-time-local-backup.json");
     markExportedToday();
   }
 
@@ -4139,16 +4275,7 @@
   }
 
   function triggerManualBackupDownload() {
-    var json = JSON.stringify(workbook, null, 2);
-    var blob = new Blob([json], { type: "application/json" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    a.href = url;
-    a.download = "participant-spaces-and-time-autobackup.json";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    downloadJson(serializeWorkbook(true), "participant-spaces-and-time-autobackup.json");
     markExportedToday();
   }
 
@@ -4282,7 +4409,7 @@
       return;
     }
     if (!snapshotBackupEnabled) {
-      var json = JSON.stringify(workbook, null, 2);
+      var json = serializeWorkbook(false);
       idbSaveSnapshot(json).then(function () {
         snapshotBackupEnabled = true;
         setAutoBackupButtonState("snapshot-enabled");
@@ -4321,7 +4448,7 @@
       return Promise.resolve();
     }
     writeInProgress = true;
-    var json = JSON.stringify(workbook, null, 2);
+    var json = serializeWorkbook(false);
     return idbSaveSnapshot(json).then(function () {
       writeInProgress = false;
       if (writePending) {
@@ -4353,7 +4480,7 @@
         return;
       }
       return autoBackupHandle.createWritable().then(function (writable) {
-        return writable.write(JSON.stringify(workbook, null, 2)).then(function () {
+        return writable.write(serializeWorkbook(false)).then(function () {
           return writable.close();
         });
       }).then(function () {

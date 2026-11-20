@@ -840,3 +840,17 @@ you need to scroll:
   example its date was changed on Time) it opens the Time row with the same Space + text. The same fix makes the
   round button on such a repeating task mark that day as done (it used to just delete the row, and the sync could
   bring it back).
+
+
+------------------------------------------------------------
+RELEASE 2 NOTES
+------------------------------------------------------------
+Files the app needs (everything else in this folder is optional):
+  index.html, style.css, script.js, manifest.json,
+  icon-192.png, icon-512.png, apple-touch-icon.png, lotus-logo-v5.png
+security-tests.js, SECURITY_REPORT.md, SECURITY_TESTS.txt and this README
+are documentation/testing only.
+The page you last viewed is now remembered by name
+(key workPlanningFinal.v2.selectedSheetName, in addition to the old key).
+The derived "Times" sheet is no longer stored in backups; it is rebuilt
+from the Time page when the app starts. Old backups still import fine.

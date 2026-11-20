@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; frame-src 'none'; media-src 'none'; font-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; font-src 'none'; manifest-src 'self'; base-uri 'none'; form-action 'none'; require-trusted-types-for 'script'; upgrade-insecure-requests">
 <meta name="referrer" content="no-referrer">
 <title>Lotus</title>
 <link rel="stylesheet" href="style.css">
@@ -23,7 +23,7 @@
       <div class="brand">
         <div class="brand-icon">PST</div>
         <div class="brand-text">
-          <h1><img class="brand-logo" src="lotus-logo-v5.png" alt="Lotus" width="613" height="452"></h1>
+          <h1><img class="brand-logo" src="lotus-logo-v5.png" alt="Lotus" width="293" height="216" decoding="async" fetchpriority="high"></h1>
           <div class="brand-subtitle">Local secure timeframe portal</div>
         </div>
       </div>

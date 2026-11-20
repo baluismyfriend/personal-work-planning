@@ -491,7 +491,11 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     if (JSON.stringify(sheetOf(g, 'Road Map - Pending').rows.map(r => r.Space)) !== '["BB"]') throw new Error('space rows: ' + JSON.stringify(sheetOf(g, 'Road Map - Pending').rows));
     if (JSON.stringify(texts(w, 'Daily planning - All tasks')) !== JSON.stringify(['keep-AAB', 'keep-lower', 'keep-nospace'])) throw new Error('Times: ' + texts(w, 'Daily planning - All tasks'));
     if (JSON.stringify(texts(w, 'Completed tasks')) !== '["keep-c"]') throw new Error('NoSpace: ' + texts(w, 'Completed tasks'));
-    const sum = sheetOf(g, 'Summary').rows.map(r => r.Space + ':' + r.Time); if (sum.some(x => /^AA:/.test(x))) throw new Error('Spacetime still has AA: ' + sum);
+    // The derived Times (Summary) sheet is no longer stored: rebuild it from the saved data and look at the page.
+    if (sheetOf(g, 'Summary')) throw new Error('derived Summary sheet must not be stored');
+    const w2 = await boot({ [DK]: w.localStorage.getItem(DK) });
+    [...w2.document.querySelectorAll('#nav .nav-btn')].find(b => b.textContent === 'Times').click();
+    const sumText = w2.document.getElementById('tableBody').textContent; if (/\bAA\b/.test(sumText)) throw new Error('Times page still has AA: ' + sumText);
     if (!/"AA"/.test(msg) || !/2 row\(s\) on Time/.test(msg) || !/1 row\(s\) on NoSpace/.test(msg)) throw new Error('confirm text: ' + msg);
     for (const b of navBtns(w)) b.click(); if (w.__errs.length) throw new Error(w.__errs[0]);
   });
@@ -1305,6 +1309,89 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
       if (i % 10 === 0) { const wr = await boot({ [DK]: after }); if (wr.__errs.length || !wr.document.getElementById('nav').children.length) throw new Error('iter ' + i + ' stored data not reloadable: ' + (wr.__errs[0] || 'nav empty')); if (protoNames(wr) !== base) throw new Error('iter ' + i + ' reload polluted'); }
     }
     results.push('      (fuzz: ' + accepted + ' imports accepted, ' + rejected + ' rejected)');
+  });
+
+  /* =====================  RELEASE 2: HARDENING + SPEED  ===================== */
+  const pngChunks = f => { const d = fs.readFileSync(path.join(dir, f)); let p = 8; const o = []; while (p < d.length) { o.push(d.slice(p + 4, p + 8).toString()); p += 12 + d.readUInt32BE(p); } return o; };
+  t('Every image the app ships (logo, icons) is a PNG with only IHDR/PLTE/tRNS/IDAT/IEND chunks (no C2PA/EXIF/text)', () => {
+    const files = new Set(['lotus-logo-v5.png', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png']);
+    (html.match(/(?:src|href)="([^"]+\.png)"/g) || []).forEach(m => files.add(m.match(/"([^"]+)"/)[1]));
+    JSON.parse(man).icons.forEach(i => files.add(i.src));
+    for (const f of files) { const bad = pngChunks(f).filter(c => !['IHDR', 'PLTE', 'tRNS', 'IDAT', 'IEND'].includes(c)); if (bad.length) throw new Error(f + ': ' + bad); }
+  });
+  t('Shipped images are small (logo <20KB, icons <40KB each)', () => {
+    if (fs.statSync(path.join(dir, 'lotus-logo-v5.png')).size > 20000) throw new Error('logo big');
+    for (const f of ['icon-192.png', 'icon-512.png', 'apple-touch-icon.png']) if (fs.statSync(path.join(dir, f)).size > 40000) throw new Error(f);
+  });
+  t('CSP: no data:/blob:/wildcard/http sources, no unsafe-*; worker/manifest/child locked; Trusted Types required', () => {
+    const csp = html.match(/Content-Security-Policy" content="([^"]*)"/)[1];
+    if (/data:|blob:|\*|http:|unsafe-/.test(csp)) throw new Error(csp);
+    for (const d of ["img-src 'self'", "worker-src 'none'", "child-src 'none'", "manifest-src 'self'", "require-trusted-types-for 'script'"]) if (!csp.includes(d)) throw new Error('missing ' + d);
+  });
+  t('CSS has no backdrop-filter / filter:blur (GPU-heavy on every row)', () => !/backdrop-filter|filter\s*:\s*blur/.test(css));
+  t('JS: no document.domain, no localStorage keys read without a try/catch wrapper pattern break (no new network/eval sinks)', () => !/document\.domain|\.srcdoc|createContextualFragment|DOMParser/.test(js));
+
+  const bigDaily = n => { const rows = []; const now = new Date();
+    for (let i = 0; i < n; i++) { const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (i % 6)); const ds = String(d.getMonth() + 1).padStart(2, '0') + '/' + String(d.getDate()).padStart(2, '0') + '/' + d.getFullYear();
+      rows.push({ Date: '', Space: 'S' + (i % 20), Demand: i % 50 === 0 ? '99' : '1', 'Timeframe/Meeting': 'Task ' + i, 'Next Timeframes': '', 'Time Zero on': ds, Timing: 'Not started' }); }
+    return [{ name: 'Daily planning - All tasks', columns: ['Date', 'Space', 'Demand', 'Timeframe/Meeting', 'Next Timeframes', 'Time Zero on', 'Timing'], rows }]; };
+
+  await ta('Remembered sync keys: 60k junk/oversize/malformed entries are bounded on load (fast boot, no crash)', async () => {
+    const junk = []; for (let i = 0; i < 60000; i++) junk.push(i % 3 === 0 ? 'T|01/01/2030|x' + i : i % 3 === 1 ? 'zzz' + i : (i % 600 === 2 ? 'T|01/01/2030|' + 'y'.repeat(6000) : 'T|99|q' + i));
+    const t0 = Date.now(); const w = await boot({ 'workPlanningFinal.v2.weekAutoAdded': JSON.stringify(junk) }); const dt = Date.now() - t0;
+    if (w.__errs.length) throw new Error(w.__errs[0]); if (dt > 3000) throw new Error('slow boot ' + dt);
+  });
+  await ta('Summary (derived Times sheet) is not stored or exported; import of a backup that contains a hostile Summary ignores it', async () => {
+    const w = await boot(); const cap = captureBlobs(w); w.document.getElementById('btnExportJson').click(); await sleep(30);
+    if (!cap.length || JSON.parse(cap[0]).some(s => s.name === 'Summary')) throw new Error('Summary exported');
+    const g = wbOf(w); g.push({ name: 'Summary', columns: ['__proto__', 'Space'], rows: [{ Space: '<img src=x onerror=1>' }] });
+    const a = await doImport(w, JSON.stringify(g), 60); if (w.__errs.length) throw new Error(w.__errs[0]);
+    if (wbOf(w).some(s => s.name === 'Summary')) throw new Error('Summary persisted'); if (w.document.querySelector('img[src="x"]')) throw new Error('injected');
+  });
+  await ta('Selected page is remembered by name across restarts; legacy index-only saves, tampered/hostile name keys tolerated', async () => {
+    const w = await boot(); clickNav(w, /^Time$/); await sleep(20);
+    const store = { [DK]: w.localStorage.getItem(DK), 'workPlanningFinal.v2.selectedSheet': w.localStorage.getItem('workPlanningFinal.v2.selectedSheet'), 'workPlanningFinal.v2.selectedSheetName': w.localStorage.getItem('workPlanningFinal.v2.selectedSheetName') };
+    const w2 = await boot(store); const act = [...w2.document.querySelectorAll('.nav-btn.active')].map(b => b.textContent); if (act.join() !== 'Time') throw new Error('not restored: ' + act);
+    for (const bad of ['__proto__', '<script>x</script>', 'x'.repeat(100000), '', 'nope']) { const w3 = await boot({ ...store, 'workPlanningFinal.v2.selectedSheetName': bad }); if (w3.__errs.length) throw new Error(w3.__errs[0]); if (!w3.document.querySelector('.nav-btn.active')) throw new Error('no active page for ' + bad.slice(0, 10)); }
+    const legacy = { [DK]: JSON.stringify([{ name: 'Daily planning - All tasks', columns: ['Space'], rows: [] }]), 'workPlanningFinal.v2.selectedSheet': '0' };
+    const w4 = await boot(legacy); if (w4.__errs.length) throw new Error(w4.__errs[0]);
+  });
+  await ta('Speed: cell blur with no change does not save or redraw; with a change it saves but does not rebuild the table', async () => {
+    const w = await boot({ [DK]: JSON.stringify(bigDaily(60)) }); clickNav(w, /^Time$/); await sleep(30);
+    let writes = 0; const orig = w.Storage.prototype.setItem; w.Storage.prototype.setItem = function (k, v) { if (k === DK) writes++; return orig.call(this, k, v); };
+    const cells = w.document.querySelectorAll('#tableBody .cell-editable[data-col="Timeframe/Meeting"]'); const c = cells[2]; const tr = c.closest('tr');
+    c.dispatchEvent(new w.Event('focus')); c.dispatchEvent(new w.Event('blur')); if (writes !== 0) throw new Error('saved on unchanged blur');
+    c.textContent = 'edited'; c.dispatchEvent(new w.Event('blur')); if (writes !== 1) throw new Error('writes ' + writes);
+    if (c.closest('tr') !== tr || !tr.isConnected) throw new Error('row was rebuilt');
+    if (!JSON.stringify(wbOf(w)).includes('edited')) throw new Error('edit not saved');
+  });
+  await ta('Speed: long pages draw the first rows at once and the rest in following frames, with no duplicates, and a re-draw cancels the old one', async () => {
+    const w = await boot({ [DK]: JSON.stringify(bigDaily(1000)) }); clickNav(w, /^Time$/);
+    const first = w.document.querySelectorAll('#tableBody tr').length; if (first > 400 || first < 50) throw new Error('first slice ' + first);
+    await sleep(1500); const idxs = [...w.document.querySelectorAll('#tableBody tr[data-source-idx]')].map(r => r.dataset.sourceIdx);
+    if (idxs.length !== 1000 || new Set(idxs).size !== 1000) throw new Error('rows ' + idxs.length + '/' + new Set(idxs).size);
+    clickNav(w, /^Times$/); clickNav(w, /^Time$/); clickNav(w, /^Times$/); clickNav(w, /^Time$/); await sleep(1500);
+    const again = [...w.document.querySelectorAll('#tableBody tr[data-source-idx]')].map(r => r.dataset.sourceIdx); if (again.length !== 1000 || new Set(again).size !== 1000) throw new Error('after redraws ' + again.length);
+    if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
+  await ta('Speed: filter dropdown on a long page fills on first use, keeps the selected value, no silent loss of values', async () => {
+    const w = await boot({ [DK]: JSON.stringify(bigDaily(400)) }); clickNav(w, /^Time$/); await sleep(20);
+    const sel = [...w.document.querySelectorAll('.filter-select')][1]; const before = sel.options.length; if (before > 10) throw new Error('eager ' + before);
+    sel.dispatchEvent(new w.Event('pointerdown')); if (sel.options.length < 15) throw new Error('not filled ' + sel.options.length);
+  });
+  await ta('Speed: page bar buttons are built once (same nodes after navigating) and the highlight follows', async () => {
+    const w = await boot(); const a = navBtns(w); clickNav(w, /^Time$/); clickNav(w, /^Times$/); const b = navBtns(w);
+    if (a.length !== b.length || a.some((x, i) => x !== b[i])) throw new Error('rebuilt'); if (w.document.querySelectorAll('.nav-btn.active').length !== 1) throw new Error('highlight');
+  });
+  await ta('Speed budget (3000 rows): open Time page <1500ms, unchanged blur <50ms, edit blur <300ms', async () => {
+    const w = await boot({ [DK]: JSON.stringify(bigDaily(3000)) }); let t0 = Date.now(); clickNav(w, /^Time$/); const open = Date.now() - t0;
+    const c = w.document.querySelectorAll('#tableBody .cell-editable[data-col="Timeframe/Meeting"]')[3];
+    t0 = Date.now(); c.dispatchEvent(new w.Event('blur')); const u = Date.now() - t0; c.textContent = 'zz'; t0 = Date.now(); c.dispatchEvent(new w.Event('blur')); const e = Date.now() - t0;
+    if (open > 1500 || u > 50 || e > 300) throw new Error(`open ${open} unchanged ${u} edit ${e}`);
+  });
+  await ta('Adding a row on a long page scrolls to/focuses the new row (rows are flushed first)', async () => {
+    const w = await boot({ [DK]: JSON.stringify(bigDaily(500)) }); clickNav(w, /^Time$/); w.document.getElementById('btnAddRowFloating').click(); await sleep(80);
+    if (w.__errs.length) throw new Error(w.__errs[0]); if (wbOf(w).find(s => s.name === 'Daily planning - All tasks').rows.length !== 501) throw new Error('row not added');
   });
 
   console.log(results.join('\n')); console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);

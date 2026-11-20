@@ -35,7 +35,6 @@ body::before,body::after{
   z-index:-1;
   pointer-events:none;
   border-radius:999px;
-  filter:blur(30px);
   opacity:.22;
 }
 body::before{width:32vw;height:32vw;min-width:260px;min-height:260px;top:-13vw;left:-10vw;background:radial-gradient(circle,#64748b 0%,rgba(100,116,139,0) 68%);}
@@ -74,8 +73,6 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
 .brand-icon{
   width:42px;height:42px;border-radius:14px;
   background:linear-gradient(135deg,rgba(148,163,184,.95),rgba(251,113,133,.85));
-  backdrop-filter:blur(6px);
-  -webkit-backdrop-filter:blur(6px);
   border:1px solid rgba(255,255,255,.35);
   display:flex;align-items:center;justify-content:center;
   font-weight:900;
@@ -116,8 +113,6 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
   border-radius:12px; /* same rounded-rectangle shape as the Export / Import / Order buttons */
   padding:10px 15px;
   background:rgba(255,255,255,.08);
-  backdrop-filter:blur(10px);
-  -webkit-backdrop-filter:blur(10px);
   border:1px solid rgba(255,255,255,.18);
   color:#e2e8f0;
   font-size:14.5px;
@@ -184,8 +179,6 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
   border-radius:999px;
   border:1px solid rgba(100,116,139,.20);
   background:rgba(255,255,255,.55);
-  backdrop-filter:blur(6px);
-  -webkit-backdrop-filter:blur(6px);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.6);
   font-size:13px;
   font-weight:800;
@@ -219,8 +212,6 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
   border:1px solid rgba(100,116,139,.18);
   border-radius:12px;
   background:rgba(255,255,255,.60);
-  backdrop-filter:blur(12px) saturate(160%);
-  -webkit-backdrop-filter:blur(12px) saturate(160%);
   color:var(--text);
   padding:9px 11px;
   font-weight:800;
@@ -232,8 +223,6 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
 .btn:hover{border-color:#fb7185;background:rgba(255,255,255,.85);transform:translateY(-1px);box-shadow:0 10px 24px rgba(251,113,133,.18), inset 0 1px 0 #fff;}
 .btn-primary{
   background:linear-gradient(135deg,rgba(100,116,139,.92),rgba(251,113,133,.85));
-  backdrop-filter:blur(12px);
-  -webkit-backdrop-filter:blur(12px);
   color:#fff;
   border-color:rgba(255,255,255,.4);
   box-shadow:0 16px 32px rgba(51,65,85,.30), inset 0 1px 0 rgba(255,255,255,.45);
@@ -248,8 +237,6 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
   border-radius:999px;
   padding:14px 18px;
   background:linear-gradient(135deg,rgba(100,116,139,.92),rgba(251,113,133,.85));
-  backdrop-filter:blur(14px) saturate(160%);
-  -webkit-backdrop-filter:blur(14px) saturate(160%);
   border-color:rgba(255,255,255,.40);
   box-shadow:0 16px 32px rgba(51,65,85,.30), inset 0 1px 0 rgba(255,255,255,.45);
   color:#fff;
@@ -275,8 +262,6 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
   background:rgba(255,255,255,.92);
   border:1px solid rgba(251,113,133,.45);
   box-shadow:0 18px 40px rgba(15,23,42,.18), inset 0 1px 0 #fff;
-  backdrop-filter:blur(18px) saturate(160%);
-  -webkit-backdrop-filter:blur(18px) saturate(160%);
 }
 .backup-prompt-text{display:flex;flex-direction:column;gap:2px;}
 .backup-prompt-text strong{font-size:13.5px;color:#be123c;}
@@ -296,8 +281,6 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
   border:1px solid rgba(100,116,139,.16);
   border-radius:18px;
   box-shadow:0 12px 30px rgba(15,23,42,.08), inset 0 1px 0 rgba(255,255,255,.75);
-  backdrop-filter:blur(26px) saturate(150%);
-  -webkit-backdrop-filter:blur(26px) saturate(150%);
   overflow:hidden;
   padding:8px 10px 14px;
 }
@@ -321,8 +304,6 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
   top:0;
   z-index:6;
   background:linear-gradient(100deg,rgba(100,116,139,.10),rgba(251,113,133,.08));
-  backdrop-filter:blur(10px);
-  -webkit-backdrop-filter:blur(10px);
   color:#334155;
   font-size:11px;
   text-align:left;
@@ -341,8 +322,6 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
   top:32px;
   z-index:5;
   background:rgba(255,255,255,.78);
-  backdrop-filter:blur(10px);
-  -webkit-backdrop-filter:blur(10px);
   box-shadow:0 4px 6px -4px rgba(15,23,42,.10);
   padding:6px 6px;
   border-right:1px solid rgba(100,116,139,.12);
@@ -368,8 +347,6 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
   border:1px solid rgba(100,116,139,.20);
   background:rgba(255,255,255,.65);
   color:var(--text);
-  backdrop-filter:blur(6px);
-  -webkit-backdrop-filter:blur(6px);
   border-radius:8px;
   padding:4px 6px;
   font-size:11px;
@@ -380,8 +357,6 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
   border:1px solid rgba(100,116,139,.20);
   background:rgba(255,255,255,.65);
   color:var(--text);
-  backdrop-filter:blur(6px);
-  -webkit-backdrop-filter:blur(6px);
   border-radius:8px;
   padding:3px 4px;
   font-size:11px;
@@ -389,8 +364,6 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
 
 .data-table tbody tr{
   background:rgba(255,255,255,.50);
-  backdrop-filter:blur(8px);
-  -webkit-backdrop-filter:blur(8px);
   box-shadow:0 8px 18px rgba(15,23,42,.05), inset 0 1px 0 rgba(255,255,255,.75);
 }
 .data-table tbody tr:hover{background:rgba(255,255,255,.82);box-shadow:0 10px 22px rgba(251,113,133,.14), inset 0 1px 0 #fff;}
@@ -449,8 +422,6 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
   font-size:11px;
   font-weight:700;
   border:1px solid rgba(100,116,139,.35);
-  backdrop-filter:blur(6px);
-  -webkit-backdrop-filter:blur(6px);
   cursor:pointer;
 }
 .status-complete{background:rgba(209,250,229,.85);color:#065f46;}
@@ -466,8 +437,6 @@ body::after{width:44vw;height:44vw;min-width:340px;min-height:340px;right:-16vw;
   background:rgba(255,255,255,.65);
   color:var(--text);
   color-scheme:light;
-  backdrop-filter:blur(6px);
-  -webkit-backdrop-filter:blur(6px);
   border:1px solid rgba(100,116,139,.20);
   border-radius:8px;
   padding:5px 6px;
@@ -524,8 +493,6 @@ div.summary-task-link{
   border:1px solid rgba(100,116,139,.18);
   background:rgba(255,255,255,.65);
   color:var(--text);
-  backdrop-filter:blur(6px);
-  -webkit-backdrop-filter:blur(6px);
   font-size:11px;
   font-weight:800;
   cursor:pointer;
@@ -541,8 +508,6 @@ div.summary-task-link{
   border:1px solid rgba(100,116,139,.18);
   background:rgba(255,255,255,.65);
   color:var(--text);
-  backdrop-filter:blur(6px);
-  -webkit-backdrop-filter:blur(6px);
   font-size:11px;
   font-weight:800;
   cursor:pointer;
@@ -696,8 +661,6 @@ div.summary-task-link{
     margin:0;
     padding:10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
     background:rgba(255,255,255,.88);
-    backdrop-filter:blur(18px) saturate(160%);
-    -webkit-backdrop-filter:blur(18px) saturate(160%);
     border-top:1px solid rgba(100,116,139,.16);
     box-shadow:0 -10px 26px rgba(15,23,42,.12);
   }
@@ -1711,8 +1674,6 @@ html{overflow-x:hidden;max-width:100%;}
     -webkit-overflow-scrolling:touch;
     scrollbar-width:none;
     background:rgba(255,255,255,.88);
-    backdrop-filter:blur(18px) saturate(160%);
-    -webkit-backdrop-filter:blur(18px) saturate(160%);
     border-top:1px solid rgba(100,116,139,.16);
     box-shadow:0 -10px 26px rgba(15,23,42,.12);
   }

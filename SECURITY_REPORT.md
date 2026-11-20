@@ -1,4 +1,28 @@
-# Security report - Participant: Spaces & Time
+# Security report - Lotus
+
+**Latest result (release 2): 178 passed, 0 failed.** Run: `npm i jsdom && node security-tests.js` (from the app folder). Raw output: `SECURITY_TESTS.txt`.
+
+## Release 2 - what was found and fixed
+
+| # | Severity | Finding | Fix |
+|---|---|---|---|
+| R1 | Medium | Every shipped PNG (logo, icons) carried a `caBX` (C2PA provenance) metadata chunk. The previous suite's logo check failed on it (163/164, not 164/164). | Images rebuilt with only IHDR/PLTE/tRNS/IDAT/IEND. A test now checks every image the HTML or manifest references. |
+| R2 | Medium | The remembered Spacetime sync keys were loaded from storage without limits (a tampered store could make start-up very slow or exhaust memory). | Only well-formed keys, newest 3000, length-capped. Tested with 60k junk entries. |
+| R3 | Low | CSP allowed `data:` images and did not lock workers, manifests or children, and did not require Trusted Types. | `img-src 'self'`, `worker-src 'none'`, `child-src 'none'`, `manifest-src 'self'`, `require-trusted-types-for 'script'`. |
+| R4 | Low | Time-parsing regex received unbounded text. | Input capped at 40 characters. |
+| R5 | Low | Derived Times sheet was stored and exported (extra attack surface for hostile backups, doubled payload). | Never stored or exported; always rebuilt on load. Hostile Summary in an import is ignored (tested). |
+| R6 | Low | Export URL revoked immediately (Safari may cancel the download). | Revoked after 4 s. |
+
+Second opinion: ESLint + eslint-plugin-security + eslint-plugin-no-unsanitized found no DOM-injection, eval or URL sinks. Its 150 `detect-object-injection` warnings were reviewed one by one: every map keyed by user text is prototype-less or reads own properties only (false positives).
+
+Known, intentionally unchanged: the viewport blocks pinch-zoom (`maximum-scale=1`) to stop iOS auto-zoom; the proper fix is 16px input fonts. Two open tabs on the same origin: last save wins. Data is plain text in localStorage and in backup files.
+
+## Release 2 - speed changes (also covered by tests)
+Removed 38 `backdrop-filter` blurs; cell blur no longer saves/redraws when nothing changed and never rebuilds the table; filter dropdowns fill on first use; long pages draw in slices; Spacetime sync uses a data-version check and lookup tables; page bar is built once; saved workbook parsed once at start-up; images 3-6x smaller.
+
+---
+
+# Earlier report (release 1)
 
 **Result after fixes: 129 passed, 0 failed.**
 Run: `npm i jsdom && node security-tests.js` (from the app folder). Raw output: `SECURITY_TESTS.txt`.

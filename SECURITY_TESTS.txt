@@ -161,7 +161,21 @@ PASS  BackIn/NextIn wrap on NoSpace: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> 
 PASS  BackIn/NextIn wrap: the item shown actually changes (last item shown after BackIn from first)
 PASS  BackIn/NextIn disabled only when there is nothing to move to (0 or 1 items)
 PASS  Finger swipes still stop at the ends (no wraparound); only the buttons wrap
-      (fuzz: 66 imports accepted, 84 rejected)
+      (fuzz: 77 imports accepted, 73 rejected)
 PASS  Fuzz: 150 randomly type-confused/poisoned imports -> no crash, no pollution, storage always reloadable
+PASS  Every image the app ships (logo, icons) is a PNG with only IHDR/PLTE/tRNS/IDAT/IEND chunks (no C2PA/EXIF/text)
+PASS  Shipped images are small (logo <20KB, icons <40KB each)
+PASS  CSP: no data:/blob:/wildcard/http sources, no unsafe-*; worker/manifest/child locked; Trusted Types required
+PASS  CSS has no backdrop-filter / filter:blur (GPU-heavy on every row)
+PASS  JS: no document.domain, no localStorage keys read without a try/catch wrapper pattern break (no new network/eval sinks)
+PASS  Remembered sync keys: 60k junk/oversize/malformed entries are bounded on load (fast boot, no crash)
+PASS  Summary (derived Times sheet) is not stored or exported; import of a backup that contains a hostile Summary ignores it
+PASS  Selected page is remembered by name across restarts; legacy index-only saves, tampered/hostile name keys tolerated
+PASS  Speed: cell blur with no change does not save or redraw; with a change it saves but does not rebuild the table
+PASS  Speed: long pages draw the first rows at once and the rest in following frames, with no duplicates, and a re-draw cancels the old one
+PASS  Speed: filter dropdown on a long page fills on first use, keeps the selected value, no silent loss of values
+PASS  Speed: page bar buttons are built once (same nodes after navigating) and the highlight follows
+PASS  Speed budget (3000 rows): open Time page <1500ms, unchanged blur <50ms, edit blur <300ms
+PASS  Adding a row on a long page scrolls to/focuses the new row (rows are flushed first)
 
-164 passed, 0 failed
+178 passed, 0 failed

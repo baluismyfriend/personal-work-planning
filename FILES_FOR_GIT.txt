@@ -1,0 +1,12 @@
+Files required in git for the app to run (8):
+  index.html
+  style.css
+  script.js
+  manifest.json
+  icon-192.png
+  icon-512.png
+  apple-touch-icon.png
+  lotus-logo-v5.png
+
+Optional (documentation / tests, not needed to run):
+  security-tests.js, SECURITY_REPORT.md, SECURITY_TESTS.txt, README.txt
