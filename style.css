@@ -1762,3 +1762,18 @@ html,body{height:100%;overflow:hidden;}
 @media (max-width:680px){
   .content{padding-top:calc(var(--header-h) + 6px);}
 }
+
+
+/* +Stars: grouped list (Star line = same look as the Times page lines; no column headings) */
+.table-scroller.stars-page .data-table thead{display:none;}
+.summary-space-head-row .cell-editable.space-box.star-box{cursor:text;}
+.star-group-head-row .space-line{align-items:center;}
+.star-group-delete{flex:0 0 auto;margin-left:4px;}
+.data-table tr.star-add-row{display:block;background:transparent;border:none;box-shadow:none;}
+.data-table tr.star-add-row > td.star-add-cell{display:block;border:none;padding:2px 8px 8px 40px;background:transparent;}
+.data-table tr.star-add-row > td::before{content:none !important;display:none !important;}
+.star-add-btn{padding:6px 14px;font-size:13px;}
+@media (max-width:680px){
+  .data-table tr.star-add-row{padding:0 !important;margin:0 0 4px !important;}
+  .data-table tr.star-add-row > td.star-add-cell{padding:2px 6px 6px 34px !important;width:auto !important;}
+}

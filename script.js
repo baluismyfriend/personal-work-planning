@@ -370,15 +370,32 @@
   // The Quick list schema before "Item" was renamed to "Small Times".
   // Detected separately so existing checklist text is carried forward
   // into the new column instead of being dropped.
+  var MAX_STAR_NAME_LEN = 120;
+  // Keeps every group's stars next to each other (groups in order of first appearance), so a
+  // group never jumps below another when its first star is removed.
+  function regroupStarRows(rows) {
+    var order = [], map = Object.create(null);
+    rows.forEach(function (r) {
+      var k = String(r["Star"] || "");
+      if (!(k in map)) { map[k] = []; order.push(k); }
+      map[k].push(r);
+    });
+    var out = [];
+    order.forEach(function (k) { map[k].forEach(function (r) { out.push(r); }); });
+    return out;
+  }
   function migrateLegacyQuickListSheet(rawSheet) {
     var rows = Array.isArray(rawSheet.rows) ? rawSheet.rows : [];
     if (rows.length > MAX_ROWS) rows = rows.slice(0, MAX_ROWS);
     var newRows = rows.map(function (r) {
       if (!r || typeof r !== "object") r = {};
       var v = hasOwn(r, "Small Times") ? r["Small Times"] : (hasOwn(r, "Item") ? r["Item"] : "");
-      return { "Small Times": sanitizeCell(v, MAX_CELL_LEN) };
+      // "Star" is the group the task sits under. Lists saved before groups existed
+      // keep all their tasks together under "Small Stars" (the old page heading).
+      var g = hasOwn(r, "Star") ? sanitizeCell(r["Star"], MAX_STAR_NAME_LEN) : "Small Stars";
+      return { "Star": g, "Small Times": sanitizeCell(v, MAX_CELL_LEN) };
     });
-    return { name: "Quick list", columns: ["Small Times"], rows: newRows };
+    return { name: "Quick list", columns: ["Star", "Small Times"], rows: regroupStarRows(newRows) };
   }
 
   // "10/5/2026", "Thu, 10/05/2026" -> "10/05/2026" (a real date) or "".
@@ -492,7 +509,7 @@
   }
 
   function buildQuickListSheet() {
-    return { name: "Quick list", columns: ["Small Times"], rows: [{ "Small Times": "" }] };
+    return { name: "Quick list", columns: ["Star", "Small Times"], rows: [{ "Star": "", "Small Times": "" }] };
   }
 
   function buildWeekPlanningSheet() {
@@ -1666,6 +1683,15 @@
     var isWeek = sheet.name === "Week planning";
     // TimesX7 is a fixed-width page: no sideways scrolling or dragging.
     if (tableScrollerEl) tableScrollerEl.classList.toggle("no-hscroll", isWeek);
+    // +Stars shows its own group lines instead of column headings.
+    var isStars = sheet.name === "Quick list";
+    if (tableScrollerEl) tableScrollerEl.classList.toggle("stars-page", isStars);
+    var addBtnEl = document.getElementById("btnAddRowFloating");
+    if (addBtnEl) {
+      var addLabel = isStars ? "+ Add Star" : "+ Add Space";
+      if (addBtnEl.textContent !== addLabel) addBtnEl.textContent = addLabel;
+      addBtnEl.title = isStars ? "Add a new Star group (add its stars with the + Add star line inside the group)" : "Add Space";
+    }
     var refreshBtnEl = document.getElementById("btnRefreshWeek");
     if (refreshBtnEl) refreshBtnEl.hidden = !isWeek;
     var noSpaceBtnEl = document.getElementById("btnNoSpace");
@@ -1720,6 +1746,7 @@
     if (sheet.name === "Summary" && col === "Date") return "Defined time on";
     if (sheet.name === "Summary" && col === "Time") return "Times";
     if (sheet.name === "Quick list" && col === "Small Times") return "Small Stars";
+    if (sheet.name === "Quick list" && col === "Star") return "Star";
     return col;
   }
 
@@ -2192,6 +2219,8 @@
   function renderTableBody(sheet) {
     pendingRows = null; // stop drawing slices of the previous draw
     var items = getFilteredSortedRows(sheet);
+    // +Stars has no filter/sort controls any more, so an old saved filter must not hide stars.
+    if (sheet.name === "Quick list") items = sheet.rows.map(function (row, idx) { return { row: row, idx: idx }; });
     var singleMode = isSingleTaskSwipeMode(sheet);
     var knownPages = singleMode ? getSwipePages(sheet, items) : null;
     updateRowCountAndTaskNav(sheet, items, knownPages);
@@ -2229,8 +2258,7 @@
     }
 
     if (sheet.name === "Quick list") {
-      tableBodyEl.appendChild(buildQuickListHeaderRow(sheet));
-      appendRowsChunked(items, function (item) { return buildQuickListRow(sheet, item.row, item.idx); });
+      renderStarGroups(sheet);
       return;
     }
 
@@ -2549,6 +2577,167 @@
     renderAll();
   }
 
+  /* ---------------------------------------------------------
+     +Stars: tasks grouped under a Star (group) line
+     ---------------------------------------------------------
+     "+/-  Star  [name]" lines like the Times page. A group is every row with the
+     same "Star" name; groups appear in the order they were first created. The
+     + / - opens or closes a group (all open at first). Inside an open group the
+     stars are the normal rows (radio = delete, as before) and a "+ Add star"
+     line adds one more to that same group. */
+  var collapsedStarGroups = new Set();
+
+  function starGroups(sheet) {
+    var order = [], map = newMap();
+    sheet.rows.forEach(function (row, idx) {
+      var k = String((row && row["Star"]) || "");
+      if (!(k in map)) { map[k] = []; order.push(k); }
+      map[k].push({ row: row, idx: idx });
+    });
+    return order.map(function (k) { return { name: k, items: map[k] }; });
+  }
+
+  function renderStarGroups(sheet) {
+    var groups = starGroups(sheet);
+    var frag = document.createDocumentFragment();
+    groups.forEach(function (g) {
+      frag.appendChild(buildStarGroupHeaderRow(sheet, g));
+      if (collapsedStarGroups.has(g.name)) return;
+      g.items.forEach(function (item) { frag.appendChild(buildQuickListRow(sheet, item.row, item.idx)); });
+      frag.appendChild(buildStarAddRow(sheet, g));
+    });
+    tableBodyEl.appendChild(frag);
+  }
+
+  function buildStarGroupHeaderRow(sheet, group) {
+    var tr = document.createElement("tr");
+    tr.className = "summary-space-head-row star-group-head-row";
+    tr.dataset.star = group.name;
+    var td = document.createElement("td");
+    td.colSpan = 2;
+    td.className = "summary-space-head";
+    var line = document.createElement("div");
+    line.className = "space-line";
+
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "space-toggle";
+    var open = !collapsedStarGroups.has(group.name);
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    btn.setAttribute("aria-label", open ? "Hide the stars of this group" : "Show the stars of this group");
+    btn.title = open ? "Tap to hide the stars" : "Tap to show the stars";
+    btn.addEventListener("click", function () {
+      if (collapsedStarGroups.has(group.name)) collapsedStarGroups.delete(group.name);
+      else collapsedStarGroups.add(group.name);
+      renderTableBody(sheet);
+    });
+    var label = document.createElement("span");
+    label.className = "space-line-label";
+    label.textContent = "Star";
+
+    // The group's name: it is the "Star" value of its first row; renaming it renames the whole group.
+    var first = group.items[0];
+    var box = buildEditableCell(sheet, first.row, first.idx, "Star");
+    box.classList.add("space-box", "star-box");
+    box.setAttribute("aria-label", "Star group name");
+    box.addEventListener("blur", function () {
+      var newName = sanitizeCell(String(first.row["Star"] || ""), MAX_STAR_NAME_LEN).trim();
+      if (newName === group.name) return;
+      group.items.forEach(function (it) { it.row["Star"] = newName; });
+      sheet.rows = regroupStarRows(sheet.rows); // a name that already exists merges the two groups
+      if (collapsedStarGroups.has(group.name)) { collapsedStarGroups.delete(group.name); collapsedStarGroups.add(newName); }
+      saveWorkbook();
+      renderTableBody(sheet);
+    });
+
+    var del = document.createElement("button");
+    del.type = "button";
+    del.className = "quick-list-radio star-group-delete";
+    del.setAttribute("aria-label", "Delete this star group and all its stars");
+    del.title = "Tap to delete this group and all its stars";
+    del.addEventListener("click", function () {
+      var n = group.items.filter(function (it) { return String(it.row["Small Times"] || "").trim() !== ""; }).length;
+      var msg = 'Delete the group "' + (group.name || "(no name)") + '"' + (n ? " and its " + n + " star" + (n === 1 ? "" : "s") : "") + "?";
+      if (!window.confirm(msg)) return;
+      sheet.rows = sheet.rows.filter(function (r) { return String((r && r["Star"]) || "") !== group.name; });
+      collapsedStarGroups.delete(group.name);
+      saveWorkbook();
+      renderTable();
+    });
+
+    line.appendChild(btn);
+    line.appendChild(label);
+    line.appendChild(box);
+    line.appendChild(del);
+    td.appendChild(line);
+    tr.appendChild(td);
+    return tr;
+  }
+
+  function buildStarAddRow(sheet, group) {
+    var tr = document.createElement("tr");
+    tr.className = "star-add-row";
+    var td = document.createElement("td");
+    td.colSpan = 2;
+    td.className = "star-add-cell";
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "btn star-add-btn";
+    b.textContent = "+ Add star";
+    b.title = "Add a star to this group";
+    b.addEventListener("click", function () { addStarToGroup(sheet, group.name); });
+    td.appendChild(b);
+    tr.appendChild(td);
+    return tr;
+  }
+
+  // iOS only opens the keyboard for focus() inside the tap itself: focus a throwaway field now,
+  // then hand focus to the real box once it has been drawn.
+  function focusAfterRender(findTarget) {
+    var h = document.createElement("input");
+    h.type = "text"; h.tabIndex = -1; h.className = "kb-helper";
+    h.setAttribute("aria-hidden", "true");
+    document.body.appendChild(h);
+    h.focus({ preventScroll: true });
+    setTimeout(function () {
+      var t = findTarget();
+      if (t) { t.focus({ preventScroll: true }); centerInTableScroller(t.closest("tr")); }
+      h.remove();
+    }, 0);
+  }
+
+  function addStarToGroup(sheet, name) {
+    if (sheet.rows.length >= MAX_ROWS) { window.alert("Row limit reached for this sheet."); return; }
+    var last = -1;
+    sheet.rows.forEach(function (r, i) { if (String((r && r["Star"]) || "") === name) last = i; });
+    var row = { "Star": name, "Small Times": "" };
+    sheet.rows.splice(last + 1, 0, row); // right under the group's last star
+    saveWorkbook();
+    renderTable();
+    focusAfterRender(function () {
+      var idx = sheet.rows.indexOf(row);
+      var tr = tableBodyEl.querySelector('tr[data-source-idx="' + idx + '"]');
+      return tr ? tr.querySelector('.cell-editable[data-col="Small Times"]') : null;
+    });
+  }
+
+  // The page's "+ Add Star" button: a new group whose name is typed first; stars follow with "+ Add star".
+  function addStarGroup(sheet) {
+    var blank = sheet.rows.find(function (r) { return String((r && r["Star"]) || "") === ""; });
+    if (!blank) {
+      if (sheet.rows.length >= MAX_ROWS) { window.alert("Row limit reached for this sheet."); return; }
+      blank = { "Star": "", "Small Times": "" };
+      sheet.rows.push(blank);
+      saveWorkbook();
+    }
+    collapsedStarGroups.delete(""); // an unnamed group is shown open
+    renderTable();
+    focusAfterRender(function () {
+      var head = tableBodyEl.querySelector('tr.star-group-head-row[data-star=""]');
+      return head ? head.querySelector(".star-box") : null;
+    });
+  }
+
   // Quick list: a bare checklist of one-line items. Column headings are
   // shown once via the normal <thead> (desktop) or this standalone
   // header row (phone width, where <thead> is hidden - see
@@ -2586,7 +2775,7 @@
       itemWrap.appendChild(itemCell);
       itemWrap.appendChild(buildDragHandle());
       tdItem.appendChild(itemWrap);
-      registerDragRow(tr, "stars", row, function () { return sheet.rows; }, afterMoveSave);
+      registerDragRow(tr, "stars|" + String(row["Star"] || ""), row, function () { return sheet.rows; }, afterMoveSave);
     } else {
       tdItem.appendChild(itemCell);
     }
@@ -2600,7 +2789,11 @@
     radioBtn.setAttribute("aria-label", "Delete this entry");
     radioBtn.title = "Tap to delete this entry";
     radioBtn.addEventListener("click", function () {
-      sheet.rows.splice(sourceIdx, 1);
+      var gname = String(row["Star"] || "");
+      var inGroup = sheet.rows.filter(function (r) { return String(r["Star"] || "") === gname; }).length;
+      // The last star of a group is cleared instead of removed, so the group itself stays.
+      if (inGroup <= 1) row["Small Times"] = "";
+      else sheet.rows.splice(sourceIdx, 1);
       saveWorkbook();
       renderTable();
     });
@@ -3955,6 +4148,7 @@
       window.alert(shortSheetName(sheet) + " is generated automatically from Daily planning and can't be added to directly.");
       return;
     }
+    if (sheet.name === "Quick list") { addStarGroup(sheet); return; }
     if (sheet.rows.length >= MAX_ROWS) {
       window.alert("Row limit reached for this sheet.");
       return;

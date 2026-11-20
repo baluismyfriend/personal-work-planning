@@ -25,14 +25,17 @@ const FK = 'workPlanningFinal.v2.filters';
 const WK = 'workPlanningFinal.v2.safeManualColumnWidths';
 
 let pass = 0, fail = 0; const results = [];
-function t(name, fn) { try { const r = fn(); if (r === false) throw new Error('assertion false'); pass++; results.push('PASS  ' + name); } catch (e) { fail++; results.push('FAIL  ' + name + ' -> ' + e.message); } }
-async function ta(name, fn) { try { await fn(); pass++; results.push('PASS  ' + name); } catch (e) { fail++; results.push('FAIL  ' + name + ' -> ' + e.message); } }
+function t(name, fn) { if (process.env.ONLY && !new RegExp(process.env.ONLY).test(name)) return; try { const r = fn(); if (r === false) throw new Error('assertion false'); pass++; results.push('PASS  ' + name); } catch (e) { fail++; results.push('FAIL  ' + name + ' -> ' + e.message); } }
+const liveWins = [];
+// Close every window a test opened, so its timers (e.g. the chunked row drawing of big lists) cannot slow later tests.
+const closeWins = () => liveWins.splice(0).forEach(x => { try { x.close(); } catch (e) { /* ignore */ } });
+async function ta(name, fn) { if (process.env.ONLY && !new RegExp(process.env.ONLY).test(name)) return; try { await fn(); pass++; results.push('PASS  ' + name); } catch (e) { fail++; results.push('FAIL  ' + name + ' -> ' + e.message); } finally { closeWins(); } }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 /* ---------- harness ---------- */
 async function boot(store) {
   const dom = new JSDOM(html, { runScripts: 'outside-only', url: 'https://localhost/', pretendToBeVisual: true });
-  const w = dom.window;
+  const w = dom.window; liveWins.push(w);
   w.Element.prototype.scrollIntoView = function () {};
   w.alert = () => {}; w.confirm = () => true;
   w.__errs = []; w.addEventListener('error', e => w.__errs.push(e.message));
@@ -216,10 +219,10 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     await doImport(w, JSON.stringify(g));
     if (wbOf(w).filter(s => s.name === 'Quick list').length !== 1) throw new Error('duplicates kept');
   });
-  await ta('Import: Quick list with foreign schema is normalised to ["Small Times"]', async () => {
+  await ta('Import: Quick list with foreign schema is normalised to ["Star","Small Times"]', async () => {
     const w = await boot(); const g = wbOf(w).filter(s => s.name !== 'Quick list'); g.push({ name: 'Quick list', columns: ['Whatever', 'Else'], rows: [{ Whatever: 'a' }] });
     await doImport(w, JSON.stringify(g));
-    const q = sheetOf(wbOf(w), 'Quick list'); if (q.columns.length !== 1 || q.columns[0] !== 'Small Times') throw new Error(JSON.stringify(q.columns));
+    const q = sheetOf(wbOf(w), 'Quick list'); if (q.columns.join() !== 'Star,Small Times') throw new Error(JSON.stringify(q.columns));
   });
 
   /* ---- tampered localStorage (other same-origin pages / corruption) ---- */
@@ -247,7 +250,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
     const w = await boot(); const alerts = []; w.alert = m => alerts.push(m);
     const orig = w.Storage.prototype.setItem; w.Storage.prototype.setItem = function (k, v) { if (k === DK) throw new w.DOMException('quota', 'QuotaExceededError'); return orig.call(this, k, v); };
     clickNav(w, /^Stars$/);
-    const btn = w.document.getElementById('btnAddRowFloating'); btn.click(); btn.click(); btn.click();
+    const btn = () => w.document.querySelector('.star-add-btn'); btn().click(); btn().click(); btn().click();
     await sleep(40);
     if (alerts.length !== 1 || !/NOT be saved|could NOT/i.test(alerts[0])) throw new Error('alerts=' + alerts.length);
   });
@@ -267,7 +270,7 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
   });
   await ta('Paste inserts literal plain text only (no elements created)', async () => {
     const w = await boot(); clickNav(w, /^Stars$/);
-    const cell = w.document.querySelector('.cell-editable'); cell.focus();
+    const cell = w.document.querySelector('.quick-list-row .cell-editable'); cell.focus();
     const r = w.document.createRange(); r.selectNodeContents(cell); r.collapse(false); const sel = w.getSelection(); sel.removeAllRanges(); sel.addRange(r);
     const ev = new w.Event('paste', { cancelable: true, bubbles: true }); ev.clipboardData = { getData: () => '<b>bold</b><img src=x onerror=1>' };
     cell.dispatchEvent(ev);
@@ -329,12 +332,46 @@ const XSS = ['<script>window.__x=1</script>', '<img src=x onerror="window.__x=1"
   });
 
   /* ---- functional regression (hardening must not break real use) ---- */
-  await ta('Functional: add row -> exactly one row added; typed text persists', async () => {
-    const w = await boot(); clickNav(w, /^Stars$/); const n0 = sheetOf(wbOf(w), 'Quick list').rows.length;
-    w.document.getElementById('btnAddRowFloating').click(); await sleep(120);
-    const rows = sheetOf(wbOf(w), 'Quick list').rows; if (rows.length !== n0 + 1) throw new Error('rows ' + n0 + ' -> ' + rows.length);
-    const cell = w.document.querySelectorAll('.quick-list-row .cell-editable'); const last = cell[cell.length - 1]; last.textContent = 'buy milk'; last.dispatchEvent(new w.Event('blur'));
-    if (sheetOf(wbOf(w), 'Quick list').rows.pop()['Small Times'] !== 'buy milk') throw new Error('edit not saved');
+  await ta('Functional: Stars page - add a group, name it, add stars under it; text persists', async () => {
+    const w = await boot(); clickNav(w, /^Stars$/); const q = () => sheetOf(wbOf(w), 'Quick list');
+    const box0 = w.document.querySelector('.star-box'); box0.textContent = 'Home'; box0.dispatchEvent(new w.Event('blur'));
+    w.document.getElementById('btnAddRowFloating').click(); await sleep(60);
+    if (q().rows.filter(r => r.Star === '').length !== 1) throw new Error('new unnamed group not created');
+    const heads = () => [...w.document.querySelectorAll('.star-group-head-row')]; if (heads().length !== 2) throw new Error('heads ' + heads().length);
+    w.document.getElementById('btnAddRowFloating').click(); await sleep(60);
+    if (q().rows.length !== 2) throw new Error('second Add must reuse the unnamed group, rows=' + q().rows.length);
+    const b2 = heads()[1].querySelector('.star-box'); b2.textContent = 'Work'; b2.dispatchEvent(new w.Event('blur')); await sleep(20);
+    [...w.document.querySelectorAll('.star-add-btn')][1].click(); await sleep(60);
+    const cells = w.document.querySelectorAll('.quick-list-row .cell-editable'); const last = cells[cells.length - 1]; last.textContent = 'buy milk'; last.dispatchEvent(new w.Event('blur'));
+    const rows = q().rows; const got = rows.filter(r => r['Small Times'] === 'buy milk'); if (got.length !== 1 || got[0].Star !== 'Work') throw new Error('star not under Work: ' + JSON.stringify(rows));
+  });
+  await ta('Stars groups: rename moves all stars, +/- collapses, adding to an existing group, last star keeps group, group delete (confirm/cancel)', async () => {
+    const w = await boot({ [DK]: JSON.stringify([{ name: 'Quick list', columns: ['Star', 'Small Times'], rows: [{ Star: 'G1', 'Small Times': 'a' }, { Star: 'G2', 'Small Times': 'b' }, { Star: 'G1', 'Small Times': 'c' }] }]) });
+    clickNav(w, /^Stars$/); const q = () => sheetOf(wbOf(w), 'Quick list'); const D = w.document;
+    const texts = () => [...D.querySelectorAll('.quick-list-row .cell-editable')].map(c => c.textContent).join(',');
+    if (texts() !== 'a,c,b') throw new Error('grouped order ' + texts());
+    const t1 = D.querySelector('.star-group-head-row .space-toggle'); t1.click(); if (texts() !== 'b') throw new Error('collapse ' + texts()); D.querySelector('.star-group-head-row .space-toggle').click(); if (texts() !== 'a,c,b') throw new Error('expand');
+    const bx = D.querySelector('.star-box'); bx.textContent = 'Renamed'; bx.dispatchEvent(new w.Event('blur'));
+    if (q().rows.filter(r => r.Star === 'Renamed').length !== 2) throw new Error('rename did not move group: ' + JSON.stringify(q().rows));
+    D.querySelector('.star-add-btn').click(); await sleep(40);
+    if (q().rows.filter(r => r.Star === 'Renamed').length !== 3 || q().rows[2].Star !== 'Renamed') throw new Error('add to existing group: ' + JSON.stringify(q().rows));
+    const g2radio = [...D.querySelectorAll('.quick-list-row')].find(r => r.textContent.includes('b')).querySelector('.quick-list-radio'); g2radio.click();
+    const g2 = q().rows.filter(r => r.Star === 'G2'); if (g2.length !== 1 || g2[0]['Small Times'] !== '') throw new Error('last star must keep the group: ' + JSON.stringify(g2));
+    const r1 = [...D.querySelectorAll('.quick-list-row')][0].querySelector('.quick-list-radio'); const n = q().rows.length; r1.click(); if (q().rows.length !== n - 1) throw new Error('radio must delete a star (not last)');
+    w.confirm = () => false; D.querySelectorAll('.star-group-delete')[1].click(); if (q().rows.filter(r => r.Star === 'G2').length !== 1) throw new Error('cancel deleted');
+    w.confirm = () => true; D.querySelectorAll('.star-group-delete')[1].click(); if (q().rows.some(r => r.Star === 'G2')) throw new Error('group not deleted: ' + JSON.stringify(q().rows) + ' heads=' + D.querySelectorAll('.star-group-delete').length);
+    if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
+  await ta('Stars groups: group names/stars with hostile text stay inert; old flat lists migrate under "Small Stars"', async () => {
+    const evil = ['<img src=x onerror=1>', '__proto__', 'constructor', 'toString', 'x'.repeat(9000)];
+    const rows = evil.map((e, i) => ({ Star: e, 'Small Times': '<b>t' + i + '</b>' }));
+    const w = await boot({ [DK]: JSON.stringify([{ name: 'Quick list', columns: ['Star', 'Small Times'], rows }]) }); clickNav(w, /^Stars$/);
+    if (w.__errs.length) throw new Error(w.__errs[0]); if (w.document.querySelector('#tableBody img, #tableBody b')) throw new Error('injected');
+    if (Object.prototype.polluted !== undefined || ({}).Star !== undefined) throw new Error('pollution');
+    const names = [...w.document.querySelectorAll('.star-box')].map(b => b.textContent); if (names.length !== 5) throw new Error('groups ' + names.length);
+    const w2 = await boot({ [DK]: JSON.stringify([{ name: 'Quick list', columns: ['Small Times'], rows: [{ 'Small Times': 'old1' }, { 'Small Times': 'old2' }] }]) }); clickNav(w2, /^Stars$/);
+    const s = sheetOf(wbOf(w2), 'Quick list'); if (s.rows.some(r => r.Star !== 'Small Stars') || s.rows.length !== 2) throw new Error('migration ' + JSON.stringify(s.rows));
+    if (w2.document.querySelectorAll('.star-group-head-row').length !== 1) throw new Error('one group expected');
   });
   await ta('Functional: Times -> status "Complete" moves row to Completed tasks', async () => {
     const w = await boot(); const g = wbOf(w); const d = sheetOf(g, 'Daily planning - All tasks'); d.rows = [Object.assign(Object.fromEntries(d.columns.map(c => [c, ''])), { Space: 'AA', 'Timeframe/Meeting': 'finish me' })];
@@ -1402,7 +1439,7 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     await doImport(w, JSON.stringify(g)); clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
     let pageScrolls = 0; w.Element.prototype.scrollIntoView = function () { pageScrolls++; };
     let y = 180; Object.defineProperty(w, 'pageYOffset', { get: () => y, configurable: true }); w.scrollTo = () => { y = 0; };
-    const link = [...w.document.querySelectorAll('tr.week-row .week-times-link')].find(l => l.textContent === 'two'); if (!link) throw new Error('no row');
+    const link = [...w.document.querySelectorAll('tr.week-row .week-times-link')].find(l => l.textContent === 'two'); if (!link) throw new Error('no row: ' + w.document.getElementById('pageTitle').textContent + ' | ' + w.document.getElementById('tableBody').textContent.slice(0, 200) + ' | ' + (w.__errs[0] || ''));
     link.click(); await sleep(150);
     if (pageScrolls !== 0) throw new Error('scrollIntoView used ' + pageScrolls + 'x (scrolls the whole page)');
     if (y !== 0) throw new Error('page left scrolled: ' + y);
@@ -1410,6 +1447,12 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
   t('JS: no Element.scrollIntoView calls (they scroll the locked page under the fixed header)', () => !/\.scrollIntoView\s*\(/.test(js));
+
+  await ta('Stars: a stale saved filter on the old flat list cannot hide stars on the grouped page', async () => {
+    const q = { name: 'Quick list', columns: ['Star', 'Small Times'], rows: [{ Star: 'G', 'Small Times': 'one' }, { Star: 'G', 'Small Times': 'two' }] };
+    const w = await boot({ [DK]: JSON.stringify([q]), 'workPlanningFinal.v2.filters': JSON.stringify({ 'Quick list': { 'Small Times': { text: 'zzz', select: '' } } }) });
+    clickNav(w, /^Stars$/); if (w.document.querySelectorAll('.quick-list-row').length !== 2) throw new Error('stars hidden by stale filter');
+  });
 
   console.log(results.join('\n')); console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
 })();

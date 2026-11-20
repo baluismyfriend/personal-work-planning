@@ -854,3 +854,11 @@ The page you last viewed is now remembered by name
 (key workPlanningFinal.v2.selectedSheetName, in addition to the old key).
 The derived "Times" sheet is no longer stored in backups; it is rebuilt
 from the Time page when the app starts. Old backups still import fine.
+
++STARS PAGE (release 2.2)
+  Stars are grouped under "+/-  Star  [group name]" lines (all open at first).
+  "+ Add Star" (top button) creates a new group - type its name first.
+  Inside a group, "+ Add star" adds a star to that group (works for existing groups too).
+  Renaming a group renames all its stars; typing an existing name merges the groups.
+  The round button on a star deletes it (the last star of a group is cleared so the group stays);
+  the round button on a group line deletes the whole group after a confirmation.

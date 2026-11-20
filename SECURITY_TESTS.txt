@@ -59,7 +59,7 @@ PASS  Cell values like "__proto__" appear in the filter dropdown (no silent loss
 PASS  Import: page flood capped (3000 extra pages -> bounded nav)
 PASS  Import: column flood capped (20000 columns -> <=30)
 PASS  Import: duplicate page names collapse to one
-PASS  Import: Quick list with foreign schema is normalised to ["Small Times"]
+PASS  Import: Quick list with foreign schema is normalised to ["Star","Small Times"]
 PASS  Tampered filter value {"text":5,"select":{}} does not break rendering on any page
 PASS  Tampered filter value null does not break rendering on any page
 PASS  Tampered filter value "str" does not break rendering on any page
@@ -79,7 +79,9 @@ PASS  Order button replaces CSV: no CSV button/code; Order toggles the drag hand
 PASS  Summary page survives Space names like __proto__/constructor/toString
 PASS  Exported/stored data contains no code-bearing content types
 PASS  Milestone splitter is not catastrophically slow on pathological input (ReDoS)
-PASS  Functional: add row -> exactly one row added; typed text persists
+PASS  Functional: Stars page - add a group, name it, add stars under it; text persists
+PASS  Stars groups: rename moves all stars, +/- collapses, adding to an existing group, last star keeps group, group delete (confirm/cancel)
+PASS  Stars groups: group names/stars with hostile text stay inert; old flat lists migrate under "Small Stars"
 PASS  Functional: Times -> status "Complete" moves row to Completed tasks
 PASS  Functional: Export JSON -> Import round-trip reproduces identical data
 PASS  Functional: legacy-format backup (old column names) migrates without data loss
@@ -161,7 +163,7 @@ PASS  BackIn/NextIn wrap on NoSpace: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> 
 PASS  BackIn/NextIn wrap: the item shown actually changes (last item shown after BackIn from first)
 PASS  BackIn/NextIn disabled only when there is nothing to move to (0 or 1 items)
 PASS  Finger swipes still stop at the ends (no wraparound); only the buttons wrap
-      (fuzz: 68 imports accepted, 82 rejected)
+      (fuzz: 79 imports accepted, 71 rejected)
 PASS  Fuzz: 150 randomly type-confused/poisoned imports -> no crash, no pollution, storage always reloadable
 PASS  Every image the app ships (logo, icons) is a PNG with only IHDR/PLTE/tRNS/IDAT/IEND chunks (no C2PA/EXIF/text)
 PASS  Shipped images are small (logo <20KB, icons <40KB each)
@@ -179,5 +181,6 @@ PASS  Speed budget (3000 rows): open Time page <1500ms, unchanged blur <50ms, ed
 PASS  Adding a row on a long page scrolls to/focuses the new row (rows are flushed first)
 PASS  Spacetime -> Time jump never scrolls the page itself (action-button row stays visible); page is re-anchored to top
 PASS  JS: no Element.scrollIntoView calls (they scroll the locked page under the fixed header)
+PASS  Stars: a stale saved filter on the old flat list cannot hide stars on the grouped page
 
-180 passed, 0 failed
+183 passed, 0 failed
