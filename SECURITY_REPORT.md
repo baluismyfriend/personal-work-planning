@@ -1,6 +1,6 @@
 # Security report - Lotus
 
-**Latest result (release 2): 178 passed, 0 failed.** Run: `npm i jsdom && node security-tests.js` (from the app folder). Raw output: `SECURITY_TESTS.txt`.
+**Latest result (release 2.1): 180 passed, 0 failed.** Run: `npm i jsdom && node security-tests.js` (from the app folder). Raw output: `SECURITY_TESTS.txt`.
 
 ## Release 2 - what was found and fixed
 
@@ -12,6 +12,7 @@
 | R4 | Low | Time-parsing regex received unbounded text. | Input capped at 40 characters. |
 | R5 | Low | Derived Times sheet was stored and exported (extra attack surface for hostile backups, doubled payload). | Never stored or exported; always rebuilt on load. Hostile Summary in an import is ignored (tested). |
 | R6 | Low | Export URL revoked immediately (Safari may cancel the download). | Revoked after 4 s. |
+| R7 | Bug | Opening a task from Spacetime scrolled the whole (locked) page, pushing the NoSpace/Export/Import row under the fixed header. | All `scrollIntoView` calls replaced by scrolling inside the table card only; page re-anchored to top. Regression tests added. |
 
 Second opinion: ESLint + eslint-plugin-security + eslint-plugin-no-unsanitized found no DOM-injection, eval or URL sinks. Its 150 `detect-object-injection` warnings were reviewed one by one: every map keyed by user text is prototype-less or reads own properties only (false positives).
 

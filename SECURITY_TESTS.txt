@@ -161,7 +161,7 @@ PASS  BackIn/NextIn wrap on NoSpace: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> 
 PASS  BackIn/NextIn wrap: the item shown actually changes (last item shown after BackIn from first)
 PASS  BackIn/NextIn disabled only when there is nothing to move to (0 or 1 items)
 PASS  Finger swipes still stop at the ends (no wraparound); only the buttons wrap
-      (fuzz: 77 imports accepted, 73 rejected)
+      (fuzz: 68 imports accepted, 82 rejected)
 PASS  Fuzz: 150 randomly type-confused/poisoned imports -> no crash, no pollution, storage always reloadable
 PASS  Every image the app ships (logo, icons) is a PNG with only IHDR/PLTE/tRNS/IDAT/IEND chunks (no C2PA/EXIF/text)
 PASS  Shipped images are small (logo <20KB, icons <40KB each)
@@ -177,5 +177,7 @@ PASS  Speed: filter dropdown on a long page fills on first use, keeps the select
 PASS  Speed: page bar buttons are built once (same nodes after navigating) and the highlight follows
 PASS  Speed budget (3000 rows): open Time page <1500ms, unchanged blur <50ms, edit blur <300ms
 PASS  Adding a row on a long page scrolls to/focuses the new row (rows are flushed first)
+PASS  Spacetime -> Time jump never scrolls the page itself (action-button row stays visible); page is re-anchored to top
+PASS  JS: no Element.scrollIntoView calls (they scroll the locked page under the fixed header)
 
-178 passed, 0 failed
+180 passed, 0 failed

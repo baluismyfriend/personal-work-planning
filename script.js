@@ -1514,6 +1514,23 @@
     if (se && (se.scrollTop !== 0 || se.scrollLeft !== 0)) { se.scrollTop = 0; se.scrollLeft = 0; }
   }
 
+  // Scroll ONLY the table card (and the page bar sideways). Element.scrollIntoView also scrolls
+  // the page itself, which pushed the NoSpace/Export/Import row up under the fixed header.
+  function centerInTableScroller(el) {
+    if (!el || !tableScrollerEl) return;
+    var sc = tableScrollerEl;
+    var delta = (el.getBoundingClientRect().top + el.offsetHeight / 2) - (sc.getBoundingClientRect().top + sc.clientHeight / 2);
+    sc.scrollTop = Math.max(0, sc.scrollTop + delta);
+    scrollPageToTop();
+  }
+  function centerActiveNavButton() {
+    var b = document.querySelector(".nav-btn.active");
+    if (b && navEl && navEl.scrollWidth > navEl.clientWidth) {
+      navEl.scrollLeft = Math.max(0, b.offsetLeft - (navEl.clientWidth - b.offsetWidth) / 2);
+    }
+    scrollPageToTop();
+  }
+
   function goToSheetIndex(idx) {
     if (idx < 0 || idx >= workbook.length || idx === selectedSheetIndex) return;
     autoAddToWeekPlanning();
@@ -1527,8 +1544,7 @@
       saveWorkbookSilently();
     }
     renderAll();
-    var activeBtn = document.querySelector(".nav-btn.active");
-    if (activeBtn) activeBtn.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    centerActiveNavButton();
   }
 
   // Swipe left/right anywhere in the main content area steps to the
@@ -2961,13 +2977,12 @@
       }
     }
     renderAll();
-    var activeBtn = document.querySelector(".nav-btn.active");
-    if (activeBtn) activeBtn.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    centerActiveNavButton();
     setTimeout(function () {
       var titles = tableBodyEl.querySelectorAll("tr.summary-space-title");
       for (var i = 0; i < titles.length; i++) {
         if (titles[i].dataset.space === target) {
-          titles[i].scrollIntoView({ behavior: "smooth", block: "center" });
+          centerInTableScroller(titles[i]);
           titles[i].classList.add("row-highlight");
           (function (el) { setTimeout(function () { el.classList.remove("row-highlight"); }, 2200); })(titles[i]);
           break;
@@ -3731,14 +3746,13 @@
     }
 
     renderAll();
-    var activeBtn = document.querySelector(".nav-btn.active");
-    if (activeBtn) activeBtn.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    centerActiveNavButton();
 
     setTimeout(function () {
       flushPendingRows();
       var tr = tableBodyEl.querySelector('tr[data-source-idx="' + dailyRowIdx + '"]');
       if (tr) {
-        tr.scrollIntoView({ behavior: "smooth", block: "center" });
+        centerInTableScroller(tr);
         tr.classList.add("row-highlight");
         setTimeout(function () { tr.classList.remove("row-highlight"); }, 1800);
       }
@@ -3998,7 +4012,7 @@
         }
       }
       if (tr) {
-        tr.scrollIntoView({ behavior: "smooth", block: "center" });
+        centerInTableScroller(tr);
         tr.classList.add("row-highlight");
         setTimeout(function () { tr.classList.remove("row-highlight"); }, 1800);
         // Prefer a text cell: focusing a calendar input would pop its picker open.

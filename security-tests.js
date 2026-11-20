@@ -1394,5 +1394,22 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     if (w.__errs.length) throw new Error(w.__errs[0]); if (wbOf(w).find(s => s.name === 'Daily planning - All tasks').rows.length !== 501) throw new Error('row not added');
   });
 
+  await ta('Spacetime -> Time jump never scrolls the page itself (action-button row stays visible); page is re-anchored to top', async () => {
+    const w = await boot(); w.matchMedia = () => ({ matches: true, addListener() {}, removeListener() {}, addEventListener() {} });
+    const g = wbOf(w); const mk = (sp, n, d) => blankTask({ Space: sp, 'Timeframe/Meeting': n, 'Time Zero on': d });
+    sheetOf(g, 'Daily planning - All tasks').rows = [mk('A', 'one', dayStr(0)), mk('A', 'two', dayStr(0))];
+    sheetOf(g, 'Road Map - Pending').rows = [lifeRow('A', '')];
+    await doImport(w, JSON.stringify(g)); clickNav(w, /^Spacetime$/); w.document.getElementById('btnRefreshWeek').click();
+    let pageScrolls = 0; w.Element.prototype.scrollIntoView = function () { pageScrolls++; };
+    let y = 180; Object.defineProperty(w, 'pageYOffset', { get: () => y, configurable: true }); w.scrollTo = () => { y = 0; };
+    const link = [...w.document.querySelectorAll('tr.week-row .week-times-link')].find(l => l.textContent === 'two'); if (!link) throw new Error('no row');
+    link.click(); await sleep(150);
+    if (pageScrolls !== 0) throw new Error('scrollIntoView used ' + pageScrolls + 'x (scrolls the whole page)');
+    if (y !== 0) throw new Error('page left scrolled: ' + y);
+    if (w.document.getElementById('pageTitle').textContent !== 'Time') throw new Error('not on Time');
+    if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
+  t('JS: no Element.scrollIntoView calls (they scroll the locked page under the fixed header)', () => !/\.scrollIntoView\s*\(/.test(js));
+
   console.log(results.join('\n')); console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
 })();
