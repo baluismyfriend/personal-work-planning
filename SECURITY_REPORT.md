@@ -1,6 +1,6 @@
 # Security report - Lotus
 
-**Latest result (release 2.2): 183 passed, 0 failed.** Run: `npm i jsdom && node security-tests.js` (from the app folder). Raw output: `SECURITY_TESTS.txt`.
+**Latest result (release 2.3): 184 passed, 0 failed.** Run: `npm i jsdom && node security-tests.js` (from the app folder). Raw output: `SECURITY_TESTS.txt`.
 
 ## Release 2 - what was found and fixed
 

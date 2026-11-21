@@ -2691,19 +2691,32 @@
     return tr;
   }
 
-  // iOS only opens the keyboard for focus() inside the tap itself: focus a throwaway field now,
-  // then hand focus to the real box once it has been drawn.
-  function focusAfterRender(findTarget) {
+  // Same hand-off the page's other "add" flow uses. iOS only raises the keyboard for focus()
+  // made synchronously inside the tap, so: (1) focus a throwaway field right now, (2) draw the
+  // new content, (3) once drawn, move focus to the real text box - the keyboard stays up.
+  function addAndFocus(draw, findTarget) {
     var h = document.createElement("input");
-    h.type = "text"; h.tabIndex = -1; h.className = "kb-helper";
+    h.type = "text";
     h.setAttribute("aria-hidden", "true");
+    h.tabIndex = -1;
+    h.className = "kb-helper";
     document.body.appendChild(h);
     h.focus({ preventScroll: true });
+    draw();
     setTimeout(function () {
+      flushPendingRows();
       var t = findTarget();
-      if (t) { t.focus({ preventScroll: true }); centerInTableScroller(t.closest("tr")); }
-      h.remove();
-    }, 0);
+      if (t) {
+        var tr = t.closest("tr");
+        if (tr) {
+          centerInTableScroller(tr);
+          tr.classList.add("row-highlight");
+          setTimeout(function () { tr.classList.remove("row-highlight"); }, 1800);
+        }
+        t.focus({ preventScroll: true });
+      }
+      if (h.parentNode) h.parentNode.removeChild(h);
+    }, 80);
   }
 
   function addStarToGroup(sheet, name) {
@@ -2713,8 +2726,7 @@
     var row = { "Star": name, "Small Times": "" };
     sheet.rows.splice(last + 1, 0, row); // right under the group's last star
     saveWorkbook();
-    renderTable();
-    focusAfterRender(function () {
+    addAndFocus(renderTable, function () {
       var idx = sheet.rows.indexOf(row);
       var tr = tableBodyEl.querySelector('tr[data-source-idx="' + idx + '"]');
       return tr ? tr.querySelector('.cell-editable[data-col="Small Times"]') : null;
@@ -2731,8 +2743,7 @@
       saveWorkbook();
     }
     collapsedStarGroups.delete(""); // an unnamed group is shown open
-    renderTable();
-    focusAfterRender(function () {
+    addAndFocus(renderTable, function () {
       var head = tableBodyEl.querySelector('tr.star-group-head-row[data-star=""]');
       return head ? head.querySelector(".star-box") : null;
     });

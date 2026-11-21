@@ -1454,5 +1454,21 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     clickNav(w, /^Stars$/); if (w.document.querySelectorAll('.quick-list-row').length !== 2) throw new Error('stars hidden by stale filter');
   });
 
+  await ta('Stars: "+ Add star" hands focus to the NEW star text box (keyboard helper first, removed after); "+ Add Star" focuses the group name', async () => {
+    const q = { name: 'Quick list', columns: ['Star', 'Small Times'], rows: [{ Star: 'G1', 'Small Times': 'a' }, { Star: 'G2', 'Small Times': 'b' }] };
+    const w = await boot({ [DK]: JSON.stringify([q]) }); clickNav(w, /^Stars$/);
+    const calls = []; const orig = w.HTMLElement.prototype.focus; w.HTMLElement.prototype.focus = function (o) { calls.push(this); return orig.call(this, o); };
+    w.document.querySelectorAll('.star-add-btn')[0].click();
+    if (!calls.length || !calls[0].classList.contains('kb-helper')) throw new Error('keyboard helper must be focused inside the tap');
+    await sleep(160);
+    const tgt = calls[calls.length - 1]; const rows = sheetOf(wbOf(w), 'Quick list').rows;
+    if (rows.map(r => r.Star).join() !== 'G1,G1,G2') throw new Error('row not under G1: ' + rows.map(r => r.Star));
+    if (!tgt.classList.contains('cell-editable') || tgt.dataset.col !== 'Small Times' || tgt.closest('tr').dataset.sourceIdx !== '1') throw new Error('focus did not go to the new star box');
+    if (w.document.querySelector('.kb-helper')) throw new Error('helper left behind');
+    calls.length = 0; w.document.getElementById('btnAddRowFloating').click(); await sleep(160);
+    const g = calls[calls.length - 1]; if (!g.classList.contains('star-box')) throw new Error('group name not focused');
+    if (w.__errs.length) throw new Error(w.__errs[0]);
+  });
+
   console.log(results.join('\n')); console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
 })();

@@ -182,5 +182,6 @@ PASS  Adding a row on a long page scrolls to/focuses the new row (rows are flush
 PASS  Spacetime -> Time jump never scrolls the page itself (action-button row stays visible); page is re-anchored to top
 PASS  JS: no Element.scrollIntoView calls (they scroll the locked page under the fixed header)
 PASS  Stars: a stale saved filter on the old flat list cannot hide stars on the grouped page
+PASS  Stars: "+ Add star" hands focus to the NEW star text box (keyboard helper first, removed after); "+ Add Star" focuses the group name
 
-183 passed, 0 failed
+184 passed, 0 failed
