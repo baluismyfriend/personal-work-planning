@@ -163,7 +163,7 @@ PASS  BackIn/NextIn wrap on NoSpace: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> 
 PASS  BackIn/NextIn wrap: the item shown actually changes (last item shown after BackIn from first)
 PASS  BackIn/NextIn disabled only when there is nothing to move to (0 or 1 items)
 PASS  Finger swipes still stop at the ends (no wraparound); only the buttons wrap
-      (fuzz: 79 imports accepted, 71 rejected)
+      (fuzz: 74 imports accepted, 76 rejected)
 PASS  Fuzz: 150 randomly type-confused/poisoned imports -> no crash, no pollution, storage always reloadable
 PASS  Every image the app ships (logo, icons) is a PNG with only IHDR/PLTE/tRNS/IDAT/IEND chunks (no C2PA/EXIF/text)
 PASS  Shipped images are small (logo <20KB, icons <40KB each)
@@ -183,5 +183,6 @@ PASS  Spacetime -> Time jump never scrolls the page itself (action-button row st
 PASS  JS: no Element.scrollIntoView calls (they scroll the locked page under the fixed header)
 PASS  Stars: a stale saved filter on the old flat list cannot hide stars on the grouped page
 PASS  Stars: "+ Add star" hands focus to the NEW star text box (keyboard helper first, removed after); "+ Add Star" focuses the group name
+PASS  Add button per page: Spaces "+ Add Space", Time "+ Add Time", Stars "+ Add Star" (group line: "+ Add planet"); hidden on Times and Spacetime
 
-184 passed, 0 failed
+185 passed, 0 failed

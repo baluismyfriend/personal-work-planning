@@ -1777,3 +1777,5 @@ html,body{height:100%;overflow:hidden;}
   .data-table tr.star-add-row{padding:0 !important;margin:0 0 4px !important;}
   .data-table tr.star-add-row > td.star-add-cell{padding:2px 6px 6px 34px !important;width:auto !important;}
 }
+
+.floating-add[hidden]{display:none !important;}

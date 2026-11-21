@@ -1470,5 +1470,13 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
 
+  await ta('Add button per page: Spaces "+ Add Space", Time "+ Add Time", Stars "+ Add Star" (group line: "+ Add planet"); hidden on Times and Spacetime', async () => {
+    const w = await boot(); const b = w.document.getElementById('btnAddRowFloating');
+    const at = (re, label, hidden) => { clickNav(w, re); if (b.textContent !== label || b.hidden !== hidden) throw new Error(re + ': "' + b.textContent + '" hidden=' + b.hidden); };
+    at(/^Spaces$/, '+ Add Space', false); at(/^Time$/, '+ Add Time', false); at(/^Times$/, '+ Add Space', true); at(/^Spacetime$/, '+ Add Space', true);
+    at(/^Stars$/, '+ Add Star', false); const g = w.document.querySelector('.star-add-btn'); if (!g || g.textContent !== '+ Add planet') throw new Error('group button: ' + (g && g.textContent));
+    at(/^Time$/, '+ Add Time', false);
+  });
+
   console.log(results.join('\n')); console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
 })();

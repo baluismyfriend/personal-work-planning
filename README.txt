@@ -858,7 +858,9 @@ from the Time page when the app starts. Old backups still import fine.
 +STARS PAGE (release 2.2)
   Stars are grouped under "+/-  Star  [group name]" lines (all open at first).
   "+ Add Star" (top button) creates a new group - type its name first.
-  Inside a group, "+ Add star" adds a star to that group (works for existing groups too).
+  Inside a group, "+ Add planet" adds a task to that group (works for existing groups too).
   Renaming a group renames all its stars; typing an existing name merges the groups.
   The round button on a star deletes it (the last star of a group is cleared so the group stays);
   the round button on a group line deletes the whole group after a confirmation.
+
+BUTTONS (release 2.4): Time page: "+ Add Time". Times and Spacetime: no add button (they are built automatically).

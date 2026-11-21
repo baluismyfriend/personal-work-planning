@@ -1688,9 +1688,12 @@
     if (tableScrollerEl) tableScrollerEl.classList.toggle("stars-page", isStars);
     var addBtnEl = document.getElementById("btnAddRowFloating");
     if (addBtnEl) {
-      var addLabel = isStars ? "+ Add Star" : "+ Add Space";
+      // Times (Summary) and Spacetime (Week planning) are built automatically: no add button there.
+      addBtnEl.hidden = (sheet.name === "Summary" || sheet.name === "Week planning");
+      var isTime = sheet.name === "Daily planning - All tasks";
+      var addLabel = isStars ? "+ Add Star" : (isTime ? "+ Add Time" : "+ Add Space");
       if (addBtnEl.textContent !== addLabel) addBtnEl.textContent = addLabel;
-      addBtnEl.title = isStars ? "Add a new Star group (add its stars with the + Add star line inside the group)" : "Add Space";
+      addBtnEl.title = isStars ? "Add a new Star group (add its planets with the + Add planet line inside the group)" : (isTime ? "Add Time" : "Add Space");
     }
     var refreshBtnEl = document.getElementById("btnRefreshWeek");
     if (refreshBtnEl) refreshBtnEl.hidden = !isWeek;
@@ -2683,8 +2686,8 @@
     var b = document.createElement("button");
     b.type = "button";
     b.className = "btn star-add-btn";
-    b.textContent = "+ Add star";
-    b.title = "Add a star to this group";
+    b.textContent = "+ Add planet";
+    b.title = "Add a planet to this group";
     b.addEventListener("click", function () { addStarToGroup(sheet, group.name); });
     td.appendChild(b);
     tr.appendChild(td);
@@ -4159,6 +4162,7 @@
       window.alert(shortSheetName(sheet) + " is generated automatically from Daily planning and can't be added to directly.");
       return;
     }
+    if (sheet.name === "Week planning") return; // no add button on Spacetime
     if (sheet.name === "Quick list") { addStarGroup(sheet); return; }
     if (sheet.rows.length >= MAX_ROWS) {
       window.alert("Row limit reached for this sheet.");
