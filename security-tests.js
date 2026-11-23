@@ -647,11 +647,35 @@ const isoOf = str => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(str); return m
     if (d.filter(r => !/dated$/.test(r['Timeframe/Meeting']) || r['Timeframe/Meeting'] === 'nodate').some(r => r['Time Zero on'] !== '')) throw new Error('an undated task got a date');
     if (w.__errs.length) throw new Error(w.__errs[0]);
   });
-  await ta('TimesX7 roll-over: a task is not moved past its Space\'s Life Ends', async () => {
+  await ta('TimesX7 roll-over: a past-due task IS carried to today even when its Space\'s Life Ends has passed (it keeps showing until completed)', async () => {
     const lr = { Space: 'AA', 'Key milestones': '', 'Life began': '', 'Life Ends': dayStr(-2), 'Life span': '' };
-    const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'stuck', 'Time Zero on': dayStr(-3) })], [lr]);
-    w.document.dispatchEvent(new w.Event('visibilitychange')); clickNav(w, /^Spacetime$/); refreshWeek(w);
-    if (sheetOf(wbOf(w), 'Daily planning - All tasks').rows[0]['Time Zero on'] !== dayStr(-3)) throw new Error('moved past Life Ends');
+    const w = await weekBoot([blankTask({ Space: 'AA', 'Timeframe/Meeting': 'stuck', 'Time Zero on': dayStr(-5) })], [lr]);
+    w.document.dispatchEvent(new w.Event('visibilitychange')); clickNav(w, /^Spacetime$/);
+    const col = () => sheetOf(wbOf(w), 'Daily planning - All tasks').rows[0]['Time Zero on'];
+    if (col() !== dayStr(0)) throw new Error('not carried by the automatic sync: ' + col());
+    if (!sheetOf(wbOf(w), 'Week planning').rows.some(r => /stuck/.test(r.Timeframes) && r['Date/Day'].endsWith(dayStr(0)))) throw new Error('no row on today');
+  });
+  await ta('Past-due tasks (5 days back; Space expired / blank / unknown / no Life Ends) all show in today\'s Spacetime list, by the automatic sync AND by Refresh; Demand 99, Complete and future tasks are untouched', async () => {
+    const expired = { Space: 'EX', 'Key milestones': '', 'Life began': '', 'Life Ends': dayStr(-5), 'Life span': '' };
+    const open = { Space: 'OP', 'Key milestones': '', 'Life began': '', 'Life Ends': '', 'Life span': '' };
+    const rows = [
+      blankTask({ Space: 'EX', 'Timeframe/Meeting': 'p-expired', 'Time Zero on': dayStr(-5) }),
+      blankTask({ Space: 'OP', 'Timeframe/Meeting': 'p-open', 'Time Zero on': dayStr(-5) }),
+      blankTask({ Space: '', 'Timeframe/Meeting': 'p-blank', 'Time Zero on': dayStr(-30) }),
+      blankTask({ Space: 'ZZ', 'Timeframe/Meeting': 'p-unknown', 'Time Zero on': dayStr(-1), Timing: 'Hold' }),
+      blankTask({ Space: 'OP', 'Timeframe/Meeting': 'done-one', 'Time Zero on': dayStr(-5), Timing: 'Complete' }),
+      blankTask({ Space: 'OP', Demand: '99', 'Timeframe/Meeting': 'repeat', 'Time Zero on': dayStr(-5) }),
+      blankTask({ Space: 'OP', 'Timeframe/Meeting': 'future', 'Time Zero on': dayStr(3) })];
+    for (const mode of ['auto', 'refresh']) {
+      const w = await weekBoot(rows.map(r => ({ ...r })), [expired, open]);
+      if (mode === 'auto') { w.document.dispatchEvent(new w.Event('visibilitychange')); clickNav(w, /^Spacetime$/); } else { clickNav(w, /^Spacetime$/); refreshWeek(w); }
+      const today = sheetOf(wbOf(w), 'Week planning').rows.filter(r => r['Date/Day'].endsWith(dayStr(0))).map(r => r.Timeframes).join('|');
+      for (const must of ['p-expired', 'p-open', 'p-blank', 'p-unknown']) if (!today.includes(must)) throw new Error(mode + ': ' + must + ' missing from today: ' + today);
+      if (today.includes('done-one') || today.includes('future')) throw new Error(mode + ': wrong task on today: ' + today);
+      const d = sheetOf(wbOf(w), 'Daily planning - All tasks').rows; const byName = n => d.find(r => r['Timeframe/Meeting'] === n);
+      if (byName('done-one')['Time Zero on'] !== dayStr(-5) || byName('future')['Time Zero on'] !== dayStr(3) || byName('repeat')['Time Zero on'] !== dayStr(-5)) throw new Error(mode + ': dates of untouched tasks changed');
+      if (byName('p-expired')['Time Zero on'] !== dayStr(0)) throw new Error(mode + ': date not carried');
+    }
   });
   await ta('TimesX7: a Demand 99 task completed for a day stays gone through Refresh and Export/Import; other days and the Times row stay; Reset brings it back', async () => {
     const w = await weekBoot([blankTask({ Space: 'AA', Demand: '99', 'Timeframe/Meeting': 'Daily', Date: todayStr, 'Time Zero on': dayStr(40) })]);

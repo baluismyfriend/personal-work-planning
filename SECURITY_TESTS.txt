@@ -109,7 +109,8 @@ PASS  Times: Time Zero on cannot go past the Space's Life Ends even for a task s
 PASS  TimesX7: radio sits before the date; clicking it deletes the row here AND its source on Times (Demand not 99)
 PASS  TimesX7 roll-over: pending (non-99) tasks dated before today move to today (Times "Time Zero on" + TimesX7 row, time kept); Demand 99 and future tasks untouched; no previous-day tile
 PASS  TimesX7: tasks with no "Time Zero on" date are never shown or moved (Demand 99 tasks are the exception: they repeat without a date); a row left from when the date existed is removed
-PASS  TimesX7 roll-over: a task is not moved past its Space's Life Ends
+PASS  TimesX7 roll-over: a past-due task IS carried to today even when its Space's Life Ends has passed (it keeps showing until completed)
+PASS  Past-due tasks (5 days back; Space expired / blank / unknown / no Life Ends) all show in today's Spacetime list, by the automatic sync AND by Refresh; Demand 99, Complete and future tasks are untouched
 PASS  TimesX7: a Demand 99 task completed for a day stays gone through Refresh and Export/Import; other days and the Times row stay; Reset brings it back
 PASS  TimesX7: completed-days list is cleaned on import (bad keys dropped, past days forgotten, capped)
 PASS  TimesX7: radio on a Demand 99 task deletes only that day here; the Times row stays and the day does not come back
@@ -163,7 +164,7 @@ PASS  BackIn/NextIn wrap on NoSpace: 1 of 10 -> BackIn = 10 of 10 -> 9 of 10 -> 
 PASS  BackIn/NextIn wrap: the item shown actually changes (last item shown after BackIn from first)
 PASS  BackIn/NextIn disabled only when there is nothing to move to (0 or 1 items)
 PASS  Finger swipes still stop at the ends (no wraparound); only the buttons wrap
-      (fuzz: 74 imports accepted, 76 rejected)
+      (fuzz: 78 imports accepted, 72 rejected)
 PASS  Fuzz: 150 randomly type-confused/poisoned imports -> no crash, no pollution, storage always reloadable
 PASS  Every image the app ships (logo, icons) is a PNG with only IHDR/PLTE/tRNS/IDAT/IEND chunks (no C2PA/EXIF/text)
 PASS  Shipped images are small (logo <20KB, icons <40KB each)
@@ -185,4 +186,4 @@ PASS  Stars: a stale saved filter on the old flat list cannot hide stars on the 
 PASS  Stars: "+ Add star" hands focus to the NEW star text box (keyboard helper first, removed after); "+ Add Star" focuses the group name
 PASS  Add button per page: Spaces "+ Add Space", Time "+ Add Time", Stars "+ Add Star" (group line: "+ Add planet"); hidden on Times and Spacetime
 
-185 passed, 0 failed
+186 passed, 0 failed

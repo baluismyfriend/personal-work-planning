@@ -864,3 +864,9 @@ from the Time page when the app starts. Old backups still import fine.
   the round button on a group line deletes the whole group after a confirmation.
 
 BUTTONS (release 2.4): Time page: "+ Add Time". Times and Spacetime: no add button (they are built automatically).
+
+PAST-DUE TASKS (release 2.5)
+  A task on the Time page whose "Time Zero on" date has passed (and that is not Complete and not
+  Demand 99) is carried to TODAY on Spacetime - by the automatic check and by Refresh - and again
+  every following day until you complete it. This now also applies when the task's Space has
+  already ended (Life Ends in the past).

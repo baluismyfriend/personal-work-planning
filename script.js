@@ -1294,8 +1294,8 @@
     // Roll-over: a task that is not Demand 99 and is still on Times with a
     // date before today was not completed, so it moves to today - its
     // "Time Zero on" becomes today's date and its TimesX7 row (with its
-    // time) moves to today's tile. Demand 99 tasks are left alone, and a
-    // task is not pushed past its Space's Life Ends.
+    // time) moves to today's tile, every day, until it is completed. Demand 99
+    // tasks (they repeat on their own) and Complete tasks are left alone.
     if (daily && Array.isArray(daily.rows)) {
       var todayStrNow = formatLocalMMDDYYYY(now);
       var todayDateDay = formatDateDay(new Date(now.getFullYear(), now.getMonth(), now.getDate()));
@@ -1308,8 +1308,8 @@
         var sText = String(r.Space || "").trim();
         var mText = sanitizeCell((sText && tText) ? (sText + " || " + tText) : (tText || sText), MAX_CELL_LEN).trim();
         if (!mText) return;
-        var lim = lifeEndFor(sText);
-        if (lim && todayMs > lim.ms) return;
+        // (A task is carried to today even when its Space's Life Ends has passed: a past-due
+        // task must keep showing until it is completed.)
         var op = oldKey.split("/");
         var oldDateDay = formatDateDay(new Date(Number(op[2]), Number(op[0]) - 1, Number(op[1])));
         function weekRowFor(dd) {
